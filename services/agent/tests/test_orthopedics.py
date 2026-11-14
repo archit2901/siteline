@@ -171,3 +171,26 @@ def test_changing_the_intake_reroutes_factors() -> None:
     before, after = ortho("Joint replacement (hip, knee, shoulder)"), ortho("Sports medicine")
     assert pack_for(before).id != pack_for(after).id
     assert set(playbooks_for(before)) ^ set(playbooks_for(after)) == {"orthopedics_joint", "orthopedics_sports"}
+
+
+def test_an_office_already_beside_the_covered_schools_explains_a_distant_pick(monkeypatch: pytest.MonkeyPatch) -> None:
+    import services.agent.review as rv
+    from contracts.models import Office
+    near_office = Office(name="Vintage Park", lat=30.0, lon=-95.58)
+    p = ortho("Sports medicine", constraints=C).model_copy(update={"existing_offices": [near_office]})
+    office_cell = rv.h3.latlng_to_cell(30.0, -95.58, 8)
+
+    async def fake(geo, feature, cell):  # noqa: ANN001
+        if feature.startswith("partner_schools_"):
+            return 3.0 if cell == office_cell else 20.0
+        return None
+    monkeypatch.setattr(rv, "_value", fake)
+    factor = Factor(id="covered_schools_drive", factor="Schools you cover", why="", proxy="", direction=-1,
+                    priority="high", feature_id="partner_schools_t", status="found")
+    sites = {"a": site("a", sqft=6000, rent_psf=30, floor=1, parking_spaces=40, available=True)}
+    out = asyncio.run(review(p, pack_for(p), [ranked("a", 900)], sites, [factor], MockGeo(), "patients"))
+    note = next(n for n in out.sites[0].notes if n.perspective == "Payers, referrers and partners")
+    assert "Vintage Park office is already about" in note.finding and note.status == "supports"
+    far = p.model_copy(update={"existing_offices": []})
+    out2 = asyncio.run(review(far, pack_for(far), [ranked("a", 900)], sites, [factor], MockGeo(), "patients"))
+    assert next(n for n in out2.sites[0].notes if n.perspective == "Payers, referrers and partners").status == "risk"

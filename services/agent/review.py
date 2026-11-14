@@ -20,6 +20,7 @@ from services.agent.tools.packs import orthopedic_focus
 
 Status = Literal["supports", "risk", "open", "not_applicable"]
 TRANSFER_RISK = 0.30  # more than 30% of what a site captures coming from your own offices is mostly a move, not growth
+PARTNER_MINUTES = 25  # beyond this a covered school or the OR is a real drive for staff and patients
 STABLE = 0.6  # in the top 10 in at least 60% of the 200 alternative weightings
 
 
@@ -186,22 +187,36 @@ async def notes_for(site: SiteCandidate, r: RankedSite, profile: PracticeProfile
     parts, refs = [], [f"feature:n_primary_care_within_5km@{cell}"]
     if pcp is not None:
         parts.append(f"{pcp:.0f} primary care clinicians within 5 km (referral base)")
+    far, served = False, ""
     for f in factors:
         if f.feature_id and f.feature_id.startswith(("partner_schools_", "partner_hospitals_")):
             km = await _value(geo, f.feature_id, cell)
-            if km is not None:
-                what = "the nearest school you cover" if "schools" in f.feature_id else "where your surgeons operate"
-                parts.append(f"about {_minutes(km):.0f} min by car to {what} ({km:.1f} km straight line)")
-                refs.append(f"feature:{f.feature_id}@{cell}")
+            if km is None:
+                continue
+            schools = "schools" in f.feature_id
+            what = "the nearest school you cover" if schools else "where your surgeons operate"
+            parts.append(f"about {_minutes(km):.0f} min by car to {what} ({km:.1f} km straight line)")
+            refs.append(f"feature:{f.feature_id}@{cell}")
+            far = far or _minutes(km) > PARTNER_MINUTES
+            if schools:  # an office already beside the schools serves them; a new site there mostly moves patients
+                for o in profile.existing_offices:
+                    if o.lat is None or o.lon is None:
+                        continue
+                    ocell = h3.latlng_to_cell(o.lat, o.lon, 8)
+                    okm = await _value(geo, f.feature_id, ocell)
+                    if okm is not None and okm < km:
+                        served = (f" Your {o.name} office is already about {_minutes(okm):.0f} min from those schools, so "
+                                  "their athletes are served; this site adds patients elsewhere instead of moving them.")
+                        refs.append(f"feature:{f.feature_id}@{ocell}")
+                        break
     ortho = await _value(geo, "n_orthopedics_within_10km", cell)
     if ortho is not None:
         parts.append(f"{ortho:.0f} orthopedic clinicians within 10 km (competitors unless a referral relationship is documented)")
         refs.append(f"feature:n_orthopedics_within_10km@{cell}")
-    far = any("min by car" in p and float(p.split("about ")[1].split(" min")[0]) > 25 for p in parts)
     notes.append(Note(perspective="Payers, referrers and partners",
                       question="Who sends patients here, and is the nearby provider a competitor or a partner?",
-                      finding=("; ".join(parts) + ".") if parts else "No referral or partner data at this site.",
-                      status="risk" if far else "supports", evidence=refs))
+                      finding=(("; ".join(parts) + ".") if parts else "No referral or partner data at this site.") + served,
+                      status="risk" if far and not served else "supports", evidence=refs))
 
     # Property and implementation
     unknown = [q.name.lower() for q in reqs if q.status == "unknown"]
@@ -236,7 +251,8 @@ async def review(profile: PracticeProfile, pack: StockPack, ranked: list[RankedS
         reviews.append(SiteReview(site_id=r.site_id, address=site.address, rank=i, status=status_of(reqs), requirements=reqs,
                                   notes=await notes_for(site, r, profile, pack, factors, geo, label, reqs)))
     objective = f"Most net-new {label} a year across your offices (new site's gain minus what your offices lose)."
-    baseline = (f"Your {len(profile.existing_offices)} current offices with no new site."
+    n = len(profile.existing_offices)
+    baseline = (f"Your {'current office' if n == 1 else f'{n} current offices'} with no new site."
                 if profile.existing_offices else "No current office: every patient a site captures is new.")
     if not reviews:
         return Review(objective=objective, baseline=baseline, decision="No eligible listed space; use the regional shortlist.",

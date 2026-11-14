@@ -293,10 +293,10 @@
       ],
       "existing_offices": [
         {
-          "name": "Vintage Park (synthetic)",
+          "name": "Galleria (synthetic)",
           "address": "",
-          "lat": 29.995,
-          "lon": -95.585,
+          "lat": 29.739,
+          "lon": -95.463,
           "clinicians": 3
         }
       ],
