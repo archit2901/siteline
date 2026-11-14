@@ -1,5 +1,5 @@
 // RunEvent stream -> UI state. Payload conventions: services/agent/CLAUDE.md ("Events").
-import type { ApprovalRequest, Factor, Report, RunEvent, ScoreResponse } from '../types/contracts'
+import type { ApprovalRequest, Factor, RescoreResponse, Report, RunEvent, ScoreResponse } from '../types/contracts'
 
 export type TodoStatus = 'pending' | 'in_progress' | 'completed'
 export interface Todo {
@@ -27,6 +27,16 @@ export interface TraceLine {
 
 export type RunStatus = 'idle' | 'running' | 'waiting' | 'done' | 'error'
 
+/** LLM usage snapshot (UsageMeter.snapshot()) carried on some event payloads. */
+export interface Usage {
+  calls: number
+  cache_hits: number
+  input_tokens: number
+  output_tokens: number
+  cost_usd: number
+  budget?: number
+}
+
 export interface RunState {
   runId: string | null
   status: RunStatus
@@ -42,6 +52,11 @@ export interface RunState {
   zones: ScoreResponse | null
   report: Report | null
   error: string | null
+  usage: Usage | null
+  /** business-profiler's summary line, shown until the report carries the full DemandModel */
+  profileSummary: string | null
+  startedAt: string | null
+  lastAt: string | null
 }
 
 export type RunAction =
@@ -50,6 +65,7 @@ export type RunAction =
   | { type: 'artifact'; name: 'zones.json'; data: ScoreResponse }
   | { type: 'artifact'; name: 'report.json'; data: Report }
   | { type: 'approvalAnswered'; approvalId: string }
+  | { type: 'rescored'; data: RescoreResponse }
   | { type: 'reset' }
 
 export const initialRunState: RunState = {
@@ -67,6 +83,10 @@ export const initialRunState: RunState = {
   zones: null,
   report: null,
   error: null,
+  usage: null,
+  profileSummary: null,
+  startedAt: null,
+  lastAt: null,
 }
 
 const SCOUT_DONE: ScoutStatus[] = ['found', 'proxy', 'dropped']
@@ -84,9 +104,11 @@ function upsertScout(state: RunState, factorId: string, change: (s: Scout) => Sc
   }
 }
 
-function applyEvent(state: RunState, event: RunEvent): RunState {
+function applyEvent(prev: RunState, event: RunEvent): RunState {
   const payload = (event.payload ?? {}) as Record<string, unknown>
   const factorId = typeof payload.factor_id === 'string' ? payload.factor_id : undefined
+  const usage = payload.usage && typeof payload.usage === 'object' ? (payload.usage as Usage) : prev.usage
+  const state: RunState = { ...prev, usage, startedAt: prev.startedAt ?? event.ts, lastAt: event.ts }
 
   switch (event.type) {
     case 'todo':
@@ -114,6 +136,7 @@ function applyEvent(state: RunState, event: RunEvent): RunState {
       const text = isCall ? describeArgs(payload.args) : str(payload.summary)
       const line: TraceLine = { seq: event.seq, agent: event.agent, kind: isCall ? 'call' : 'result', tool, text, ok, factorId }
       let next: RunState = { ...state, trace: [...state.trace, line] }
+      if (!isCall && tool === 'profile_business' && text) next = { ...next, profileSummary: text }
       if (factorId && event.agent.startsWith('dataset-scout')) {
         next = upsertScout(next, factorId, (s) => {
           if (SCOUT_DONE.includes(s.status)) return s
@@ -163,6 +186,9 @@ export function runReducer(state: RunState, action: RunAction): RunState {
     case 'approvalAnswered':
       if (state.approval?.approval_id !== action.approvalId) return state
       return { ...state, approval: null, status: state.status === 'waiting' ? 'running' : state.status }
+    case 'rescored':
+      // New weights re-rank the same spaces; claims are rebuilt server-side from stored values (no model call).
+      return { ...state, zones: action.data.zones, report: state.report ? { ...state.report, recommendations: action.data.recommendations } : state.report }
     case 'reset':
       return initialRunState
   }
