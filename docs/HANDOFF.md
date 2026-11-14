@@ -299,8 +299,13 @@ center and an orthopedic group share no customers or competitors; Dr. Deshmukh's
 the profiler picks renter households, a scout pulls competing laundromats from OpenStreetMap, approval · 0:45 switch
 to the orthopedic group's golden run (Dr. Deshmukh's practice: a scout finds CDC PLACES arthritis; different factors,
 different map) · 1:05 real CoStar top 10: customers won, rent per customer, floor, parking, Matterport link, cited
-reasons; drag a weight slider · 1:35 Dr. Deshmukh's reaction · 1:50 vision: every US metro. Per judge: CoStar → result cards and Matterport; Peri → SOS and Jacksonville; LangChain → LangSmith trace
-of parallel scouts; Amazon → Nova on Bedrock + EC2.
+reasons; click a site: its flyer, catchment ring and sourced claims · 1:35 Dr. Deshmukh's reaction · 1:50 vision: every US
+metro. Per judge: CoStar → ranked spaces, flyer and Matterport tour; Peri → Dr. Deshmukh's practice (SOS) as the
+customer story; LangChain → the Trace button opens the run's LangSmith trace (parallel scouts); Amazon → every step
+runs on Nova through Bedrock, and the run meter shows model calls, tokens and cost (no AWS keys in code). Safety net:
+Recorded run replays a saved live run with the same approvals; Offline demo needs no server.
+(Nov 14: no EC2 — the hackathon AWS account allows Bedrock only, so the demo runs on a laptop; Jacksonville is not
+built; weight sliders are later — add "drag a weight slider" back at 1:05 if they ship.)
 
 ## 13. Open questions
 - Which Nova model is the strongest available on the account (for MODEL_SMART)?

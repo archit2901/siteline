@@ -100,4 +100,5 @@ center and an orthopedic group share no customers or competitors; Dr. Deshmukh's
 the profiler picks renter households, a scout pulls competing laundromats from OpenStreetMap, approval · 0:45 switch
 to the orthopedic group's golden run (Dr. Deshmukh's practice: a scout finds CDC PLACES arthritis; different factors,
 different map) · 1:05 real CoStar top 10: customers won, rent per customer, floor, parking, Matterport link, cited
-reasons; drag a weight slider · 1:35 Dr. Deshmukh's reaction · 1:50 vision: every US metro.
+reasons; click a site: its flyer, catchment ring and sourced claims · 1:35 Dr. Deshmukh's reaction · 1:50 vision:
+every US metro.

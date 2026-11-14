@@ -2,17 +2,19 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { AGENT_URL, approve, createRun, listGolden, loadRunArtifact } from './api/client'
 import { FIXTURE_BASE, loadFixtureEvents, startReplay, type Replay } from './api/replay'
 import { subscribeToRun, type Subscription } from './api/sse'
-import ApprovalModal from './components/ApprovalModal'
+import ApprovalPanel from './components/ApprovalModal'
 import FactorList from './components/FactorList'
-import IntakeForm, { PRESETS, type Preset } from './components/IntakeForm'
+import Icon, { Mark } from './components/Icon'
+import IntakeForm, { PRESETS, type Preset, type Source } from './components/IntakeForm'
 import MapView, { type GridCell } from './components/MapView'
-import Plan from './components/Plan'
-import SiteCards from './components/SiteCards'
+import { BusinessProfile, ReportNotes } from './components/Profile'
+import RunLine, { BRANCH_COLORS } from './components/RunLine'
+import { ResultsTable, SiteFlyer } from './components/SiteCards'
 import { initialRunState, runReducer, type RunStatus } from './state/runReducer'
 import type { PracticeProfile } from './types/contracts'
 
-const DEFAULT_MODE: Mode = (import.meta.env.VITE_FIXTURE_MODE ?? '1') === '1' ? 'fixture' : 'live'
-type Mode = 'fixture' | 'live'
+const DEFAULT_SOURCE: Source = (import.meta.env.VITE_FIXTURE_MODE ?? '1') === '1' ? 'offline' : 'live'
+const LANGSMITH_URL = import.meta.env.VITE_LANGSMITH_URL as string | undefined
 
 const STATUS_TEXT: Record<RunStatus, string> = {
   idle: 'Ready',
@@ -21,6 +23,9 @@ const STATUS_TEXT: Record<RunStatus, string> = {
   done: 'Done',
   error: 'Stopped',
 }
+const SOURCE_TEXT: Record<Source, string> = { live: 'Live agent', recorded: 'Recorded run', offline: 'Offline demo' }
+
+type Tab = 'site' | 'factors' | 'sources'
 
 export default function App() {
   const [state, dispatch] = useReducer(runReducer, initialRunState)
@@ -29,12 +34,12 @@ export default function App() {
   const [preset, setPreset] = useState<Preset>(PRESETS[0])
   const [profile, setProfile] = useState<PracticeProfile>(PRESETS[0].profile)
   const [selectedSite, setSelectedSite] = useState<string | null>(null)
-  const [mode, setMode] = useState<Mode>(DEFAULT_MODE)
+  const [source, setSource] = useState<Source>(DEFAULT_SOURCE)
   const [golden, setGolden] = useState<string[]>([])
-  const [replaying, setReplaying] = useState(false)
+  const [tab, setTab] = useState<Tab>('site')
+  const [userPicked, setUserPicked] = useState(false)
   const replay = useRef<Replay | null>(null)
   const live = useRef<Subscription | null>(null)
-  const fixtureMode = mode === 'fixture'
 
   useEffect(() => {
     fetch(`${FIXTURE_BASE}/grid.json`)
@@ -44,29 +49,38 @@ export default function App() {
       })
       .then(setGrid)
       .catch((e: Error) => setLoadError(e.message))
+    listGolden().then(setGolden)
     return () => {
       replay.current?.stop()
       live.current?.close()
     }
   }, [])
 
-  useEffect(() => {
-    if (!fixtureMode) listGolden().then(setGolden)
-  }, [fixtureMode])
+  const recordedAvailable = golden.includes(preset.id)
 
-  const start = useCallback(async (recorded?: string) => {
+  const choosePreset = useCallback(
+    (p: Preset) => {
+      setPreset(p)
+      setProfile(p.profile)
+      if (source === 'recorded' && !golden.includes(p.id)) setSource('live')
+    },
+    [source, golden],
+  )
+
+  const start = useCallback(async () => {
     replay.current?.stop()
     live.current?.close()
     setSelectedSite(null)
+    setUserPicked(false)
     setLoadError(null)
-    setReplaying(Boolean(recorded))
+    setTab('site')
     try {
-      if (fixtureMode) {
+      if (source === 'offline') {
         const events = await loadFixtureEvents()
-        replay.current = startReplay(events, dispatch, { runId: 'fixture-replay' })
+        replay.current = startReplay(events, dispatch, { runId: 'offline-demo' })
         return
       }
-      const { run_id: runId } = await createRun(profile, recorded)
+      const { run_id: runId } = await createRun(profile, source === 'recorded' ? preset.id : undefined)
       dispatch({ type: 'start', runId })
       live.current = subscribeToRun(
         runId,
@@ -82,15 +96,15 @@ export default function App() {
         setLoadError,
       )
     } catch (e) {
-      setLoadError((e as Error).message)
+      setLoadError(source === 'offline' ? (e as Error).message : `Could not reach the agent at ${AGENT_URL}. Is agent-api running? (${(e as Error).message})`)
     }
-  }, [fixtureMode, profile])
+  }, [source, profile, preset.id])
 
   const answerApproval = useCallback(
     async (decision: 'approve' | 'reject') => {
       const approval = state.approval
       if (!approval) return
-      if (fixtureMode) {
+      if (source === 'offline') {
         replay.current?.answer(approval.approval_id)
         return
       }
@@ -101,7 +115,7 @@ export default function App() {
         setLoadError((e as Error).message)
       }
     },
-    [fixtureMode, state.approval, state.runId],
+    [source, state.approval, state.runId],
   )
 
   const reset = useCallback(() => {
@@ -110,6 +124,7 @@ export default function App() {
     live.current?.close()
     live.current = null
     setSelectedSite(null)
+    setUserPicked(false)
     setLoadError(null)
     dispatch({ type: 'reset' })
   }, [])
@@ -121,93 +136,194 @@ export default function App() {
     return labels
   }, [factors, state.report])
   const scouts = useMemo(() => state.scoutOrder.map((id) => state.scouts[id]), [state.scoutOrder, state.scouts])
-  const sites = state.report?.recommendations ?? []
-  const practiceName = state.report?.profile.name ?? (state.status === 'idle' ? null : fixtureMode ? 'Recorded run' : profile.name)
+  const report = state.report
+  const sites = report?.recommendations ?? []
+
+  // Open the top-ranked space's flyer when the report lands.
+  useEffect(() => {
+    if (report?.recommendations.length) setSelectedSite((cur) => cur ?? report.recommendations[0].site.id)
+  }, [report])
+
+  const selectedRec = sites.find((r) => r.site.id === selectedSite)
+  const selectSite = useCallback((id: string) => {
+    setSelectedSite(id)
+    setUserPicked(true)
+    setTab('site')
+  }, [])
+  const scoutColors = useMemo(
+    () => Object.fromEntries(state.scoutOrder.map((id, k) => [id, BRANCH_COLORS[k % BRANCH_COLORS.length]])),
+    [state.scoutOrder],
+  )
+
+  const idle = state.status === 'idle'
+  const businessName = report?.profile.name ?? (idle ? null : source === 'offline' ? 'Offline demo' : profile.name)
+  const businessKind = report?.profile.business_type || report?.profile.specialty?.replace('_', ' ') || (idle ? '' : profile.business_type || profile.specialty?.replace('_', ' '))
+  const elapsed = state.startedAt && state.lastAt ? Math.max(0, (Date.parse(state.lastAt) - Date.parse(state.startedAt)) / 1000) : null
+  const u = state.usage
 
   return (
     <div className="app">
-      <header className="header">
+      <header className="bar">
         <div className="wordmark">
-          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
-            <path d="M16 2l12 7v14l-12 7-12-7V9z" fill="#1F5866" />
-            <path d="M16 9l6 3.5v7L16 23l-6-3.5v-7z" fill="#E39B2D" />
-          </svg>
+          <Mark />
           Siteline
         </div>
-        {practiceName && <span className="practice">{practiceName}</span>}
+        {businessName && (
+          <div className="business">
+            <b>{businessName}</b>
+            <span>{[businessKind, report?.demand_label && report.demand_label !== 'patients' ? `counting ${report.demand_label}` : null].filter(Boolean).join(', ')}</span>
+          </div>
+        )}
         <span className="spacer" />
-        {state.status === 'idle' ? (
-          <div className="modes" role="group" aria-label="Data source">
-            <button className="button" aria-pressed={fixtureMode} onClick={() => setMode('fixture')}>
-              Recorded run
-            </button>
-            <button className="button" aria-pressed={!fixtureMode} onClick={() => setMode('live')}>
-              Live agent
-            </button>
+        {u && (
+          <div className="meter" aria-label="Model usage for this run">
+            <div>
+              <b>{u.calls}</b>model calls
+            </div>
+            <div>
+              <b>{u.cache_hits}</b>cached
+            </div>
+            <div className="wide">
+              <b>{(u.input_tokens + u.output_tokens).toLocaleString('en-US')}</b>tokens
+            </div>
+            <div>
+              <b>${u.cost_usd.toFixed(3)}</b>cost
+            </div>
+            {elapsed != null && (
+              <div className="wide">
+                <b>{Math.round(elapsed)} s</b>time
+              </div>
+            )}
+          </div>
+        )}
+        {idle ? (
+          <div className="segmented" role="group" aria-label="Run source">
+            {(['live', 'recorded', 'offline'] as Source[]).map((s) => (
+              <button
+                key={s}
+                aria-pressed={source === s}
+                disabled={s === 'recorded' && !recordedAvailable}
+                title={s === 'recorded' && !recordedAvailable ? 'No recorded run of this example on the server' : undefined}
+                onClick={() => setSource(s)}
+              >
+                {SOURCE_TEXT[s]}
+              </button>
+            ))}
           </div>
         ) : (
-          <span className="mode">{fixtureMode || replaying ? 'Recorded run' : 'Live agent'}</span>
+          <span className="chip">{SOURCE_TEXT[source]}</span>
         )}
         <span className="status" data-state={state.status} role="status">
           <span className="dot" />
           {STATUS_TEXT[state.status]}
         </span>
-        {state.status !== 'idle' && (
+        {state.status === 'done' && source !== 'offline' && LANGSMITH_URL && (
+          <a className="button" href={LANGSMITH_URL} target="_blank" rel="noreferrer" title="Open this project's runs in LangSmith">
+            <Icon name="trace" />
+            Trace
+          </a>
+        )}
+        {!idle && (
           <button className="button" onClick={reset}>
+            <Icon name="back" />
             New search
           </button>
         )}
       </header>
 
-      <main className="main">
-        <aside className="panel left">
-          {state.status === 'idle' ? (
+      <main className={`main${report ? ' done' : ''}`}>
+        <aside className="panel left" aria-label={idle ? 'Describe the business' : 'The run'}>
+          {idle ? (
             <IntakeForm
               profile={profile}
               presetId={preset.id}
-              fixtureMode={fixtureMode}
-              onPreset={(p) => {
-                setPreset(p)
-                setProfile(p.profile)
-              }}
+              source={source}
+              recordedIds={golden}
+              onPreset={choosePreset}
               onChange={setProfile}
-              onSubmit={() => start()}
-              onReplay={!fixtureMode && golden.includes(preset.id) ? () => start(preset.id) : undefined}
+              onSubmit={start}
             />
           ) : (
-            <Plan todos={state.todos} scouts={scouts} factors={state.factors} trace={state.trace} />
+            <RunLine
+              todos={state.todos}
+              scouts={scouts}
+              factors={state.factors}
+              trace={state.trace}
+              status={state.status}
+              profileSummary={state.profileSummary}
+              result={report && state.status === 'done' ? { count: report.recommendations.length, verified: Boolean(report.verified) } : null}
+            />
           )}
         </aside>
 
-        <section className="mapwrap">
-          {(loadError || state.error) && <p className="banner">{loadError ?? state.error}</p>}
-          <MapView
-            grid={grid}
-            zones={state.zones}
-            sites={sites}
-            featureLabels={featureLabels}
-            selectedSiteId={selectedSite}
-            onSelectSite={setSelectedSite}
-          />
-          {state.report && (
-            <SiteCards report={state.report} featureLabels={featureLabels} selectedSiteId={selectedSite} onSelect={setSelectedSite} />
-          )}
+        <section className={`center${report ? ' with-results' : ''}`}>
+          <div className="mapwrap">
+            {(loadError || state.error) && <p className="banner">{loadError ?? state.error}</p>}
+            <MapView
+              grid={grid}
+              zones={state.zones}
+              sites={sites}
+              featureLabels={featureLabels}
+              selectedSiteId={selectedSite}
+              onSelectSite={selectSite}
+              demandLabel={report?.demand_label}
+              trip={report?.demand?.trip ?? null}
+              focusSelection={userPicked}
+            />
+            {state.approval && (
+              <ApprovalPanel
+                approval={state.approval}
+                featureLabels={featureLabels}
+                readOnly={source !== 'live'}
+                recorded={source === 'recorded'}
+                onApprove={() => answerApproval('approve')}
+                onReject={() => answerApproval('reject')}
+              />
+            )}
+          </div>
+          {report && <ResultsTable report={report} selectedSiteId={selectedSite} onSelect={selectSite} />}
         </section>
 
-        <aside className="panel right">
-          <FactorList factors={factors} report={state.report} />
+        <aside className="panel right" aria-label="Details">
+          {idle ? (
+            <div className="tabpanel route-preview">
+              <RunLine todos={[]} scouts={[]} factors={{}} trace={[]} status="idle" profileSummary={null} />
+            </div>
+          ) : report ? (
+            <>
+              <div className="tabs" role="tablist" aria-label="Details">
+                {(
+                  [
+                    ['site', 'Space'],
+                    ['factors', 'Factors'],
+                    ['sources', 'Sources and caveats'],
+                  ] as [Tab, string][]
+                ).map(([id, label]) => (
+                  <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
+                    {label}
+                    {id === 'factors' && <span className="count">{factors.length || report.factors.length}</span>}
+                  </button>
+                ))}
+              </div>
+              <div className="tabpanel" role="tabpanel">
+                {tab === 'site' && <SiteFlyer report={report} rec={selectedRec} featureLabels={featureLabels} onSelect={selectSite} />}
+                {tab === 'factors' && (
+                  <>
+                    <BusinessProfile report={report} summary={state.profileSummary} />
+                    <FactorList factors={factors.length ? factors : report.factors} report={report} scoutColors={scoutColors} />
+                  </>
+                )}
+                {tab === 'sources' && <ReportNotes report={report} featureLabels={featureLabels} />}
+              </div>
+            </>
+          ) : (
+            <div className="tabpanel">
+              <BusinessProfile report={null} summary={state.profileSummary} />
+              <FactorList factors={factors} report={null} scoutColors={scoutColors} />
+            </div>
+          )}
         </aside>
       </main>
-
-      {state.approval && (
-        <ApprovalModal
-          approval={state.approval}
-          featureLabels={featureLabels}
-          readOnly={fixtureMode}
-          onApprove={() => answerApproval('approve')}
-          onReject={() => answerApproval('reject')}
-        />
-      )}
     </div>
   )
 }

@@ -3,7 +3,7 @@ import { H3HexagonLayer } from '@deck.gl/geo-layers'
 import { ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import type { PickingInfo } from '@deck.gl/core'
 import * as maplibregl from 'maplibre-gl'
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { esc } from '../lib/safe'
 import type { Recommendation, ScoreResponse } from '../types/contracts'
 
@@ -20,20 +20,30 @@ type Zone = ScoreResponse['zones'][number]
 type RGB = [number, number, number]
 
 const BASEMAP = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
-const RAMP: RGB[] = [
-  [0xee, 0xf2, 0xdf],
-  [0xa9, 0xcf, 0xa4],
-  [0x4e, 0x9a, 0x84],
-  [0x1f, 0x58, 0x66],
+// Fit for this business (route green) vs. population before a score exists (neutral map gray).
+const FIT_RAMP: RGB[] = [
+  [0xe9, 0xf4, 0xf0],
+  [0x7c, 0xc2, 0xae],
+  [0x0e, 0x7c, 0x66],
+  [0x06, 0x4d, 0x3f],
 ]
-const AMBER: RGB = [0xe3, 0x9b, 0x2d]
-const INK: RGB = [0x1c, 0x27, 0x33]
+const POP_RAMP: RGB[] = [
+  [0xf1, 0xf0, 0xeb],
+  [0xc9, 0xc6, 0xbb],
+  [0x8b, 0x88, 0x80],
+  [0x4a, 0x48, 0x42],
+]
+const PICK: RGB = [0xf2, 0xb7, 0x05]
+const INK: RGB = [0x15, 0x17, 0x1c]
+// Huff catchment by trip type: straight-line km reached in the trip's minutes at 35 mph with a 1.3 detour factor.
+const TRIP_MINUTES: Record<string, number> = { neighborhood: 10, local: 20, destination: 30 }
+const kmForMinutes = (m: number) => (m / 60) * 35 * 1.609 / 1.3
 
-function ramp(t: number): RGB {
-  const x = Math.min(1, Math.max(0, t)) * (RAMP.length - 1)
-  const i = Math.min(RAMP.length - 2, Math.floor(x))
+function ramp(stops: RGB[], t: number): RGB {
+  const x = Math.min(1, Math.max(0, t)) * (stops.length - 1)
+  const i = Math.min(stops.length - 2, Math.floor(x))
   const f = x - i
-  return [0, 1, 2].map((k) => Math.round(RAMP[i][k] + (RAMP[i + 1][k] - RAMP[i][k]) * f)) as RGB
+  return [0, 1, 2].map((k) => Math.round(stops[i][k] + (stops[i + 1][k] - stops[i][k]) * f)) as RGB
 }
 
 /** Percentile rank in [0, 1] for each value (missing -> null). */
@@ -57,9 +67,13 @@ interface Props {
   featureLabels: Record<string, string>
   selectedSiteId: string | null
   onSelectSite: (id: string) => void
+  demandLabel?: string
+  trip?: string | null
+  /** Fly to the selected site (after the user picks one); otherwise frame every ranked site. */
+  focusSelection?: boolean
 }
 
-export default function MapView({ grid, zones, sites, featureLabels, selectedSiteId, onSelectSite }: Props) {
+export default function MapView({ grid, zones, sites, featureLabels, selectedSiteId, onSelectSite, demandLabel, trip, focusSelection = false }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const overlay = useRef<MapboxOverlay | null>(null)
@@ -94,6 +108,13 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
   }, [zones])
   const zoneByCell = useMemo(() => new Map((zones?.zones ?? []).map((z) => [z.h3, z])), [zones])
   const topCells = useMemo(() => zones?.top ?? [], [zones])
+  // Marker radius grows with customers won (area-proportional), so the map ranks before the list is read.
+  const maxWon = useMemo(() => Math.max(1, ...sites.map((r) => r.net_new_patients)), [sites])
+  const radius = useCallback((r: Recommendation) => 9 + 13 * Math.sqrt(Math.max(0, r.net_new_patients) / maxWon), [maxWon])
+  const selected = sites.find((r) => r.site.id === selectedSiteId)
+  // Draw the selected site last so it sits on top of its neighbours.
+  const drawOrder = useMemo(() => [...sites].sort((a, b) => Number(a.site.id === selectedSiteId) - Number(b.site.id === selectedSiteId)), [sites, selectedSiteId])
+  const catchmentKm = trip ? kmForMinutes(TRIP_MINUTES[trip] ?? 30) : null
 
   useEffect(() => {
     const o = overlay.current
@@ -106,7 +127,9 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
         getHexagon: (d) => d.h3,
         getFillColor: (d) => {
           const t = scorePct ? scorePct.get(d.h3) ?? 0 : densityPct[cellIndex.get(d.h3) ?? 0] ?? 0
-          return [...ramp(t), 170]
+          // Paper stays paper: the lower half fades out, only stronger cells take color.
+          if (scorePct) return t < 0.45 ? [0, 0, 0, 0] : [...ramp(FIT_RAMP, (t - 0.45) / 0.55), Math.round(70 + 150 * ((t - 0.45) / 0.55))]
+          return t < 0.3 ? [0, 0, 0, 0] : [...ramp(POP_RAMP, (t - 0.3) / 0.7), Math.round(40 + 90 * ((t - 0.3) / 0.7))]
         },
         stroked: false,
         extruded: false,
@@ -120,56 +143,75 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
         getHexagon: (d) => d,
         filled: false,
         stroked: true,
-        getLineColor: [...AMBER, 255],
-        lineWidthMinPixels: 2.5,
+        getLineColor: [...INK, 255],
+        lineWidthMinPixels: 2,
+      }),
+      new ScatterplotLayer<Recommendation>({
+        id: 'catchment',
+        data: selected && catchmentKm ? [selected] : [],
+        getPosition: (d) => [d.site.lon, d.site.lat],
+        getRadius: (catchmentKm ?? 0) * 1000,
+        radiusUnits: 'meters',
+        filled: true,
+        getFillColor: [255, 255, 255, 46],
+        stroked: true,
+        getLineColor: [...INK, 230],
+        lineWidthMinPixels: 2,
+        updateTriggers: { getRadius: catchmentKm },
       }),
       new ScatterplotLayer<Recommendation>({
         id: 'sites',
-        data: sites,
+        data: drawOrder,
         getPosition: (d) => [d.site.lon, d.site.lat],
-        getRadius: (d) => (d.site.id === selectedSiteId ? 15 : 11),
+        getRadius: (d) => radius(d) + (d.site.id === selectedSiteId ? 3 : 0),
         radiusUnits: 'pixels',
-        getFillColor: (d) => (d.site.id === selectedSiteId ? [...AMBER, 255] : [...INK, 255]),
-        getLineColor: [255, 255, 255, 255],
-        lineWidthMinPixels: 2,
+        getFillColor: (d) => (d.site.id === selectedSiteId ? [...PICK, 255] : [...INK, 255]),
+        getLineColor: (d) => (d.site.id === selectedSiteId ? [...INK, 255] : [255, 255, 255, 255]),
+        lineWidthMinPixels: 2.5,
         stroked: true,
         pickable: true,
         onClick: (info) => info.object && onSelectSite(info.object.site.id),
-        updateTriggers: { getRadius: selectedSiteId, getFillColor: selectedSiteId },
+        updateTriggers: { getRadius: [selectedSiteId, radius], getFillColor: selectedSiteId, getLineColor: selectedSiteId },
       }),
       new TextLayer<Recommendation>({
         id: 'site-ranks',
-        data: sites,
+        data: drawOrder,
         getPosition: (d) => [d.site.lon, d.site.lat],
         getText: (d) => String(d.rank),
-        getSize: 13,
-        getColor: [255, 255, 255, 255],
-        fontFamily: 'Atkinson Hyperlegible, sans-serif',
-        fontWeight: 700,
+        getSize: (d) => (radius(d) > 14 ? 15 : 12),
+        getColor: (d) => (d.site.id === selectedSiteId ? [...INK, 255] : [255, 255, 255, 255]),
+        fontFamily: 'Public Sans, sans-serif',
+        fontWeight: 800,
+        updateTriggers: { getColor: selectedSiteId, getSize: radius },
       }),
     ]
     o.setProps({
       layers,
       getTooltip: ({ object, layer }: PickingInfo) => {
+        const style = { fontFamily: 'Public Sans, sans-serif', fontSize: '14px', lineHeight: '1.4', background: '#15171c', color: '#fff', borderRadius: '8px', padding: '10px 12px', maxWidth: '300px' }
+        if (object && layer?.id === 'sites') {
+          const r = object as Recommendation
+          return { html: `<b>${esc(r.rank)}. ${esc(r.site.address)}</b><br/>${esc(fmt(r.net_new_patients))} ${esc(demandLabel ?? 'patients')}<br/>Click to open its flyer`, style }
+        }
         if (!object || layer?.id !== 'cells') return null
         const cell = object as GridCell
         const zone: Zone | undefined = zoneByCell.get(cell.h3)
-        const style = { fontFamily: 'Atkinson Hyperlegible, sans-serif', fontSize: '13px', background: '#1c2733', color: '#fff', borderRadius: '6px', padding: '8px 10px', maxWidth: '280px' }
         if (zone) {
           const top = Object.entries(zone.contributions ?? {})
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3)
             .map(([k]) => featureLabels[k] ?? k)
-          return { html: `<b>Fit ${esc(fmt(zone.score, 2))}</b> in ${esc(cell.county)} County<br/>Expected demand ${esc(fmt(zone.demand))} a year<br/>Strongest: ${top.map(esc).join(', ')}`, style }
+          return { html: `<b>Fit ${esc(fmt((zone.score ?? 0) * 100))} / 100</b>, ${esc(cell.county)} County<br/>Demand here: ${esc(fmt(zone.demand))} ${esc(demandLabel ?? 'patients')}<br/>Strongest factors: ${top.map(esc).join(', ')}`, style }
         }
         return { html: `<b>${esc(cell.county)} County</b><br/>${esc(fmt(cell.pop_density_km2))} people per km²<br/>${esc(fmt(cell.pop_total_within_5km))} people within 5 km<br/>Median income $${esc(fmt(cell.median_hh_income))}`, style }
       },
     })
-  }, [grid, densityPct, scorePct, zoneByCell, topCells, sites, selectedSiteId, featureLabels, onSelectSite])
+  }, [grid, densityPct, scorePct, zoneByCell, topCells, sites, selectedSiteId, featureLabels, onSelectSite, radius, selected, catchmentKm, demandLabel, drawOrder])
 
-  // Fit the three counties once the grid arrives.
+  // Fit the three counties when the grid arrives and again whenever a run resets (no ranked sites).
+  const hasSites = sites.length > 0
   useEffect(() => {
-    if (!map.current || grid.length === 0) return
+    if (!map.current || grid.length === 0 || hasSites) return
     const lats = grid.map((c) => c.cell_lat)
     const lons = grid.map((c) => c.cell_lon)
     map.current.fitBounds(
@@ -177,33 +219,70 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
         [Math.min(...lons), Math.min(...lats)],
         [Math.max(...lons), Math.max(...lats)],
       ],
-      { padding: 40, duration: 0 },
+      { padding: 40, duration: 600 },
     )
-  }, [grid])
+  }, [grid, hasSites])
 
-  // Fly to the selected site.
+  // Frame every ranked site when results land, clear of the legend (bottom-left).
+  useEffect(() => {
+    const m = map.current
+    if (!m || sites.length === 0 || focusSelection) return
+    const lons = sites.map((r) => r.site.lon)
+    const lats = sites.map((r) => r.site.lat)
+    m.fitBounds(
+      [
+        [Math.min(...lons), Math.min(...lats)],
+        [Math.max(...lons), Math.max(...lats)],
+      ],
+      { padding: { top: 60, right: 70, bottom: 110, left: 60 }, maxZoom: 12, duration: 900 },
+    )
+  }, [sites, focusSelection])
+
+  // Fly to the site the user picked, framing its catchment.
   useEffect(() => {
     const site = sites.find((s) => s.site.id === selectedSiteId)
     const m = map.current
-    if (!site || !m) return
-    // Keep the pin above the results drawer, which covers about half the map.
-    const bottom = Math.round(m.getContainer().clientHeight * 0.52)
-    m.flyTo({ center: [site.site.lon, site.site.lat], zoom: 11.5, duration: 900, padding: { top: 40, bottom, left: 0, right: 0 } })
-  }, [selectedSiteId, sites])
+    if (!site || !m || !focusSelection) return
+    // Frame the site with its whole catchment (or a 3 km neighborhood when the trip type is unknown).
+    const km = catchmentKm ?? 3
+    const dLat = km / 111
+    const dLon = km / (111 * Math.cos((site.site.lat * Math.PI) / 180))
+    m.fitBounds(
+      [
+        [site.site.lon - dLon, site.site.lat - dLat],
+        [site.site.lon + dLon, site.site.lat + dLat],
+      ],
+      { padding: { top: 36, right: 36, bottom: 150, left: 36 }, duration: 900, essential: true },
+    )
+  }, [selectedSiteId, sites, catchmentKm, focusSelection])
 
   return (
     <>
       <div ref={container} className="map" aria-label="Map of Houston scored by H3 hexagon" />
-      <div className="legend">
-        <strong>{zones ? 'Fit for this business' : 'People per km²'}</strong>
-        <div className="ramp" />
+      <div className={`legend${sites.length ? ' compact' : ''}`}>
+        <b>{zones ? 'Fit for this business' : 'People per km²'}</b>
+        <div className={`ramp${zones ? '' : ' pop'}`} />
         <div className="ends">
           <span>Lower</span>
           <span>Higher</span>
         </div>
-        {zones && (
-          <div className="top">
-            <span className="swatch" /> Top {topCells.length} zones
+        {(zones || sites.length > 0) && (
+          <div className="keys">
+            {zones && (
+              <span>
+                <i className="sw-zone" /> Top {topCells.length} zones
+              </span>
+            )}
+            {sites.length > 0 && (
+              <span>
+                <i className="sw-site" /> Ranked space, sized by {demandLabel ?? 'patients'} won
+              </span>
+            )}
+            {selected && (
+              <span>
+                <i className="sw-pick" /> Selected{catchmentKm ? `, ${TRIP_MINUTES[trip ?? ''] ?? 30}-minute catchment` : ''}
+              </span>
+            )}
           </div>
         )}
       </div>

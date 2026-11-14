@@ -114,7 +114,7 @@ invented.
 - **Peri.** The customer story is Dr. Rahul Deshmukh's orthopedic practice:
   - In the orthopedic run, a scout finds CDC PLACES arthritis prevalence live and ingests it.
   - That data changes the ranking, and the claims cite it.
-- **Amazon.** All reasoning runs on Amazon Nova through Bedrock, and the app runs on EC2. The instance role means there are no AWS keys anywhere.
+- **Amazon.** All reasoning runs on Amazon Nova through Bedrock, with credentials from the default chain (never in code). The run meter in the app shows each run's model calls, tokens and cost. An EC2 deploy setup is in `infra/`; the hackathon's AWS account allows Bedrock only, so the demo runs on a laptop.
 
 ## Limits
 
