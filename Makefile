@@ -8,6 +8,7 @@ types:
 
 fixtures:
 	PYTHONPATH=. python fixtures/make_fake_grid.py
+	PYTHONPATH=. python fixtures/make_agent_fixtures.py
 	PYTHONPATH=. python fixtures/validate.py
 
 run-agent:

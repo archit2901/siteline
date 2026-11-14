@@ -1,0 +1,743 @@
+{
+  "run_id": "fixture-peds-001",
+  "profile": {
+    "name": "Example Pediatric Dental Practice",
+    "specialty": "pediatric_dentistry",
+    "services": [
+      "pediatric dental exams",
+      "cleanings",
+      "sealants",
+      "fillings"
+    ],
+    "payers_accepted": [
+      "medicaid",
+      "chip",
+      "commercial"
+    ],
+    "patient_mix": {},
+    "languages": [
+      "English",
+      "Spanish"
+    ],
+    "existing_offices": [
+      {
+        "name": "Office A (Gulfton area)",
+        "address": null,
+        "lat": 29.721,
+        "lon": -95.476,
+        "clinicians": 2
+      }
+    ],
+    "constraints": {
+      "min_sqft": 2000,
+      "max_sqft": 4500,
+      "max_rent_psf": null,
+      "min_parking_per_1000sf": 3.0,
+      "ground_floor": true,
+      "special_rooms": []
+    },
+    "free_text": "Most families are on Medicaid or CHIP; many parents prefer Spanish and some don't have a car.",
+    "stock_pack": "healthcare.pediatric_dentistry",
+    "region_id": "hou"
+  },
+  "factors": [
+    {
+      "id": "children_nearby",
+      "factor": "Children living nearby",
+      "why": "Every patient is a child; more children within a short drive means more first visits and recalls.",
+      "proxy": "Children under 18 per km² in each cell",
+      "direction": 1,
+      "priority": "high",
+      "stock_covered": true,
+      "feature_id": "pop_0_17_density",
+      "status": "covered",
+      "caveat": null
+    },
+    {
+      "id": "medicaid_chip_families",
+      "factor": "Medicaid and CHIP families",
+      "why": "The practice is built around Medicaid and CHIP; most commercial-only offices turn these families away.",
+      "proxy": "Share of residents covered by Medicaid (CHIP is reported inside the Medicaid count)",
+      "direction": 1,
+      "priority": "high",
+      "stock_covered": true,
+      "feature_id": "ins_medicaid_share",
+      "status": "covered",
+      "caveat": null
+    },
+    {
+      "id": "families_without_car",
+      "factor": "Families without a car",
+      "why": "Medicaid families miss appointments when the office isn't near a bus line.",
+      "proxy": "Drive-time minutes from each cell to the nearest METRO bus stop",
+      "direction": -1,
+      "priority": "high",
+      "stock_covered": false,
+      "feature_id": "transit_stop_minutes",
+      "status": "found",
+      "caveat": null
+    },
+    {
+      "id": "spanish_speaking_households",
+      "factor": "Spanish-speaking households",
+      "why": "Spanish-speaking staff are the practice's edge; parents choose offices where they can talk to the front desk.",
+      "proxy": "Share of households that speak Spanish at home, by tract",
+      "direction": 1,
+      "priority": "medium",
+      "stock_covered": false,
+      "feature_id": "spanish_home_share",
+      "status": "found",
+      "caveat": null
+    },
+    {
+      "id": "pediatric_dentist_competition",
+      "factor": "Few pediatric dentists nearby",
+      "why": "Fewer pediatric dentists within 15 minutes means less competition for each child.",
+      "proxy": "Pediatric dentists (NPPES taxonomy 1223P0221X) within 15 drive minutes",
+      "direction": -1,
+      "priority": "high",
+      "stock_covered": false,
+      "feature_id": "peds_dentists_15m",
+      "status": "proxy",
+      "caveat": "NPPES lists registered practice addresses, which can include inactive locations; counts are an upper bound."
+    },
+    {
+      "id": "schools_nearby",
+      "factor": "Schools nearby",
+      "why": "School screenings and after-school slots bring families in; offices near schools are on the daily route.",
+      "proxy": "K-12 schools within 10 drive minutes",
+      "direction": 1,
+      "priority": "medium",
+      "stock_covered": false,
+      "feature_id": "schools_10m",
+      "status": "found",
+      "caveat": null
+    },
+    {
+      "id": "young_family_growth",
+      "factor": "Growing neighborhoods",
+      "why": "Neighborhoods that are adding residents keep adding young families and new patients.",
+      "proxy": "Percent population change over five years",
+      "direction": 1,
+      "priority": "low",
+      "stock_covered": true,
+      "feature_id": "pop_growth",
+      "status": "covered",
+      "caveat": null
+    },
+    {
+      "id": "pediatrician_referrals",
+      "factor": "Pediatric and family doctors nearby",
+      "why": "Pediatricians refer for the first dental visit at age one.",
+      "proxy": "Primary care clinicians within 15 drive minutes",
+      "direction": 1,
+      "priority": "low",
+      "stock_covered": true,
+      "feature_id": "primary_care_15m",
+      "status": "covered",
+      "caveat": null
+    },
+    {
+      "id": "population_density",
+      "factor": "Dense neighborhoods",
+      "why": "Dense areas give more patients within a short trip, which matters for families without cars.",
+      "proxy": "People per km² in each cell",
+      "direction": 1,
+      "priority": "low",
+      "stock_covered": true,
+      "feature_id": "pop_total_density",
+      "status": "covered",
+      "caveat": null
+    }
+  ],
+  "recommendations": [
+    {
+      "rank": 1,
+      "site": {
+        "id": "site_01",
+        "address": "3670 Airline Dr, Houston, TX",
+        "lat": 30.0104,
+        "lon": -95.283243,
+        "h3": "88446c2155fffff",
+        "submarket": "Aldine",
+        "sqft": 3000,
+        "rent_psf": 26.81,
+        "floor": 1,
+        "building_class": "A",
+        "available": true,
+        "parking_spaces": 6,
+        "parking_estimated": false,
+        "matterport_id": null,
+        "vexcel_image_ref": null,
+        "source": "fixture",
+        "checks": {}
+      },
+      "net_new_patients": 4868.0,
+      "zone_score": 0.8049,
+      "site_quality": 0.9167,
+      "final_score": 0.9549,
+      "stability": 0.99,
+      "justification": [
+        {
+          "text": "Estimated 4,868 net-new patients a year after 7 shift over from Office A.",
+          "evidence_refs": [
+            "model:net_new@site_01",
+            "model:cannibalized@site_01"
+          ]
+        },
+        {
+          "text": "567 children per km² live in this zone.",
+          "evidence_refs": [
+            "feature:pop_0_17_density@88446c2155fffff"
+          ]
+        },
+        {
+          "text": "26% of residents are covered by Medicaid or CHIP, which the practice accepts.",
+          "evidence_refs": [
+            "feature:ins_medicaid_share@88446c2155fffff"
+          ]
+        },
+        {
+          "text": "3,000 sq ft on the ground floor with 6 parking spaces.",
+          "evidence_refs": [
+            "site:sqft@site_01",
+            "site:parking_spaces@site_01"
+          ]
+        }
+      ],
+      "caveats": []
+    },
+    {
+      "rank": 2,
+      "site": {
+        "id": "site_03",
+        "address": "3228 Aldine Mail Route Rd, Houston, TX",
+        "lat": 29.981309,
+        "lon": -95.608953,
+        "h3": "88446c3693fffff",
+        "submarket": "Aldine",
+        "sqft": 3800,
+        "rent_psf": 26.57,
+        "floor": 1,
+        "building_class": "A",
+        "available": true,
+        "parking_spaces": 12,
+        "parking_estimated": false,
+        "matterport_id": null,
+        "vexcel_image_ref": null,
+        "source": "fixture",
+        "checks": {}
+      },
+      "net_new_patients": 4430.0,
+      "zone_score": 0.7725,
+      "site_quality": 1.0,
+      "final_score": 0.8891,
+      "stability": 0.91,
+      "justification": [
+        {
+          "text": "Estimated 4,430 net-new patients a year after 10 shift over from Office A.",
+          "evidence_refs": [
+            "model:net_new@site_03",
+            "model:cannibalized@site_03"
+          ]
+        },
+        {
+          "text": "430 children per km² live in this zone.",
+          "evidence_refs": [
+            "feature:pop_0_17_density@88446c3693fffff"
+          ]
+        },
+        {
+          "text": "26% of residents are covered by Medicaid or CHIP, which the practice accepts.",
+          "evidence_refs": [
+            "feature:ins_medicaid_share@88446c3693fffff"
+          ]
+        },
+        {
+          "text": "3,800 sq ft on the ground floor with 12 parking spaces.",
+          "evidence_refs": [
+            "site:sqft@site_03",
+            "site:parking_spaces@site_03"
+          ]
+        }
+      ],
+      "caveats": []
+    },
+    {
+      "rank": 3,
+      "site": {
+        "id": "site_05",
+        "address": "4278 Gessner Rd, Houston, TX",
+        "lat": 29.927056,
+        "lon": -95.63167,
+        "h3": "88446dd917fffff",
+        "submarket": "Spring Branch",
+        "sqft": 2300,
+        "rent_psf": 20.17,
+        "floor": 1,
+        "building_class": "A",
+        "available": true,
+        "parking_spaces": 9,
+        "parking_estimated": false,
+        "matterport_id": null,
+        "vexcel_image_ref": null,
+        "source": "fixture",
+        "checks": {}
+      },
+      "net_new_patients": 4141.0,
+      "zone_score": 0.7694,
+      "site_quality": 1.0,
+      "final_score": 0.8185,
+      "stability": 0.86,
+      "justification": [
+        {
+          "text": "Estimated 4,141 net-new patients a year after 12 shift over from Office A.",
+          "evidence_refs": [
+            "model:net_new@site_05",
+            "model:cannibalized@site_05"
+          ]
+        },
+        {
+          "text": "420 children per km² live in this zone.",
+          "evidence_refs": [
+            "feature:pop_0_17_density@88446dd917fffff"
+          ]
+        },
+        {
+          "text": "26% of residents are covered by Medicaid or CHIP, which the practice accepts.",
+          "evidence_refs": [
+            "feature:ins_medicaid_share@88446dd917fffff"
+          ]
+        },
+        {
+          "text": "2,300 sq ft on the ground floor with 9 parking spaces.",
+          "evidence_refs": [
+            "site:sqft@site_05",
+            "site:parking_spaces@site_05"
+          ]
+        }
+      ],
+      "caveats": []
+    },
+    {
+      "rank": 4,
+      "site": {
+        "id": "site_07",
+        "address": "5198 Tidwell Rd, Houston, TX",
+        "lat": 29.988337,
+        "lon": -95.227046,
+        "h3": "88446c38b1fffff",
+        "submarket": "Northeast Houston",
+        "sqft": 4400,
+        "rent_psf": 25.89,
+        "floor": 1,
+        "building_class": "C",
+        "available": true,
+        "parking_spaces": 20,
+        "parking_estimated": true,
+        "matterport_id": null,
+        "vexcel_image_ref": null,
+        "source": "fixture",
+        "checks": {}
+      },
+      "net_new_patients": 3977.0,
+      "zone_score": 0.7526,
+      "site_quality": 1.0,
+      "final_score": 0.7455,
+      "stability": 0.84,
+      "justification": [
+        {
+          "text": "Estimated 3,977 net-new patients a year after 6 shift over from Office A.",
+          "evidence_refs": [
+            "model:net_new@site_07",
+            "model:cannibalized@site_07"
+          ]
+        },
+        {
+          "text": "446 children per km² live in this zone.",
+          "evidence_refs": [
+            "feature:pop_0_17_density@88446c38b1fffff"
+          ]
+        },
+        {
+          "text": "26% of residents are covered by Medicaid or CHIP, which the practice accepts.",
+          "evidence_refs": [
+            "feature:ins_medicaid_share@88446c38b1fffff"
+          ]
+        },
+        {
+          "text": "4,400 sq ft on the ground floor with 20 parking spaces.",
+          "evidence_refs": [
+            "site:sqft@site_07",
+            "site:parking_spaces@site_07"
+          ]
+        }
+      ],
+      "caveats": [
+        "Parking count estimated from aerial imagery."
+      ]
+    },
+    {
+      "rank": 5,
+      "site": {
+        "id": "site_06",
+        "address": "8204 Fondren Rd, Houston, TX",
+        "lat": 29.704812,
+        "lon": -95.596498,
+        "h3": "88446ca0bdfffff",
+        "submarket": "Sharpstown",
+        "sqft": 3700,
+        "rent_psf": 24.59,
+        "floor": 1,
+        "building_class": "C",
+        "available": true,
+        "parking_spaces": 10,
+        "parking_estimated": true,
+        "matterport_id": null,
+        "vexcel_image_ref": null,
+        "source": "fixture",
+        "checks": {}
+      },
+      "net_new_patients": 3962.0,
+      "zone_score": 0.7598,
+      "site_quality": 0.9752,
+      "final_score": 0.6738,
+      "stability": 0.83,
+      "justification": [
+        {
+          "text": "Estimated 3,962 net-new patients a year after 56 shift over from Office A.",
+          "evidence_refs": [
+            "model:net_new@site_06",
+            "model:cannibalized@site_06"
+          ]
+        },
+        {
+          "text": "428 children per km² live in this zone.",
+          "evidence_refs": [
+            "feature:pop_0_17_density@88446ca0bdfffff"
+          ]
+        },
+        {
+          "text": "26% of residents are covered by Medicaid or CHIP, which the practice accepts.",
+          "evidence_refs": [
+            "feature:ins_medicaid_share@88446ca0bdfffff"
+          ]
+        },
+        {
+          "text": "3,700 sq ft on the ground floor with 10 parking spaces.",
+          "evidence_refs": [
+            "site:sqft@site_06",
+            "site:parking_spaces@site_06"
+          ]
+        }
+      ],
+      "caveats": [
+        "Parking count estimated from aerial imagery."
+      ]
+    },
+    {
+      "rank": 6,
+      "site": {
+        "id": "site_02",
+        "address": "4716 Center St, Houston, TX",
+        "lat": 29.652153,
+        "lon": -95.132915,
+        "h3": "88446c02abfffff",
+        "submarket": "Deer Park",
+        "sqft": 3600,
+        "rent_psf": 20.03,
+        "floor": 1,
+        "building_class": "C",
+        "available": null,
+        "parking_spaces": 8,
+        "parking_estimated": false,
+        "matterport_id": null,
+        "vexcel_image_ref": null,
+        "source": "fixture",
+        "checks": {}
+      },
+      "net_new_patients": 3729.0,
+      "zone_score": 0.7809,
+      "site_quality": 0.9352,
+      "final_score": 0.6028,
+      "stability": 0.75,
+      "justification": [
+        {
+          "text": "Estimated 3,729 net-new patients a year after 6 shift over from Office A.",
+          "evidence_refs": [
+            "model:net_new@site_02",
+            "model:cannibalized@site_02"
+          ]
+        },
+        {
+          "text": "441 children per km² live in this zone.",
+          "evidence_refs": [
+            "feature:pop_0_17_density@88446c02abfffff"
+          ]
+        },
+        {
+          "text": "26% of residents are covered by Medicaid or CHIP, which the practice accepts.",
+          "evidence_refs": [
+            "feature:ins_medicaid_share@88446c02abfffff"
+          ]
+        },
+        {
+          "text": "3,600 sq ft on the ground floor with 8 parking spaces.",
+          "evidence_refs": [
+            "site:sqft@site_02",
+            "site:parking_spaces@site_02"
+          ]
+        }
+      ],
+      "caveats": [
+        "The source does not say whether space is available; treat as a candidate building."
+      ]
+    },
+    {
+      "rank": 7,
+      "site": {
+        "id": "site_04",
+        "address": "3380 Red Bluff Rd, Houston, TX",
+        "lat": 29.705437,
+        "lon": -95.160136,
+        "h3": "88446c0721fffff",
+        "submarket": "Pasadena",
+        "sqft": 2100,
+        "rent_psf": 24.03,
+        "floor": 1,
+        "building_class": "A",
+        "available": true,
+        "parking_spaces": 8,
+        "parking_estimated": false,
+        "matterport_id": null,
+        "vexcel_image_ref": null,
+        "source": "fixture",
+        "checks": {}
+      },
+      "net_new_patients": 3620.0,
+      "zone_score": 0.7715,
+      "site_quality": 1.0,
+      "final_score": 0.5389,
+      "stability": 0.72,
+      "justification": [
+        {
+          "text": "Estimated 3,620 net-new patients a year after 6 shift over from Office A.",
+          "evidence_refs": [
+            "model:net_new@site_04",
+            "model:cannibalized@site_04"
+          ]
+        },
+        {
+          "text": "461 children per km² live in this zone.",
+          "evidence_refs": [
+            "feature:pop_0_17_density@88446c0721fffff"
+          ]
+        },
+        {
+          "text": "26% of residents are covered by Medicaid or CHIP, which the practice accepts.",
+          "evidence_refs": [
+            "feature:ins_medicaid_share@88446c0721fffff"
+          ]
+        },
+        {
+          "text": "2,100 sq ft on the ground floor with 8 parking spaces.",
+          "evidence_refs": [
+            "site:sqft@site_04",
+            "site:parking_spaces@site_04"
+          ]
+        }
+      ],
+      "caveats": []
+    },
+    {
+      "rank": 8,
+      "site": {
+        "id": "site_08",
+        "address": "3134 Southmore Ave, Houston, TX",
+        "lat": 29.666268,
+        "lon": -95.203595,
+        "h3": "88446c15b5fffff",
+        "submarket": "Pasadena",
+        "sqft": 2200,
+        "rent_psf": 24.02,
+        "floor": 1,
+        "building_class": "B",
+        "available": null,
+        "parking_spaces": 8,
+        "parking_estimated": true,
+        "matterport_id": null,
+        "vexcel_image_ref": null,
+        "source": "fixture",
+        "checks": {}
+      },
+      "net_new_patients": 3302.0,
+      "zone_score": 0.7463,
+      "site_quality": 1.0,
+      "final_score": 0.4643,
+      "stability": 0.68,
+      "justification": [
+        {
+          "text": "Estimated 3,302 net-new patients a year after 7 shift over from Office A.",
+          "evidence_refs": [
+            "model:net_new@site_08",
+            "model:cannibalized@site_08"
+          ]
+        },
+        {
+          "text": "466 children per km² live in this zone.",
+          "evidence_refs": [
+            "feature:pop_0_17_density@88446c15b5fffff"
+          ]
+        },
+        {
+          "text": "26% of residents are covered by Medicaid or CHIP, which the practice accepts.",
+          "evidence_refs": [
+            "feature:ins_medicaid_share@88446c15b5fffff"
+          ]
+        },
+        {
+          "text": "2,200 sq ft on the ground floor with 8 parking spaces.",
+          "evidence_refs": [
+            "site:sqft@site_08",
+            "site:parking_spaces@site_08"
+          ]
+        }
+      ],
+      "caveats": [
+        "Parking count estimated from aerial imagery.",
+        "The source does not say whether space is available; treat as a candidate building."
+      ]
+    },
+    {
+      "rank": 9,
+      "site": {
+        "id": "site_09",
+        "address": "2470 East Blvd, Houston, TX",
+        "lat": 29.691462,
+        "lon": -95.079453,
+        "h3": "88446c01dbfffff",
+        "submarket": "Deer Park",
+        "sqft": 4100,
+        "rent_psf": 25.88,
+        "floor": 1,
+        "building_class": "B",
+        "available": true,
+        "parking_spaces": 13,
+        "parking_estimated": false,
+        "matterport_id": null,
+        "vexcel_image_ref": null,
+        "source": "fixture",
+        "checks": {}
+      },
+      "net_new_patients": 2774.0,
+      "zone_score": 0.7374,
+      "site_quality": 1.0,
+      "final_score": 0.3927,
+      "stability": 0.62,
+      "justification": [
+        {
+          "text": "Estimated 2,774 net-new patients a year after 4 shift over from Office A.",
+          "evidence_refs": [
+            "model:net_new@site_09",
+            "model:cannibalized@site_09"
+          ]
+        },
+        {
+          "text": "261 children per km² live in this zone.",
+          "evidence_refs": [
+            "feature:pop_0_17_density@88446c01dbfffff"
+          ]
+        },
+        {
+          "text": "26% of residents are covered by Medicaid or CHIP, which the practice accepts.",
+          "evidence_refs": [
+            "feature:ins_medicaid_share@88446c01dbfffff"
+          ]
+        },
+        {
+          "text": "4,100 sq ft on the ground floor with 13 parking spaces.",
+          "evidence_refs": [
+            "site:sqft@site_09",
+            "site:parking_spaces@site_09"
+          ]
+        }
+      ],
+      "caveats": []
+    },
+    {
+      "rank": 10,
+      "site": {
+        "id": "site_10",
+        "address": "8674 Spencer Hwy, Houston, TX",
+        "lat": 29.735254,
+        "lon": -95.211471,
+        "h3": "88446c046bfffff",
+        "submarket": "Pasadena",
+        "sqft": 4500,
+        "rent_psf": 29.08,
+        "floor": 1,
+        "building_class": "B",
+        "available": true,
+        "parking_spaces": 19,
+        "parking_estimated": true,
+        "matterport_id": null,
+        "vexcel_image_ref": null,
+        "source": "fixture",
+        "checks": {}
+      },
+      "net_new_patients": 2607.0,
+      "zone_score": 0.7321,
+      "site_quality": 1.0,
+      "final_score": 0.3218,
+      "stability": 0.56,
+      "justification": [
+        {
+          "text": "Estimated 2,607 net-new patients a year after 6 shift over from Office A.",
+          "evidence_refs": [
+            "model:net_new@site_10",
+            "model:cannibalized@site_10"
+          ]
+        },
+        {
+          "text": "334 children per km² live in this zone.",
+          "evidence_refs": [
+            "feature:pop_0_17_density@88446c046bfffff"
+          ]
+        },
+        {
+          "text": "27% of residents are covered by Medicaid or CHIP, which the practice accepts.",
+          "evidence_refs": [
+            "feature:ins_medicaid_share@88446c046bfffff"
+          ]
+        },
+        {
+          "text": "4,500 sq ft on the ground floor with 19 parking spaces.",
+          "evidence_refs": [
+            "site:sqft@site_10",
+            "site:parking_spaces@site_10"
+          ]
+        }
+      ],
+      "caveats": [
+        "Parking count estimated from aerial imagery."
+      ]
+    }
+  ],
+  "caveats": [
+    "Fixture data: every number in this report is invented for development.",
+    "Plan-level insurance coverage is not public at tract level; Medicaid share comes from ACS B27010.",
+    "NPPES lists registered practice addresses, which can include inactive locations; counts are an upper bound."
+  ],
+  "sources": {
+    "pop_0_17_density": "https://api.census.gov/data/2023/acs/acs5/groups/B01001.html",
+    "pop_total_density": "https://api.census.gov/data/2023/acs/acs5/groups/B01001.html",
+    "pop_growth": "https://api.census.gov/data/2023/acs/acs5/groups/B01001.html",
+    "ins_medicaid_share": "https://api.census.gov/data/2023/acs/acs5/groups/B27010.html",
+    "primary_care_15m": "https://data.cms.gov/provider-data/dataset/mj5m-pzi6",
+    "spanish_home_share": "https://api.census.gov/data/2023/acs/acs5/groups/C16001.html",
+    "schools_10m": "https://wiki.openstreetmap.org/wiki/Overpass_API",
+    "transit_stop_minutes": "https://www.ridemetro.org/",
+    "peds_dentists_15m": "https://npiregistry.cms.hhs.gov/api-page"
+  },
+  "verified": true
+}
