@@ -177,6 +177,26 @@ async def read_site(url: str) -> list[tuple[str, str]]:
     return pages
 
 
+LANGUAGES = ("Spanish", "Vietnamese", "Mandarin", "Cantonese", "Chinese", "Korean", "Arabic", "Burmese", "Hindi",
+             "Urdu", "Tagalog", "French", "Portuguese", "Russian", "Farsi", "Persian", "Swahili", "Amharic", "Nepali",
+             "Bengali", "Punjabi", "Gujarati", "Japanese", "Thai", "Haitian Creole", "Pashto", "Dari", "ASL")
+PAYER_WORDS = {"medicaid": r"\bmedicaid\b", "medicare": r"\bmedicare\b", "chip": r"\bchip\b",
+               "commercial": r"commercial insurance|private insurance|most insurance", "self_pay": r"sliding[- ]fee|uninsured"}
+
+
+def basic_draft(pages: list[tuple[str, str]], sector: str) -> IntakeDraft:
+    """What the site states plainly, without a model: its name (page title), the languages and payers it names.
+    Locations come from find_addresses in prefill either way."""
+    home = pages[0][1] if pages else ""
+    title = next((l for l in home.splitlines() if l.strip()), "")
+    name = re.split(r"\s[|\-–—:]\s", title)[0].strip()[:80]
+    corpus = "\n".join(t for _, t in pages)
+    langs = [l for l in LANGUAGES if re.search(rf"\b{l}\b", corpus)]
+    payers = [k for k, pat in PAYER_WORDS.items() if re.search(pat, corpus, re.I)]
+    return IntakeDraft(name=name, languages=(["English", *langs] if langs else []), payers=payers,
+                       healthcare_specialty="community health center" if sector == "healthcare.community_health" else "")
+
+
 async def prefill(url: str, previous: PracticeProfile | None, model: BaseChatModel | None = None) -> IntakeResponse:
     """Website -> pre-filled profile (merged over what the owner already typed), what is still missing, and a reply."""
     try:
@@ -198,10 +218,9 @@ async def prefill(url: str, previous: PracticeProfile | None, model: BaseChatMod
         out = await chat.with_structured_output(IntakeDraft).ainvoke(
             [SystemMessage(PROMPT), HumanMessage(f"QUESTIONS:\n{questions}\n\nWEBSITE:\n{corpus}")])
         draft = out if isinstance(out, IntakeDraft) else IntakeDraft()
-    except Exception as exc:  # the owner can still fill the form
-        profile = previous or PracticeProfile(name="My business")
-        return IntakeResponse(reply=f"I read {len(pages)} pages but couldn't extract them ({type(exc).__name__}).",
-                              profile=profile, ready=False, missing=[])
+        fallback = False
+    except Exception:  # model unavailable: keep everything the pages state plainly (name, locations, languages)
+        draft, fallback = basic_draft(pages, sector), True
     # What the owner already typed wins over the website; a multi-specialty system names no single specialty.
     if previous and (previous.business_type or previous.specialty):
         draft = draft.model_copy(update={"business_type": "", "healthcare_specialty": ""})
@@ -229,6 +248,12 @@ async def prefill(url: str, previous: PracticeProfile | None, model: BaseChatMod
         found.append("services")
     if profile.payers_accepted:
         found.append("insurance")
+    if profile.languages and len(profile.languages) > 1:
+        found.append("languages")
     reply = (f"Read {len(pages)} pages of your website and filled in {', '.join(found) or 'what it says'}. "
              "Check each answer; anything the site doesn't say is still yours to add.")
+    if fallback:
+        reply = (f"Read {len(pages)} pages of your website and filled in what they state directly: "
+                 f"{', '.join(['the name', *found]) }. The language model was unavailable, so the written answers "
+                 "(who you serve, services) are still yours to add.")
     return IntakeResponse(reply=reply, profile=profile, ready=not missing, missing=missing)

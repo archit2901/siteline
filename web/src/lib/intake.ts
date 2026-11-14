@@ -32,7 +32,7 @@ export function composeFreeText(answers: Record<string, string>, notes: string, 
   const lines = Object.entries(answers)
     .filter(([, v]) => v.trim())
     .map(([k, v]) => `[${k}] ${byId[k] ? label(byId[k]) : k}: ${v.trim().replace(/\s+/g, ' ')}`)
-  return [...lines, ...(notes.trim() ? [notes.trim()] : [])].join('\n').slice(0, 3000)
+  return [...lines, ...(notes.trim() ? [notes.trim()] : [])].join('\n').slice(0, 8000)
 }
 
 /** What a run still needs (same rule as intake.missing_for). */

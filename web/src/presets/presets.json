@@ -7,7 +7,7 @@
       "name": "HOPE Clinic",
       "specialty": "community_health",
       "business_type": "",
-      "customers": "Patients of all ages, in particular the uninsured, under-insured, people with limited English and low-income families in Greater Houston.",
+      "customers": "Everyone regardless of ability to pay, in particular the uninsured, the underinsured, people with limited English and low-income families: immigrant families from 90 countries (many Asian, Hispanic, Arab and Burmese), all ages from newborns to seniors, with many pregnant women, children on Medicaid or CHIP, and adults managing diabetes, high blood pressure and depression.",
       "services": [
         "Primary care",
         "Pediatrics",
@@ -16,7 +16,8 @@
         "Dental",
         "Vision",
         "Pharmacy (340B)",
-        "Lab"
+        "Lab",
+        "Enabling services (eligibility, interpreters, transport)"
       ],
       "payers_accepted": [
         "medicaid",
@@ -28,6 +29,7 @@
       "patient_mix": {},
       "languages": [
         "English",
+        "Spanish",
         "Mandarin",
         "Cantonese",
         "Vietnamese",
@@ -41,50 +43,52 @@
           "address": "7001 Corporate Dr. #120, Houston, TX 77036",
           "lat": 29.70334959,
           "lon": -95.55085859,
-          "clinicians": 1
+          "clinicians": 6
         },
         {
           "name": "HOPE West",
           "address": "12121 Westheimer Rd. #205, Houston, TX 77077",
           "lat": 29.73622916,
           "lon": -95.59385062,
-          "clinicians": 1
+          "clinicians": 3
         },
         {
           "name": "HOPE Alief",
           "address": "13930 Bellaire Blvd., Houston, TX 77083",
           "lat": 29.70444817,
           "lon": -95.62841952,
-          "clinicians": 1
+          "clinicians": 8
         },
         {
           "name": "HOPE Aldine",
           "address": "3000 Aldine Mail Rd. Building C #200, Houston, TX 77039",
           "lat": 29.90198142,
           "lon": -95.34323692,
-          "clinicians": 1
+          "clinicians": 3
         },
         {
           "name": "HOPE Aldine Meadows",
           "address": "2112 Aldine Meadows Rd., Houston, TX 77032",
           "lat": 29.93464,
           "lon": -95.35286001,
-          "clinicians": 1
+          "clinicians": 2
         }
       ],
       "constraints": {
-        "min_sqft": 5000,
+        "min_sqft": 6000,
         "max_sqft": 15000,
-        "max_rent_psf": 35.0,
+        "max_rent_psf": 30.0,
         "min_parking_per_1000sf": 4.0,
         "ground_floor": false,
         "special_rooms": [
           "dental operatories",
+          "eye exam lane",
+          "counseling rooms",
           "pharmacy"
         ],
         "space_uses": []
       },
-      "free_text": "[hc_status] What kind of health center are you: Federally Qualified Health Center (FQHC)\n[payers] Which payers do you see, and roughly what share of patients is each: Medicaid, CHIP, Medicare and commercial plans; uninsured patients on a sliding fee. Shares not stated.\n[service_area] Is the new site part of a grant or HRSA service area: Greater Houston: Harris and Fort Bend counties. Avoid overlapping other health centers' service areas.\n[client_travel] How do patients reach you: Mix\n[partners] Which partners refer patients or share space: Website: partnered with Houston Methodist for pulmonology; a school-based clinic in Aldine ISD (Aldine Meadows).\n[visibility] How much does being seen from the road matter: Helps, not essential\n[tenure] Would you lease, buy or build: Not sure",
+      "free_text": "[best_location] Which current location does best, which struggles, and why do you think so: HOPE Alief (HHWC, 13930 Bellaire Blvd) does best: the newly built T.T. and W.F. Chao Foundation Health and Wellness Center has every service line (adult medicine, pediatrics, OB/GYN, behavioral health, dental, vision, lab and our only in-house pharmacy), evening hours Mon-Thu until 7pm and Saturdays 9-5, and sits in the middle of Alief's dense, multilingual immigrant neighborhoods. HOPE Beltway (Sharpstown, near the Bellaire Blvd Chinatown corridor) is our original home and has the longest hours, but is under temporary construction. HOPE West (Westchase, a second-floor suite on Westheimer) struggles: patients say you can miss it if you blink, it is weekdays only and has no vision or pharmacy. The Aldine sites in north Houston have shorter, split hours and fewer services; Aldine Meadows is a school-based clinic beside Aldine Middle School. Full-service, extended-hours sites in dense immigrant areas work best.\n[customer_origin] Where do your customers come from today: Mostly southwest Houston around our first four sites: Alief (77072, 77082, 77083, 77099), Sharpstown and Gulfton (77036, 77074, 77081) and Westchase (77042, 77077); and north Houston around East Aldine and Greenspoint (77032, 77039, 77060, 77093). Patients come from 90 birth countries. Most live within a 15-20 minute drive or bus ride of a site; the pharmacy delivers up to 50 miles. (ZIP codes are where our sites draw from, not a patient-origin report.)\n[unique] What makes you different from others who do the same thing: Language access and cultural competence: care in 30+ languages in-house (72 languages served, patients from 90 birth countries), most often Spanish, Mandarin, Cantonese, Vietnamese, Korean, Burmese and Arabic, with interpreters for the rest. Roots in the Asian American community (founded by the Asian American Health Coalition, first clinic in a Chinese Baptist Church in 2002), now serving Hispanic, Arab, Burmese and African immigrant families too. One-stop integrated care: primary care, pediatrics, OB with Centering Pregnancy, behavioral health in patients' own languages, dental, vision, lab and a 340B pharmacy. Sliding fee for anyone regardless of income, insurance or immigration status. Recognized Patient-Centered Medical Home. Programs beyond the exam room: FoodRx produce with the Houston Food Bank, Bite of HOPE cooking for diabetes, Walk with HOPE, maternal and child health.\n[pull] What about a neighborhood would pull people to your door: Large immigrant and limited-English households (Asian, Hispanic, Arab, Burmese, African communities); people below 200% of poverty and uninsured adults; young families, pregnant women and children on Medicaid or CHIP; high diabetes, high blood pressure and obesity rates; METRO bus lines on the main roads (patients ride the bus); apartment complexes; ethnic grocery and shopping centers where our communities already go; churches, temples, mosques and community centers that refer people; schools for school-based care; food pantries; and no other community health center close by.\n[competitors] Who do you compete with, or who else serves the same people: Other Houston FQHCs (HRSA list): Legacy Community Health (largest, 60+ sites), Harris Health's community clinics, Spring Branch Community Health Center, Fort Bend Family Health Center, Houston Community Health Centers, Lone Star Community Health Center, St. Hope Foundation, Avenue 360 / Houston Area Community Services and Bee Busy Wellness Center. Also free and charity clinics, urgent cares, retail clinics and freestanding ERs that uninsured patients use for primary care. Other health centers are also partners: we want gaps, not overlap.\n[visibility] How much does being seen from the road matter: Helps, not essential\n[tenure] Would you lease, buy or build: Open to building new\n[space] Anything else the space must have: A full-service site like HOPE Alief (estimates): 8,000-12,000 sq ft medical buildout with 12-16 exam rooms (2-3 per clinician), 4-6 dental operatories (plumbing, compressor, vacuum), an eye exam lane, lab and phlebotomy, 2-3 private counseling rooms, a group room for Centering Pregnancy and nutrition classes, eligibility and interpreter workstations, a pharmacy pickup counter, and a waiting room for families with strollers. Ground floor or elevator, accessible entrance and restrooms, drop-off at the door, about 4-5 parking spaces per 1,000 sq ft, a bus stop within a short walk. Hours Mon-Thu 8am-7pm, Fri 8-5, Sat 9-5. Signage visible from the main road; a retail center or medical office building both work. Rent screening ceiling about $30/sq ft/yr.\n[hc_status] What kind of health center are you: Federally Qualified Health Center (FQHC)\n[service_area] Is the new site part of a grant or HRSA service area: Yes: HRSA Health Center Program awardee (grant H80CS24153), Greater Houston. Harris County first, Fort Bend acceptable. The new site should reach neighborhoods our five sites don't already cover and should not sit on top of another health center's service area; medically underserved areas and primary care shortage areas are a plus.\n[volume] How many patients does a site see a year, and with how many clinicians: 31,061 unique patients across five sites (website), over 100,000 visits a year. A new full-service site should plan for about 5,000-8,000 patients a year with 6-8 clinicians (estimate).\n[client_travel] How do patients reach you: Mix\n[partners] Which partners refer patients or share space: Houston Food Bank (FoodRx produce for food-insecure patients with diabetes); Cities Changing Diabetes (Bite of HOPE); Houston Methodist (pulmonology at our sites); Aldine ISD (school-based clinic at Aldine Middle School); the Chinese Baptist Church and Chinese Community Center (where HOPE began); Hogg Foundation for Mental Health (AAPI mental health program); T.T. and W.F. Chao Foundation (HOPE Alief building). We want churches, schools, food pantries and hospital emergency rooms nearby for referrals.\nPayers: Medicaid (incl. Medicaid MCO plans and Medicaid for Pregnant Women), CHIP, Medicare, ACA Marketplace and most major commercial plans; uninsured and underinsured patients on a sliding fee by income and family size. Shares by payer are not published on our website.",
       "stock_pack": null,
       "region_id": "hou"
     }

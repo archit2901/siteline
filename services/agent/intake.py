@@ -147,7 +147,7 @@ def _label(q: Question) -> str:
 def compose_free_text(answers: dict[str, str], notes: str, sector: str) -> str:
     qs = _questions(sector)
     lines = [f"[{k}] {_label(qs[k]) if k in qs else k}: {v}" for k, v in answers.items()]
-    return "\n".join([*lines, *([notes] if notes else [])])[:3000]
+    return "\n".join([*lines, *([notes] if notes else [])])[:8000]
 
 
 def merge(draft: IntakeDraft, previous: PracticeProfile | None) -> tuple[PracticeProfile, list[str]]:
@@ -223,12 +223,13 @@ def missing_for(profile: PracticeProfile) -> list[str]:
     missing = []
     if not (profile.business_type or profile.specialty):
         return ["what the business is", "who the customers are", "your current locations"]
-    if not profile.customers:
+    sector = sector_of(profile.business_type or profile.name, profile.specialty)
+    asks_customers = any(q.field == "customers" and q.required for q in SECTORS[sector][1])
+    if not profile.customers and not asks_customers:  # a sector question asks it in its own words
         missing.append("who the customers are")
     answers, _ = parse_answers(profile.free_text)
     if not profile.existing_offices and "locations" not in answers:
         missing.append("your current locations")
-    sector = sector_of(profile.business_type or profile.name, profile.specialty)
     for q in SECTORS[sector][1]:
         if not q.required:
             continue

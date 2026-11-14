@@ -55,3 +55,13 @@ def test_addresses_are_found_and_deduped_by_street_number_and_zip():
     assert found[1][1] == "3000 Aldine Mail Rd. Building C, #200, Houston, TX 77039"
     assert len(found) == 2
     assert address_key("13930 Bellaire Blvd., Houston, TX 77083") == address_key("13930 Bellaire Blvd Houston, TX 77083")
+
+
+def test_basic_draft_reads_name_languages_and_payers_without_a_model():
+    from services.agent.website import basic_draft
+    pages = [("https://x.org/", "HOPE Clinic | Community Health Center\nWe speak Vietnamese, Mandarin and Arabic."),
+             ("https://x.org/about", "We accept Medicaid and Medicare, and offer a sliding fee scale.")]
+    d = basic_draft(pages, "healthcare.community_health")
+    assert d.name == "HOPE Clinic" and d.healthcare_specialty == "community health center"
+    assert d.languages == ["English", "Vietnamese", "Mandarin", "Arabic"]
+    assert set(d.payers) == {"medicaid", "medicare", "self_pay"}
