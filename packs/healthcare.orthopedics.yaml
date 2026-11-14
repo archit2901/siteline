@@ -1,23 +1,14 @@
-# StockPack (contracts/models.py). Owner: Jayan. Write pediatric_dentistry, dialysis and physical_therapy the same way.
+# StockPack (contracts/models.py). Feature ids are Houston grid columns (see healthcare.base.yaml).
 id: healthcare.orthopedics
 extends: healthcare.base
 specialty: orthopedics
 demand_age_bands: ["45-64", "65+"]
-# Annual orthopedic visits per person by age band. Fill from NCHS ambulatory care survey tables; 1.0 is used if empty.
+# Annual orthopedic visits per person by age band; 1.0 is used while empty (NCHS NAMCS rates still to be sourced).
 visit_rates: {}
 features:
-  - {id: pop_45plus_density, source: acs.B01001, value: "pop_45_64+pop_65plus", label: "Population 45+ density", agg: density, direction: 1, unit: "people/km2"}
-  - id: ortho_supply_20m
-    source: cms.doctors
-    label: "Orthopedic surgeons within 20 minutes"
-    filter_column: pri_spec
-    # verify the exact specialty string in the CMS file
-    filter_values: ["ORTHOPEDIC SURGERY"]
-    agg: count_within
-    radius_min: 20
-    direction: -1
-    unit: "surgeons"
-site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray"]}
+  - {id: pop_45plus_within_5km, source: acs, value: "pop_45_64_within_5km+pop_65p_within_5km", label: "People 45+ within 5 km", agg: sum, direction: 1, unit: "people"}
+  - {id: n_orthopedics_within_10km, source: cms.doctors, value: n_orthopedics_within_10km, label: "Orthopedic clinicians within 10 km (competition)", agg: sum, direction: -1, unit: "clinicians"}
+site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray"], competitor_feature: n_orthopedics}
 factor_hints:
   - "musculoskeletal or arthritis burden"
   - "sports participation and youth sports injuries"

@@ -1,4 +1,9 @@
-# services/geo — geo-service (owner: Parth)
+# services/geo — geo-service (owner: Archit)
+
+> **Current state (docs/HANDOFF.md):** the region grid is already built (`data/raw/houston_h3_r8.parquet`, see
+> `data/raw/README.md`), and all math runs today in the agent as `LocalGeo` / `MockGeo`
+> (`services/agent/tools/geomath.py`, `geo_client.py`). geo-service, when built, wraps that same module behind the
+> endpoints below; `AGENT_BACKEND=http` then talks to it. The build-pipeline sections below are reference only.
 
 FastAPI service on :8001. Turns public data into one value per H3 cell and computes **every number** Siteline shows:
 zone scores, demand, Huff net-new patients, sensitivity, and validation reports for new datasets.
@@ -18,7 +23,7 @@ services/geo/
   sensitivity.py    Dirichlet weight draws, stability
   rank.py           site quality, hard constraints, final score; POST /rank
   ingest/           profile.py, readers.py, aggregate.py, validate.py   (generic automatic ingestion)
-  fixture.py        FIXTURE_MODE responses built from fixtures/fake_grid.json
+  fixture.py        FIXTURE_MODE responses built from fixtures/grid.json
   tests/
   requirements.txt, Dockerfile
 ```
@@ -45,14 +50,27 @@ Region build is offline and cached; the API only reads `data/regions/<id>.duckdb
 - `feature_meta(feature_id, label, source, unit, layer, provenance_url, default_direction)`
 - `points(feature_id TEXT, lat DOUBLE, lon DOUBLE, name TEXT, category TEXT, attractiveness DOUBLE)`
 
-## Stock features (ids are part of the contract with packs/ and the agent — keep them stable)
-| id | Source | Notes |
+## Stock features = grid column names (ids are part of the contract with packs/ and the agent — keep them stable)
+Source: `data/raw/houston_h3_r8.parquet` (11,720 cells; committed subset in `fixtures/grid.json`). Tract counts are
+split evenly across a tract's cells; rates carry over. Ring sums are straight-line k=6 (≈5 km) / k=12 (≈10 km) H3
+rings and stop at the three-county edge.
+| id (grid column) | Source | Notes |
 |---|---|---|
-| pop_total, pop_0_17, pop_18_44, pop_45_64, pop_65plus | ACS 5-year B01001 (sum male + female age groups) | counts; also store `<id>_density` per km² |
-| ins_medicare_share, ins_medicaid_share, ins_private_share, ins_uninsured_share | ACS 5-year B27010 | shares; keep the per-age-band counts too for demand π |
-| income_median | ACS 5-year B19013 | tract value carried to cells |
-| pop_growth | ACS 5-year latest vs 5 years earlier | percent change; tracts that changed boundaries get null |
-| clinicians by specialty (points) | CMS Doctors and Clinicians file (`connectors/cms.py`) | stored in `points` with category = primary specialty; packs turn them into `count_within` / `distance_to_nearest` features |
+| pop_total, pop_u18, pop_18_44, pop_45_64, pop_65p | ACS 5-year | counts per cell; demand bands 0-17 / 18-44 / 45-64 / 65+ |
+| pop_density_km2 | ACS 5-year | people per km² |
+| pop_total_within_5km, pop_u18_within_5km, pop_45_64_within_5km, pop_65p_within_5km | ACS 5-year | ring sums (reach) |
+| pop_45plus_within_5km | pack-derived | `pop_45_64_within_5km+pop_65p_within_5km` (orthopedics) |
+| share_any_medicare, share_any_medicaid, share_any_private, share_uninsured | ACS 5-year insurance | shares of residents; π for demand; "any" sums the ACS combinations naming that payer |
+| medicaid_u19_within_5km | ACS 5-year | children on Medicaid within 5 km |
+| median_hh_income | ACS 5-year | top-coded at $250,001 |
+| pop_growth_pct | ACS 5-year 2020→2024 | −43% to +243%; percentile normalization handles the range |
+| share_spanish, share_lep | ACS 5-year language | Spanish at home; limited English |
+| n_<specialty> (orthopedics, primary_care, pediatrics, nephrology, physical_therapy, ...) | CMS Doctors and Clinicians | clinicians per cell, each counted once per cell; Huff competitors (`competitor_feature`) |
+| n_orthopedics_within_10km, n_primary_care_within_5km, n_pediatrics_within_5km, n_nephrology_within_10km, n_physical_therapy_within_5km | CMS | ring sums of n_<specialty> |
+| n_hospitals_within_5km | CMS Hospital General Information | |
+Never use the CoStar-derived columns (`n_costar_*`, `n_lease_spaces`, `n_medical_lease_spaces`) as features in
+anything committed or shown publicly without CoStar's OK. Missing values (154 empty cells) stay null; normalization
+gives them c = 0.
 ACS: use the latest 5-year vintage on api.census.gov, `get=group(B01001)&for=tract:*&in=state:48&in=county:201`
 (check the API examples if the geography syntax errors). Map variables using the API's variables.json labels.
 CMS: the national file is large — filter to the state while reading (chunks) or use a state-filtered API query;
@@ -60,16 +78,19 @@ geocode unique addresses with the Census batch geocoder (up to 10,000 per batch)
 
 ## Packs → features
 `packs/*.yaml` are StockPacks (contracts). A PackFeature's `value` is one stock column or a sum written with `+`
-(e.g. `pop_45_64+pop_65plus`) — support only `+`, never evaluate expressions. A specialty pack extends
+(e.g. `pop_45_64_within_5km+pop_65p_within_5km`) — support only `+`, never evaluate expressions. A specialty pack extends
 `healthcare.base`; features with the same id override the base.
 
 ## Scoring math (exactly as docs/DESIGN.md)
 - Normalize: percentile rank across region cells; direction −1 uses `1 − x̃`. `S_i = Σ w_k c_ik`, in [0, 1].
 - Demand: `D_i = π_i · Σ_a P_ia · r_a` with bands and visit rates from the pack (r_a = 1.0 if missing).
   π_i = share of residents in the demand bands whose coverage type the practice accepts (from B27010 by age).
-- Travel minutes: haversine km × 1.3 / (35 mph = 56.33 km/h) × 60, floored at 2.
-- Huff: β from ScoringSpec (default 2), attractiveness 1 if unknown; competitors from `competitor_feature`
-  points within 30 minutes; the practice's existing offices are both in C (before) and in O (after).
+- Travel minutes (Huff only): haversine km × 1.3 / (35 mph = 56.33 km/h) × 60, floored at 2.
+- Huff: β from ScoringSpec (default 2); competitors = cells of the `competitor_feature` column (`n_<specialty>`,
+  A = clinicians in the cell; default from the pack's `site_rules.competitor_feature`); the practice's existing
+  offices (A = clinicians) are both in C (before) and in O (after); a new site has A = mean office size (1 if none).
+  Competitors, offices and the new site only reach cells within 30 minutes.
+- π_i = share of residents with an accepted coverage type (medicare, medicaid/chip, commercial), capped at 1.
 - Net-new: as DESIGN.md; return captured, cannibalized and net-new per site.
 - Site quality Q, hard-constraint exclusion and final score F: exactly as docs/DESIGN.md, in `rank.py`.
 - Sensitivity: `numpy.random.default_rng(42)`, 200 draws of Dirichlet(κ·w); recompute S and F per draw;
@@ -104,7 +125,7 @@ fall inside the region. Store the feature + meta on success. **Never eval or exe
 | POST /features/profile | PreviewRequest → DatasetPreview |
 | POST /features/ingest | IngestRequest → ValidationReport |
 | GET /features/{id}/value?h3=... | FeatureValue (used by verify_claims) |
-With `FIXTURE_MODE=1` every endpoint answers from `fixtures/fake_grid.json` with the same shapes.
+With `FIXTURE_MODE=1` every endpoint answers from `fixtures/grid.json` with the same shapes.
 
 ## Tests (write them as you go)
 normalize is a percentile in [0, 1]; flipping a direction flips the ranking; a cell with more demand-band
@@ -113,7 +134,7 @@ existing office has near-zero net-new; stability is in [0, 1]; ingest of a small
 point feature; ingest rejects a URL outside the allowlist.
 
 ## Milestones
-- **Setup:** `fixtures/make_fake_grid.py` + `fixtures/fake_grid.json` pushed within 30 minutes; app.py with all
+- **Setup:** (done differently: real grid in `fixtures/grid.json`) app.py with all
   endpoints in fixture mode; Dockerfile (python:3.11-slim, repo-root context, `uvicorn services.geo.app:app --host 0.0.0.0 --port 8001`).
 - **P0:** `build_region hou` builds cells, crosswalk, ACS stock features, CMS clinician points; /grid, /features
   and /score live. Done when a real Houston map renders with fixed orthopedic weights.

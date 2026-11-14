@@ -1,24 +1,21 @@
-# StockPack (contracts/models.py). Loaded for every practice; specialty packs extend it. Owner: Jayan.
-# Feature ids must match the stock feature ids built by services/geo (see services/geo/CLAUDE.md).
+# StockPack (contracts/models.py). Loaded for every practice; specialty packs extend it.
+# Feature ids are column names of the Houston grid (data/raw/houston_h3_r8.parquet, fixtures/grid.json), or a sum of
+# columns written with "+" in `value`. Ring sums (*_within_5km / *_within_10km) are straight-line k=6 / k=12 H3 rings.
 id: healthcare.base
 demand_age_bands: ["0-17", "18-44", "45-64", "65+"]
 visit_rates: {}
 features:
-  - {id: pop_total_density, source: acs.B01001, value: pop_total, label: "Population density", agg: density, direction: 1, unit: "people/km2"}
-  - {id: pop_growth, source: acs.B01001, value: pop_growth, label: "Population growth", agg: mean, direction: 1, unit: "%"}
-  - {id: income_median, source: acs.B19013, value: income_median, label: "Median household income", agg: mean, direction: 1, unit: "USD"}
-  - {id: ins_medicare_share, source: acs.B27010, value: ins_medicare_share, label: "Share with Medicare", agg: mean, direction: 1, unit: "share"}
-  - {id: ins_medicaid_share, source: acs.B27010, value: ins_medicaid_share, label: "Share with Medicaid", agg: mean, direction: 1, unit: "share"}
-  - {id: ins_private_share, source: acs.B27010, value: ins_private_share, label: "Share with private insurance", agg: mean, direction: 1, unit: "share"}
-  - id: primary_care_15m
-    source: cms.doctors
-    label: "Primary care clinicians within 15 minutes (referral base)"
-    filter_column: pri_spec
-    # verify the exact specialty strings in the CMS file
-    filter_values: ["FAMILY PRACTICE", "INTERNAL MEDICINE", "GENERAL PRACTICE"]
-    agg: count_within
-    radius_min: 15
-    direction: 1
-    unit: "clinicians"
+  - {id: pop_density_km2, source: acs, value: pop_density_km2, label: "Population density", agg: density, direction: 1, unit: "people/km2"}
+  - {id: pop_total_within_5km, source: acs, value: pop_total_within_5km, label: "People within 5 km", agg: sum, direction: 1, unit: "people"}
+  - {id: pop_growth_pct, source: acs, value: pop_growth_pct, label: "Population growth 2020-24", agg: mean, direction: 1, unit: "%"}
+  - {id: median_hh_income, source: acs, value: median_hh_income, label: "Median household income", agg: mean, direction: 1, unit: "USD"}
+  - {id: share_any_medicare, source: acs, value: share_any_medicare, label: "Share of residents with Medicare", agg: mean, direction: 1, unit: "share"}
+  - {id: share_any_medicaid, source: acs, value: share_any_medicaid, label: "Share of residents with Medicaid", agg: mean, direction: 1, unit: "share"}
+  - {id: share_any_private, source: acs, value: share_any_private, label: "Share of residents with private insurance", agg: mean, direction: 1, unit: "share"}
+  - {id: share_uninsured, source: acs, value: share_uninsured, label: "Share of residents without insurance", agg: mean, direction: -1, unit: "share"}
+  - {id: share_spanish, source: acs, value: share_spanish, label: "Share speaking Spanish at home", agg: mean, direction: 1, unit: "share"}
+  - {id: share_lep, source: acs, value: share_lep, label: "Share with limited English", agg: mean, direction: 1, unit: "share"}
+  - {id: n_primary_care_within_5km, source: cms.doctors, value: n_primary_care_within_5km, label: "Primary care clinicians within 5 km (referral base)", agg: sum, direction: 1, unit: "clinicians"}
+  - {id: n_hospitals_within_5km, source: cms.hospitals, value: n_hospitals_within_5km, label: "Hospitals within 5 km", agg: sum, direction: 1, unit: "hospitals"}
 site_rules: {}
 factor_hints: []

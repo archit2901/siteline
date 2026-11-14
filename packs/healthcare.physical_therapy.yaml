@@ -1,0 +1,15 @@
+# StockPack (contracts/models.py). Feature ids are Houston grid columns (see healthcare.base.yaml).
+id: healthcare.physical_therapy
+extends: healthcare.base
+specialty: physical_therapy
+demand_age_bands: ["18-44", "45-64", "65+"]
+visit_rates: {}
+features:
+  # Same column as the orthopedics pack, opposite sign: nearby orthopedic surgeons refer patients to PT.
+  - {id: n_orthopedics_within_10km, source: cms.doctors, value: n_orthopedics_within_10km, label: "Orthopedic clinicians within 10 km (referral source)", agg: sum, direction: 1, unit: "clinicians"}
+  - {id: n_physical_therapy_within_5km, source: cms.doctors, value: n_physical_therapy_within_5km, label: "Physical therapists within 5 km (competition)", agg: sum, direction: -1, unit: "clinicians"}
+site_rules: {ground_floor: true, competitor_feature: n_physical_therapy}
+factor_hints:
+  - "orthopedic surgeons nearby as a referral source"
+  - "active adults, gyms and sports facilities"
+  - "large employers and workers' compensation cases"

@@ -1,0 +1,15 @@
+# StockPack (contracts/models.py). Feature ids are Houston grid columns (see healthcare.base.yaml).
+id: healthcare.dialysis
+extends: healthcare.base
+specialty: dialysis
+demand_age_bands: ["45-64", "65+"]
+visit_rates: {}
+features:
+  - {id: pop_65p_within_5km, source: acs, value: pop_65p_within_5km, label: "People 65+ within 5 km", agg: sum, direction: 1, unit: "people"}
+  # Nephrologists refer to dialysis and cluster near existing dialysis units: proxy until CMS dialysis facilities are ingested.
+  - {id: n_nephrology_within_10km, source: cms.doctors, value: n_nephrology_within_10km, label: "Nephrology clinicians within 10 km (referral base; proxy for existing dialysis)", agg: sum, direction: 1, unit: "clinicians"}
+site_rules: {ground_floor: true, special_rooms: ["dialysis stations"], competitor_feature: n_nephrology}
+factor_hints:
+  - "chronic kidney disease, diabetes and high blood pressure burden"
+  - "patients come three times a week: short trips and transit access"
+  - "existing dialysis stations nearby"
