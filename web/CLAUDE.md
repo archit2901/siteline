@@ -1,4 +1,4 @@
-# web — Siteline web app (owner: Gaurav)
+# web — Siteline web app (owner: Archit)
 
 React + Vite + TypeScript (strict) on :5173. Judges see everything through this screen: the agent's thinking, the
 map and the results. It must look clean from two meters away and never show a number without a source link.
@@ -59,7 +59,7 @@ with ~400 ms between events, and artifacts load from `public/fixtures/`. Everyth
 - **Demo controls:** replay a golden run, auto-approve after 3 s toggle, Houston / Jacksonville switch.
 
 ## Milestones
-- **Setup:** Vite app, basemap, H3 layer drawing `fixtures/fake_grid.json`, generated types compile.
+- **Setup:** Vite app, basemap, H3 layer drawing `fixtures/grid.json`, generated types compile.
 - **P0:** reducer + replay player drive the whole run view from fixtures; intake with presets; factor list.
 - **P1:** live SSE against agent-api; approval modal; sliders → rescore re-colors the map.
 - **P2:** site cards, scouts panel, source links everywhere.

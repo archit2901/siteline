@@ -36,6 +36,9 @@ Jacksonville zones only (no CoStar there).
 reaches the UI unless it traces to a stored feature value or model output.
 
 ## 3. Team
+> **Update Nov 14:** Gaurav is out. Archit builds `web/` himself in his Claude Code session and owns every folder.
+> Where this file still mentions Gaurav, read it as Archit's own web work.
+
 | Person | Uses Claude Code | Does |
 |---|---|---|
 | Archit | Yes (Max) | Everything except `web/`: agents, contracts, data/geo, sites, infra, README |
@@ -81,7 +84,7 @@ Parth and Jayan send files and URLs to Archit, who commits them.
 
 ## 5. Architecture
 ```
-web (React + Vite, :5173, Gaurav)
+web (React + Vite, :5173)
   └─ HTTP + SSE ─> agent-api (FastAPI + deepagents, :8000) ── Amazon Bedrock (Nova)
                      ├─ GeoClient   : mock | local (data/raw) | http (geo-service :8001)
                      └─ SitesClient : mock | local (data/raw CoStar files) | http (sites-service :8002)
@@ -240,7 +243,7 @@ CoStar, LangChain deepagents, Peri and Amazon. Commit.
 Zones-only run for Duval (12031), St. Johns (12109), Clay (12019) using the same Census/CMS pipeline. Needs
 Jacksonville data from Parth.
 
-## 8. Message for Gaurav
+## 8. Message for Gaurav (obsolete since Nov 14: Archit builds the web app)
 > Accept the GitHub invite to archit2901/siteline, then:
 > ```bash
 > git clone https://github.com/archit2901/siteline.git && cd siteline

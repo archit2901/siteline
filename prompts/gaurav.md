@@ -1,4 +1,7 @@
-# Gaurav — prompts to paste into Claude Code
+# Web app prompts (originally for Gaurav)
+
+> Since Nov 14 Archit builds `web/` in his own session. Read "I'm Gaurav" below as "I'm Archit, working on web/".
+> `fixtures/grid.json` (keys `h3, cell_lat, cell_lon, county` + grid columns) replaces `fake_grid.json`.
 
 Start Claude Code in the repo root on branch `web`. Paste one block at a time. After each block:
 `/milestone <name>` → commit → `/handoff` → post the note in team chat.

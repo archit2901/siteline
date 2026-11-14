@@ -34,8 +34,7 @@ Demo region: Houston (Harris, Fort Bend, Montgomery counties). Stretch for Peri 
 ## Ownership
 | Person | Uses Claude Code | Does | Branch | Folders they edit |
 |---|---|---|---|---|
-| Archit | Yes | Agents, contracts, data/geo, sites, infra, README | `agent` | everything except `web/` |
-| Gaurav | Yes | Web app | `web` | `web/` |
+| Archit | Yes (only Claude Code user) | Everything: agents, contracts, data/geo, sites, web app, infra, README | `agent` | everything |
 | Parth | No | Research, finding and downloading public datasets, checking data | — | — |
 | Jayan | No | CoStar Discord questions, Dr. Deshmukh (Peri), Devpost draft, dataset URLs | — | — |
 
@@ -45,7 +44,7 @@ At the start of a session the human says who they are. If they don't, ask before
 
 ## Architecture
 ```
-web (React + Vite, :5173, Gaurav)
+web (React + Vite, :5173)
   └─ HTTP + SSE ─> agent-api (FastAPI + deepagents, :8000) ── Amazon Bedrock (Nova)
                      ├─ GeoClient   : mock | local (data/raw) | http (geo-service :8001)
                      └─ SitesClient : mock | local (data/raw CoStar files) | http (sites-service :8002)
