@@ -219,6 +219,11 @@ async def prefill(url: str, previous: PracticeProfile | None, model: BaseChatMod
             [SystemMessage(PROMPT), HumanMessage(f"QUESTIONS:\n{questions}\n\nWEBSITE:\n{corpus}")])
         draft = out if isinstance(out, IntakeDraft) else IntakeDraft()
         fallback = False
+        # The model skims long pages; add the languages and payers the pages name plainly that it left out.
+        plain = basic_draft(pages, sector)
+        union = lambda a, b: list({x.lower(): x for x in [*b, *a]}.values())  # noqa: E731 (model's spelling wins)
+        draft = draft.model_copy(update={"languages": union(draft.languages, plain.languages),
+                                         "payers": union(draft.payers, plain.payers), "name": draft.name or plain.name})
     except Exception:  # model unavailable: keep everything the pages state plainly (name, locations, languages)
         draft, fallback = basic_draft(pages, sector), True
     # What the owner already typed wins over the website; a multi-specialty system names no single specialty.

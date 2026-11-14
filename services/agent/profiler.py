@@ -93,9 +93,13 @@ def preset(profile: PracticeProfile) -> tuple[DemandModel, list[str]] | None:
     raw = pack.site_rules.get("demand")
     if not isinstance(raw, dict):
         return None
-    draft = ProfileDraft.model_validate({**raw, "space_uses": pack.site_rules.get("space_uses", []),
+    rates = bool(raw.get("weights_are_rates"))
+    fields = {k: v for k, v in raw.items() if k != "weights_are_rates"}
+    draft = ProfileDraft.model_validate({**fields, "space_uses": pack.site_rules.get("space_uses", []),
                                          "rationale": f"Sector defaults from stock pack {pack.id}."})
     model, tags, _ = validate(draft)
+    if rates and draft.demand_label:  # weights are usage rates, so the mix of segments is one count: likely patients
+        model = model.model_copy(update={"demand_label": draft.demand_label.strip()[:40]})
     return model, tags
 
 

@@ -28,6 +28,7 @@ site_rules:
       - {feature_id: below_200fpl_pop, label: "people below 200% of poverty (about 1 in 5 uses a health center)", weight: 0.2}
       - {feature_id: uninsured, label: "uninsured residents (extra weight: fewest other options)", weight: 0.1}
     demand_label: "likely health center patients"
+    weights_are_rates: true  # reach keeps these usage rates and this label (geomath.uses_rates)
     trip: local
     competitor_label: "other community health centers (HRSA)"
 factor_hints:

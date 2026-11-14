@@ -146,6 +146,13 @@ def payer_share(grid: Grid, profile: PracticeProfile) -> np.ndarray:
     return np.minimum(1.0, share)
 
 
+def uses_rates(pack: StockPack) -> bool:
+    """The pack's demand weights are the share of each group that uses the service (health center usage rates), so
+    reach sums every segment at its rate, and the competitor list is complete (no 'other options' alternative)."""
+    rules = pack.site_rules.get("demand")
+    return isinstance(rules, dict) and bool(rules.get("weights_are_rates"))
+
+
 def primary_segment(model: DemandModel) -> DemandSegment | None:
     """The core customer group (highest weight, first on ties): reach is counted in its units, never in a mix."""
     usable = [s for s in model.segments if s.feature_id in DEMAND_COLUMNS]
@@ -255,7 +262,7 @@ def without_own_sites(grid: Grid, competitors: np.ndarray, column: str | None, o
 def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, candidates: list[SiteCandidate],
          competitor_feature: str | None, model: DemandModel | None = None) -> list[HuffResult]:
     """Captured, cannibalized and net-new customers per candidate (docs/DESIGN.md Huff + net-new)."""
-    core = primary_segment(model) if model is not None else None
+    core = primary_segment(model) if model is not None and not uses_rates(pack) else None
     # Reach counts one kind of person (the core segment) so the number has a single unit and label.
     d = demand(grid, pack, profile, model.model_copy(update={"segments": [core.model_copy(update={"weight": 1.0})]})
                if model is not None and core is not None else model)
@@ -263,7 +270,7 @@ def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
     column = column if column is None or column in grid.columns else None
     reach = TRIP_MINUTES[model.trip] if model is not None else MAX_MINUTES
     competitors = competitor_attraction(grid, competitor_column(pack, column), spec.beta, reach)
-    if model is not None:  # see OUTSIDE_OPTION_FRACTION; healthcare packs keep the CMS-competitor model unchanged
+    if model is not None and not uses_rates(pack):  # see OUTSIDE_OPTION_FRACTION; healthcare packs keep the CMS-competitor model unchanged
         competitors = competitors + (reach * OUTSIDE_OPTION_FRACTION) ** -spec.beta
     offices = [o for o in profile.existing_offices if o.lat is not None and o.lon is not None]
     competitors = without_own_sites(grid, competitors, competitor_column(pack, column), offices, pack, spec.beta, reach)

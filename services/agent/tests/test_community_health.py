@@ -49,3 +49,15 @@ def test_sliding_fee_demand_ignores_payers_and_own_sites_are_not_competitors() -
     raw = geomath.competitor_attraction(grid, "n_health_centers", spec.beta)
     less = geomath.without_own_sites(grid, raw, "n_health_centers", [office], pack, spec.beta, geomath.MAX_MINUTES)
     assert (less <= raw + 1e-12).all() and less[cell] < raw[cell]
+
+
+def test_health_center_reach_counts_likely_patients_not_everyone_eligible() -> None:
+    from services.agent.profiler import preset
+    hope = PracticeProfile(name="HOPE", specialty="community_health")
+    model, _ = preset(hope)  # type: ignore[misc]
+    assert model.demand_label == "likely health center patients"
+    pack = load_pack("healthcare.community_health")
+    assert geomath.uses_rates(pack) and not geomath.uses_rates(load_pack("healthcare.base"))
+    grid = MockGeo().grid
+    eligible = np.nansum(grid.columns["below_200fpl_pop"])
+    assert np.nansum(geomath.demand(grid, pack, hope, model)) < 0.5 * eligible
