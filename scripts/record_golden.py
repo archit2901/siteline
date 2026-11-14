@@ -38,6 +38,11 @@ def main() -> int:
     shutil.copyfile(src / "events.jsonl", GOLDEN / f"{args.name}.jsonl")
     for name in sorted(files):
         shutil.copyfile(src / name, dest / name)
+    # strategy.json (space and lease/buy/build plan) is not a contract artifact, so it is copied without validation.
+    for name in ("strategy.json", "ranked.json"):
+        if (src / name).exists() and name not in files:
+            shutil.copyfile(src / name, dest / name)
+            files.add(name)
     print(f"golden {args.name}: {len(events)} events, artifacts {sorted(files)} -> {dest}")
     return 0
 
