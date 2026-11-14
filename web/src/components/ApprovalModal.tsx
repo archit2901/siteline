@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { safeHref } from '../lib/safe'
 import type { ApprovalRequest } from '../types/contracts'
 
 interface Props {
@@ -42,9 +43,13 @@ export default function ApprovalModal({ approval, featureLabels, readOnly, onApp
                 <tr key={c.id}>
                   <td>{factors.find((f) => f.id === c.factor_id)?.factor ?? c.factor_id}</td>
                   <td>
-                    <a href={c.url} target="_blank" rel="noreferrer">
-                      {c.title}
-                    </a>
+                    {safeHref(c.url) ? (
+                      <a href={safeHref(c.url)} target="_blank" rel="noreferrer">
+                        {c.title}
+                      </a>
+                    ) : (
+                      c.title
+                    )}
                     <div className="hint">{c.publisher}</div>
                   </td>
                   <td>{c.status === 'invalid' ? 'Not usable, replaced' : c.status === 'found_not_ingested' ? 'Found, not ingestible' : 'Ready to ingest'}</td>

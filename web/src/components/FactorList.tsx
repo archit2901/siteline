@@ -1,3 +1,4 @@
+import { safeHref } from '../lib/safe'
 import type { Factor, Report } from '../types/contracts'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -28,7 +29,7 @@ export default function FactorList({ factors, report }: Props) {
       <h2>What matters for this practice</h2>
       <ul className="factors">
         {factors.map((f) => {
-          const source = f.feature_id ? report?.sources?.[f.feature_id] : undefined
+          const source = f.feature_id ? safeHref(report?.sources?.[f.feature_id]) : undefined
           return (
             <li className="factor" key={f.id}>
               <h3>{f.factor}</h3>

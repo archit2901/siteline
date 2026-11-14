@@ -1,3 +1,4 @@
+import { safeHref } from '../lib/safe'
 import type { Report } from '../types/contracts'
 
 interface Props {
@@ -12,7 +13,7 @@ export default function SourceLink({ evidenceRef, report, featureLabels }: Props
   const [name, at = ''] = rest.split('@', 2)
 
   if (kind === 'feature') {
-    const href = report.sources?.[name]
+    const href = safeHref(report.sources?.[name])
     const label = featureLabels[name] ?? name
     return href ? (
       <a className="source" href={href} target="_blank" rel="noreferrer" title={`${label}: ${href}`}>

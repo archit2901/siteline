@@ -4,6 +4,7 @@ import { ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import type { PickingInfo } from '@deck.gl/core'
 import * as maplibregl from 'maplibre-gl'
 import { useEffect, useMemo, useRef } from 'react'
+import { esc } from '../lib/safe'
 import type { Recommendation, ScoreResponse } from '../types/contracts'
 
 // Fixture/grid row (fixtures/grid.json): not a contract shape.
@@ -159,9 +160,9 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3)
             .map(([k]) => featureLabels[k] ?? k)
-          return { html: `<b>Fit ${fmt(zone.score, 2)}</b> in ${cell.county} County<br/>Expected demand ${fmt(zone.demand)} a year<br/>Strongest: ${top.join(', ')}`, style }
+          return { html: `<b>Fit ${esc(fmt(zone.score, 2))}</b> in ${esc(cell.county)} County<br/>Expected demand ${esc(fmt(zone.demand))} a year<br/>Strongest: ${top.map(esc).join(', ')}`, style }
         }
-        return { html: `<b>${cell.county} County</b><br/>${fmt(cell.pop_density_km2)} people per km²<br/>${fmt(cell.pop_total_within_5km)} people within 5 km<br/>Median income $${fmt(cell.median_hh_income)}`, style }
+        return { html: `<b>${esc(cell.county)} County</b><br/>${esc(fmt(cell.pop_density_km2))} people per km²<br/>${esc(fmt(cell.pop_total_within_5km))} people within 5 km<br/>Median income $${esc(fmt(cell.median_hh_income))}`, style }
       },
     })
   }, [grid, densityPct, scorePct, zoneByCell, topCells, sites, selectedSiteId, featureLabels, onSelectSite])

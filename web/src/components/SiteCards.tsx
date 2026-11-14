@@ -77,7 +77,7 @@ export default function SiteCards({ report, featureLabels, selectedSiteId, onSel
                   <span className="chip">Top 10 in {Math.round(rec.stability * 100)}% of weightings</span>
                 )}
                 {s.matterport_id && (
-                  <a className="chip" href={`https://my.matterport.com/show/?m=${s.matterport_id}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+                  <a className="chip" href={`https://my.matterport.com/show/?m=${encodeURIComponent(s.matterport_id)}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
                     3D tour
                   </a>
                 )}
