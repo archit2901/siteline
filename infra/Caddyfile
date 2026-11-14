@@ -1,0 +1,17 @@
+# Siteline on one EC2 box: the web build at /, agent-api at /api (same origin, so no CORS).
+# SITE_ADDRESS is a hostname for automatic HTTPS (e.g. 203-0-113-7.sslip.io for an Elastic IP), or :80 for HTTP only.
+{$SITE_ADDRESS::80} {
+	handle_path /api/* {
+		reverse_proxy agent:8000 {
+			# Server-sent events: send each event as soon as it is written
+			flush_interval -1
+		}
+	}
+
+	handle {
+		encode gzip
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
