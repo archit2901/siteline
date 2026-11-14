@@ -12,7 +12,7 @@ fixtures:
 	PYTHONPATH=. python fixtures/validate.py
 
 run-agent:
-	PYTHONPATH=. uvicorn services.agent.app:app --reload --port 8000
+	PYTHONPATH=. uvicorn services.agent.app:app --reload --port 8000 --env-file .env
 
 run-geo:
 	PYTHONPATH=. uvicorn services.geo.app:app --reload --port 8001
