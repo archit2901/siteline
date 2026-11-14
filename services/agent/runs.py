@@ -6,6 +6,7 @@ POST /runs/{id}/approve (or DEMO_AUTO_APPROVE_SECONDS) answers them.
 """
 
 import asyncio
+import logging
 import os
 import re
 import sqlite3
@@ -19,6 +20,7 @@ from typing import Any
 from contracts.models import ApprovalRequest, ApproveRequest, EventType, RunCreate, RunEvent
 from services.agent.llm import runs_dir
 
+log = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "fixtures"
 GOLDEN = FIXTURES / "golden"
@@ -201,9 +203,12 @@ class RunStore:
         status = "done"
         try:
             await pipeline(run)
-        except Exception as exc:  # the stream must end with an error event, never hang
+        except Exception:  # the stream must end with an error event, never hang
             status = "error"
-            await run.emit("site-strategist", "error", {"message": f"{type(exc).__name__}: {exc}", "recoverable": False})
+            error_id = uuid.uuid4().hex[:8]
+            log.exception("run %s failed (error %s)", run.run_id, error_id)  # full detail stays in the server log
+            await run.emit("site-strategist", "error", {
+                "message": f"The run stopped because of an internal error (error id {error_id}).", "recoverable": False})
         finally:
             await run.finish(status)
             self.db.set_status(run.run_id, status)
@@ -217,8 +222,9 @@ class RunStore:
                     gap = (event.ts - prev.ts).total_seconds()
                     await asyncio.sleep(max(0.0, min(gap, cap)))
                 await run.publish(event.model_copy(update={"run_id": run.run_id}))
-        except Exception as exc:  # surface replay failures to subscribers instead of hanging them
-            await run.emit("site-strategist", "error", {"message": f"replay failed: {exc}", "recoverable": False})
+        except Exception:  # surface replay failures to subscribers instead of hanging them
+            log.exception("replay %s failed", run.run_id)
+            await run.emit("site-strategist", "error", {"message": "The replay could not be played.", "recoverable": False})
         finally:
             await run.finish()
 

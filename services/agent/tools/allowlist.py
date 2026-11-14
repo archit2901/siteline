@@ -62,7 +62,9 @@ def _check_peer(resp: httpx.Response, url: str) -> None:
     """The address the socket actually connected to (closes the gap between the DNS check and the connect)."""
     stream = resp.extensions.get("network_stream")
     peer = stream.get_extra_info("server_addr") if stream is not None else None
-    if peer and not _public_ip(str(peer[0])):
+    if not peer:  # fail closed: an unknown peer is treated as non-public
+        raise BlockedURL(f"{url}: could not confirm the connected address")
+    if not _public_ip(str(peer[0])):
         raise BlockedURL(f"{url} connected to a non-public address")
 
 

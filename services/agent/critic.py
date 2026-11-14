@@ -146,6 +146,19 @@ async def verify_claims(report: Report, sites: dict[str, SiteCandidate], ranked:
     return problems
 
 
+def best_per_building(ranked: list[RankedSite], sites: dict[str, SiteCandidate]) -> list[RankedSite]:
+    """One card per building: keep each property's best-ranked space (suites in one building share Huff numbers)."""
+    seen: set[str] = set()
+    out = []
+    for r in ranked:
+        site = sites[r.site_id]
+        building = str(site.checks.get("property_id") or site.address.strip().lower())
+        if building not in seen:
+            seen.add(building)
+            out.append(r)
+    return out
+
+
 async def build_report(run_id: str, profile: PracticeProfile, factors: list[Factor], sites: list[SiteCandidate],
                        ranked: list[RankedSite], geo: GeoClient, meter: llm.UsageMeter | None,
                        caveats: list[str], select: bool = True) -> tuple[Report, list[Problem]]:
@@ -154,7 +167,7 @@ async def build_report(run_id: str, profile: PracticeProfile, factors: list[Fact
     select=False skips the model and uses the default claim order (for /rescore, which must not call an LLM)."""
     by_site = {s.id: s for s in sites}
     by_rank = {r.site_id: r for r in ranked}
-    top = [r for r in ranked if r.excluded_reason is None][:TOP]
+    top = best_per_building([r for r in ranked if r.excluded_reason is None], by_site)[:TOP]
     options = {r.site_id: await claim_options(by_site[r.site_id], r, factors, geo) for r in top}
 
     listing = "\n\n".join(

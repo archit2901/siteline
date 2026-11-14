@@ -103,7 +103,8 @@ async def web_search(query: str, meter: llm.UsageMeter | None = None, limit: int
                      use_grounding: bool = True) -> list[SearchHit]:
     """Allowlisted dataset pages for a plain-language query, best sources first, de-duplicated by URL."""
     per_source: list[list[SearchHit]] = []
-    async with httpx.AsyncClient(headers=HEADERS) as client:
+    # trust_env=False: no proxy from the environment can route untrusted URLs around safe_request's checks
+    async with httpx.AsyncClient(headers=HEADERS, trust_env=False) as client:
         for search in (socrata_search, arcgis_search):
             try:
                 per_source.append([h for h in await search(query, client) if is_allowed(h.url)])

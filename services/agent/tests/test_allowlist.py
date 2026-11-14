@@ -44,3 +44,10 @@ def test_public_ip_denies_by_default(ip: str, public: bool) -> None:
     from services.agent.tools.allowlist import _public_ip
 
     assert _public_ip(ip) is public
+
+
+@pytest.mark.asyncio
+async def test_unknown_peer_fails_closed() -> None:
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200))) as client:
+        with pytest.raises(BlockedURL, match="could not confirm"):
+            await safe_request(client, "HEAD", "https://data.cdc.gov/d/x")  # mock transport exposes no peer
