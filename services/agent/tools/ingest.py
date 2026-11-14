@@ -7,7 +7,9 @@ evaluated. Aggregation: tract tables join on the cell's tract GEOID; points beco
 (count_within) or distance to the nearest point.
 """
 
+import asyncio
 import csv
+import hashlib
 import io
 import json
 import logging
@@ -15,6 +17,7 @@ import math
 import re
 from dataclasses import dataclass, field
 from itertools import islice
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
@@ -30,6 +33,9 @@ log = logging.getLogger(__name__)
 COUNTIES = ("48201", "48157", "48339")
 BBOX = (29.2, -96.3, 30.8, -94.6)  # lat_min, lon_min, lat_max, lon_max around the three counties
 MAX_BYTES = 200 * 1024 * 1024
+MAX_ROWS = 500_000
+MAX_POINTS = 50_000
+PAIR_BUDGET = 5_000_000  # cells × points per distance chunk
 PREVIEW_BYTES = 2 * 1024 * 1024
 HEADERS = {"User-Agent": "Siteline/0.1 (HackPrinceton; public data research)"}
 IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
@@ -38,6 +44,50 @@ LAT_NAMES = ("lat", "latitude", "y", "stop_lat", "_lat")
 LON_NAMES = ("lon", "lng", "long", "longitude", "x", "stop_lon", "_lon")
 TRACT_HINTS = ("tractfips", "tract_fips", "geoid", "locationid", "tract", "fips", "census_tract")
 KM_PER_RING_STEP = 0.83  # ~ H3 res-8 cell spacing; k=6 ≈ 5 km
+OVERPASS = "https://overpass-api.de/api/interpreter"
+OSM_TAG = re.compile(r"^[a-z_:]{1,30}=[A-Za-z0-9_ ;:-]{1,40}$")
+CACHE = Path(__file__).resolve().parents[3] / "data" / "cache" / "osm"
+
+
+def overpass_url(tags: list[str]) -> str:
+    """GET URL for every OSM node/way/relation with any of the tags inside the Houston box (tags validated)."""
+    clean = [t for t in tags if OSM_TAG.match(t)][:6]
+    if not clean:
+        raise ValueError("no valid OSM tags")
+    bbox = f"{BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]}"
+    parts = "".join(f'nwr["{k}"="{v}"]({bbox});' for k, v in (t.split("=", 1) for t in clean))
+    return str(httpx.URL(OVERPASS, params={"data": f"[out:json][timeout:50];({parts});out center tags;"}))
+
+
+async def _overpass_rows(client: httpx.AsyncClient, url: str) -> Rows:
+    """Overpass elements -> rows with _lat/_lon (way/relation centers). Cached; retried with backoff when busy."""
+    CACHE.mkdir(parents=True, exist_ok=True)
+    cached = CACHE / f"{hashlib.sha1(url.encode()).hexdigest()}.json"
+    if cached.exists():
+        data = json.loads(cached.read_text())
+    else:
+        delay, data = 2.0, None
+        for _ in range(4):
+            resp = await safe_request(client, "GET", url, timeout=60, max_bytes=MAX_BYTES)
+            log.info("GET overpass status=%s bytes=%s", resp.status_code, len(resp.content))
+            if resp.status_code in (429, 502, 503, 504):
+                await asyncio.sleep(delay)
+                delay *= 2
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+            cached.write_text(json.dumps(data))
+            break
+        if data is None:
+            raise ValueError("OpenStreetMap Overpass is busy; try again in a minute")
+    rows = []
+    for el in data.get("elements", []):
+        lat = el.get("lat", (el.get("center") or {}).get("lat"))
+        lon = el.get("lon", (el.get("center") or {}).get("lon"))
+        if lat is not None and lon is not None:
+            rows.append({"_lat": lat, "_lon": lon, "name": (el.get("tags") or {}).get("name", ""),
+                         **{k: v for k, v in (el.get("tags") or {}).items() if k in ("shop", "amenity", "leisure", "office")}})
+    return Rows(rows, "json", [f"{len(rows)} OpenStreetMap places"])
 
 
 @dataclass
@@ -96,6 +146,8 @@ async def fetch_rows(url: str, fmt: str, *, tract_key: str | None = None, previe
         raise ValueError(f"{fmt} sources need a connector, not the generic reader")
     cap = PREVIEW_BYTES if preview else MAX_BYTES
     async with httpx.AsyncClient(headers=HEADERS, trust_env=False) as client:
+        if urlparse(url).hostname == "overpass-api.de":
+            return await _overpass_rows(client, url)
         if fmt == "socrata":
             m = SOCRATA_ID.search(url)
             if not m:
@@ -130,9 +182,10 @@ async def fetch_rows(url: str, fmt: str, *, tract_key: str | None = None, previe
             return Rows(_features_to_rows(json.loads(text).get("features", [])), "geojson")
         if fmt == "csv" or not text.lstrip().startswith(("[", "{")):
             reader = csv.DictReader(io.StringIO(text))
-            return Rows([dict(r) for r in islice(reader, 1000 if preview else None)], "csv")
+            return Rows([dict(r) for r in islice(reader, 1000 if preview else MAX_ROWS)], "csv")
         data = json.loads(text)
-        return Rows(data if isinstance(data, list) else data.get("data", []), "json")
+        rows = data if isinstance(data, list) else data.get("data", [])
+        return Rows(rows[:MAX_ROWS], "json")
 
 
 def guess_geo(rows: list[dict[str, Any]]) -> tuple[str | None, str | None]:
@@ -217,14 +270,17 @@ def aggregate(rows: list[dict[str, Any]], spec: FeatureSpec, grid: geomath.Grid)
             i = grid.cell_of(la, lo)
             if i is not None:
                 counts[i] += 1
+        if len(pts) > MAX_POINTS:
+            raise ValueError(f"{len(pts)} points is more than the {MAX_POINTS} this build maps")
         notes.append(f"{len(pts)} points in the Houston area, {int(counts.sum())} inside grid cells")
         if spec.agg == "distance_to_nearest":
             if not pts:
                 return np.full(n, np.nan), counts, notes
             plat, plon = np.array([p[0] for p in pts]), np.array([p[1] for p in pts])
             out = np.empty(n)
-            for start in range(0, n, 1000):
-                sl = slice(start, start + 1000)
+            step = max(1, PAIR_BUDGET // len(pts))  # bound memory: cells × points per chunk
+            for start in range(0, n, step):
+                sl = slice(start, start + step)
                 out[sl] = geomath.pairwise_km(grid.lat[sl], grid.lon[sl], plat, plon).min(axis=1)
             notes.append("distance to the nearest point in km (straight line)")
             return out, counts, notes

@@ -76,7 +76,8 @@ class ScoutResult:
     spec: FeatureSpec | None = None
 
 
-def build_spec(factor: Factor, candidate: DatasetCandidate, preview: DatasetPreview, draft: SpecDraft) -> FeatureSpec | None:
+def build_spec(factor: Factor, candidate: DatasetCandidate, preview: DatasetPreview, draft: SpecDraft,
+               run_tag: str = "") -> FeatureSpec | None:
     """A FeatureSpec only if every field the model chose exists in the previewed data."""
     columns = set(preview.columns)
     level, key = preview.geo_level_guess, preview.geo_key_guess
@@ -91,7 +92,8 @@ def build_spec(factor: Factor, candidate: DatasetCandidate, preview: DatasetPrev
             return None
         agg = draft.agg if draft.agg in ("mean", "sum") else "mean"
     keep_filter = draft.filter_column in columns and bool(draft.filter_values)
-    fid = "found_" + re.sub(r"[^a-z0-9_]+", "_", factor.id.lower())[:40]
+    # The run tag keeps concurrent runs from overwriting each other's ingested columns in the shared grid.
+    fid = "found_" + re.sub(r"[^a-z0-9_]+", "_", factor.id.lower())[:40] + (f"_{run_tag}" if run_tag else "")
     unit = draft.unit or ("km" if agg == "distance_to_nearest" else "count" if level == "point" else "")
     return FeatureSpec(
         id=fid, label=(draft.label or factor.factor)[:80], source_id=candidate.id, source_url=candidate.url,
@@ -108,7 +110,7 @@ def _hit_lines(hits: list[SearchHit]) -> str:
                      for i, h in enumerate(hits, start=1))
 
 
-async def run_scout(factor: Factor, meter: llm.UsageMeter, emit: Emit) -> ScoutResult:
+async def run_scout(factor: Factor, meter: llm.UsageMeter, emit: Emit, run_tag: str = "") -> ScoutResult:
     agent = f"dataset-scout:{factor.id}"
     fast = llm.get_chat_model("dataset_scout", meter)
     ask = f"FACTOR: {factor.factor}\nWHY: {factor.why}\nPROXY: {factor.proxy}"
@@ -153,7 +155,7 @@ async def run_scout(factor: Factor, meter: llm.UsageMeter, emit: Emit) -> ScoutR
                     f"{ask}\n\nDATASET: {candidate.title}\nGEOGRAPHY: {preview.geo_level_guess} via {preview.geo_key_guess}\n"
                     f"COLUMNS: {', '.join(preview.columns[:120])}\nSAMPLE: {preview.sample_rows[:2]}")])
                 draft = draft_out if isinstance(draft_out, SpecDraft) else SpecDraft()
-                spec = build_spec(factor, candidate, preview, draft)
+                spec = build_spec(factor, candidate, preview, draft, run_tag)
             if spec is not None:
                 candidate = candidate.model_copy(update={"status": "valid", "format": preview.format,
                                                          "geo_level": spec.geo_level})

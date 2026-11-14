@@ -112,7 +112,7 @@ async def run_pipeline(run: Run) -> None:
     # 3. scouts, one per factor without data, in parallel
     await run.emit(S, "todo", todos(2))
     uncovered = [f for f in factors if f.feature_id is None]
-    results = await asyncio.gather(*(run_scout(f, meter, run.emit) for f in uncovered))
+    results = await asyncio.gather(*(run_scout(f, meter, run.emit, run.run_id[:6]) for f in uncovered))
     candidates: list[DatasetCandidate] = [r.candidate for r in results if r.candidate]
     by_id = {f.id: f for f in factors}
     for r in results:

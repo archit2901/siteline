@@ -73,22 +73,22 @@ class GridGeo:
     async def score(self, request: ScoreRequest) -> ScoreResponse:
         self._check_region(request.region_id)
         return geomath.score(self.grid, pack_for(request.profile), request.profile, request.spec, request.region_id,
-                             request.top_n)
+                             request.top_n, request.demand)
 
     async def huff(self, request: HuffRequest) -> list[HuffResult]:
         self._check_region(request.region_id)
         return geomath.huff(self.grid, pack_for(request.profile), request.profile, request.spec, request.candidates,
-                            request.competitor_feature)
+                            request.competitor_feature, request.demand)
 
     async def rank(self, request: RankRequest) -> list[RankedSite]:
         self._check_region(request.region_id)
         return geomath.rank(self.grid, pack_for(request.profile), request.profile, request.spec, request.candidates,
-                            request.competitor_feature, request.with_stability)
+                            request.competitor_feature, request.with_stability, model=request.demand)
 
     async def sensitivity(self, request: SensitivityRequest) -> list[SensitivityResult]:
         self._check_region(request.region_id)
         return geomath.sensitivity(self.grid, pack_for(request.profile), request.profile, request.spec,
-                                   request.candidates, request.draws, request.kappa)
+                                   request.candidates, request.draws, request.kappa, request.demand)
 
     async def feature_value(self, feature_id: str, h3: str, region_id: str = "hou") -> FeatureValue:
         self._check_region(region_id)

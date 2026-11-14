@@ -12,6 +12,7 @@ import numpy as np
 
 from contracts.models import (
     Constraints,
+    DemandModel,
     HuffResult,
     PracticeProfile,
     RankedSite,
@@ -32,6 +33,12 @@ TOP_K = 10  # stability = share of draws in which a site stays in the top 10
 BAND_COLUMNS = {"0-17": "pop_u18", "18-44": "pop_18_44", "45-64": "pop_45_64", "65+": "pop_65p"}
 # Payer -> share of residents with that coverage (ACS). CHIP is counted inside Medicaid; workers' comp has no
 # residence-level data, so it does not change π.
+# Per-cell count columns a DemandModel may use as customer segments (Huff sums them over cells).
+DEMAND_COLUMNS = {
+    "pop_total": "people", "pop_u18": "children under 18", "pop_18_44": "adults 18-44", "pop_45_64": "adults 45-64",
+    "pop_65p": "adults 65+", "households": "households", "renter_households": "renter households",
+    "no_vehicle_households": "households without a car", "jobs": "workers (jobs located here)",
+}
 PAYER_COLUMNS = {"medicare": "share_any_medicare", "medicaid": "share_any_medicaid", "chip": "share_any_medicaid",
                  "commercial": "share_any_private", "private": "share_any_private"}
 
@@ -125,18 +132,26 @@ def payer_share(grid: Grid, profile: PracticeProfile) -> np.ndarray:
     return np.minimum(1.0, share)
 
 
-def demand(grid: Grid, pack: StockPack, profile: PracticeProfile) -> np.ndarray:
-    """D_i = π_i · Σ_a P_ia · r_a over the pack's demand bands (r_a = 1.0 if missing)."""
+def demand(grid: Grid, pack: StockPack, profile: PracticeProfile, model: DemandModel | None = None) -> np.ndarray:
+    """D_i = π_i · Σ_a P_ia · r_a over the pack's demand bands (r_a = 1.0 if missing), or, with a DemandModel,
+    Σ_s w_s · count_is over its customer segments (π only when the practice lists accepted payers)."""
+    if model is not None and model.segments:
+        people = np.zeros(len(grid))
+        for seg in model.segments:
+            if seg.feature_id in DEMAND_COLUMNS and seg.feature_id in grid.columns:
+                people += max(0.0, seg.weight) * np.nan_to_num(grid.columns[seg.feature_id], nan=0.0)
+        return payer_share(grid, profile) * people if profile.payers_accepted else people
     bands = pack.demand_age_bands or list(BAND_COLUMNS)
     people = sum(np.nan_to_num(grid.columns[BAND_COLUMNS[b]], nan=0.0) * pack.visit_rates.get(b, 1.0) for b in bands)
     return payer_share(grid, profile) * people
 
 
-def score(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, region_id: str, top_n: int) -> ScoreResponse:
+def score(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, region_id: str, top_n: int,
+          model: DemandModel | None = None) -> ScoreResponse:
     ids, weights, c = contribution_matrix(grid, pack, spec)
     contrib = c * weights
     s = contrib.sum(axis=1)
-    d = demand(grid, pack, profile)
+    d = demand(grid, pack, profile, model)
     order = np.argsort(-s, kind="stable")
     zones = [
         ZoneScore(
@@ -198,10 +213,12 @@ def _reach(grid: Grid, lat: float, lon: float, attractiveness: float, beta: floa
 
 
 def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, candidates: list[SiteCandidate],
-         competitor_feature: str | None) -> list[HuffResult]:
-    """Captured, cannibalized and net-new patients per candidate (docs/DESIGN.md Huff + net-new)."""
-    d = demand(grid, pack, profile)
-    competitors = competitor_attraction(grid, competitor_column(pack, competitor_feature), spec.beta)
+         competitor_feature: str | None, model: DemandModel | None = None) -> list[HuffResult]:
+    """Captured, cannibalized and net-new customers per candidate (docs/DESIGN.md Huff + net-new)."""
+    d = demand(grid, pack, profile, model)
+    column = competitor_feature or (model.competitor_feature if model else None)
+    column = column if column is None or column in grid.columns else None
+    competitors = competitor_attraction(grid, competitor_column(pack, column), spec.beta)
     offices = [o for o in profile.existing_offices if o.lat is not None and o.lon is not None]
     office_attr = sum((_reach(grid, o.lat, o.lon, max(1, o.clinicians), spec.beta) for o in offices),  # type: ignore[arg-type]
                       np.zeros(len(grid)))
@@ -247,10 +264,11 @@ def site_quality(site: SiteCandidate, cons: Constraints) -> tuple[float, str | N
 
 
 def rank(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, candidates: list[SiteCandidate],
-         competitor_feature: str | None, with_stability: bool, draws: int = 200, kappa: float = 50.0) -> list[RankedSite]:
+         competitor_feature: str | None, with_stability: bool, draws: int = 200, kappa: float = 50.0,
+         model: DemandModel | None = None) -> list[RankedSite]:
     _, weights, c = contribution_matrix(grid, pack, spec)
     zone = c @ weights
-    huffs = {h.site_id: h for h in huff(grid, pack, profile, spec, candidates, competitor_feature)}
+    huffs = {h.site_id: h for h in huff(grid, pack, profile, spec, candidates, competitor_feature, model)}
 
     rows = []
     for site in candidates:
@@ -305,6 +323,7 @@ def _stability(c_sites: np.ndarray, weights: np.ndarray, alpha: float, net_pct: 
 
 
 def sensitivity(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec,
-                candidates: list[SiteCandidate], draws: int, kappa: float) -> list[SensitivityResult]:
-    ranked = rank(grid, pack, profile, spec, candidates, None, with_stability=True, draws=draws, kappa=kappa)
+                candidates: list[SiteCandidate], draws: int, kappa: float,
+                model: DemandModel | None = None) -> list[SensitivityResult]:
+    ranked = rank(grid, pack, profile, spec, candidates, None, with_stability=True, draws=draws, kappa=kappa, model=model)
     return [SensitivityResult(site_id=r.site_id, stability=r.stability or 0.0) for r in ranked]
