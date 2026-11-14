@@ -65,6 +65,13 @@ never guess sizes, rents, customers or addresses.
   market."""
 
 
+def address_key(address: str) -> str:
+    """Street number + ZIP: the same place written two ways ("Blvd." vs "Blvd", suite or not) matches."""
+    num = re.match(r"\s*(\d+)", address)
+    zips = re.findall(r"\b(\d{5})(?:-\d{4})?\b", address)
+    return f"{num.group(1)}-{zips[-1]}" if num and zips else " ".join(address.lower().split())
+
+
 class LocationDraft(BaseModel):
     name: str = ""
     address: str = ""
@@ -167,11 +174,11 @@ def merge(draft: IntakeDraft, previous: PracticeProfile | None) -> tuple[Practic
 
     # current locations: keep every one the owner gave (by address), in order
     offices = list(base.existing_offices)
-    known = {(o.address or o.name).lower() for o in offices}
+    known = {address_key(o.address or o.name) for o in offices}
     for loc in draft.locations[:12]:
         address = " ".join(loc.address.split())[:160]
-        if address and address.lower() not in known:
-            known.add(address.lower())
+        if address and address_key(address) not in known:
+            known.add(address_key(address))
             offices.append(Office(name=" ".join(loc.name.split())[:80] or f"Location {len(offices) + 1}", address=address))
 
     payers = sorted({PAYERS[p.strip().lower()] for p in draft.payers if p.strip().lower() in PAYERS})

@@ -18,13 +18,25 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from contracts.models import IntakeResponse, PracticeProfile
 from services.agent import llm
-from services.agent.intake import IntakeDraft, merge
+from services.agent.intake import IntakeDraft, LocationDraft, address_key, merge
 from services.agent.questions import SECTORS, base_for, sector_of
 from services.agent.tools.allowlist import BlockedURL, safe_request
 
 USEFUL = re.compile(r"locat|office|clinic|about|service|specialt|provider|physician|doctor|insurance|accepted|"
                     r"contact|program|who-we|our-|find|visit|hours|menu|team", re.I)
-MAX_PAGES = 6
+# Pages worth reading, best first: where the locations are, then contact/hours, who pays, who they are, what they
+# do, and individual clinic or provider pages. At most PER_TIER pages from each tier, so services don't crowd out
+# the locations page.
+TIERS = [re.compile(p, re.I) for p in (
+    r"locations?\b|find-(a-|an-|our-)?(location|clinic|office|center)|our-(locations|clinics|offices|centers)|where-we|visit-us",
+    r"contact|hours",
+    r"insurance|accepted|payment|fees|sliding|eligib|new-patient|patients",
+    r"about|who-we|mission",
+    r"service|program|specialt",
+    r"clinic|office|center|provider|physician|doctor|team",
+)]
+PER_TIER = 2
+MAX_PAGES = 7
 MAX_CHARS = 6000  # per page
 MAX_TOTAL = 24000
 
@@ -80,21 +92,69 @@ def page_text(html: str) -> tuple[str, list[str]]:
     return text, parser.links
 
 
+def _tier(path: str) -> int:
+    return next((i for i, t in enumerate(TIERS) if t.search(path)), len(TIERS))
+
+
 def same_site_links(base: str, links: list[str]) -> list[str]:
+    """Useful same-site links, best first (locations before services), at most PER_TIER from each tier."""
     host = urlparse(base).hostname or ""
     root = host.removeprefix("www.")
-    out: list[str] = []
+    found: list[str] = []
     for href in links:
-        url = urljoin(base, href.split("#")[0])
+        url = urljoin(base, href.split("#")[0].split("?")[0])
         h = (urlparse(url).hostname or "").removeprefix("www.")
         if url.startswith("http") and (h == root or h.endswith(f".{root}")) and USEFUL.search(urlparse(url).path):
-            if url not in out and url.rstrip("/") != base.rstrip("/"):
-                out.append(url)
+            if url not in found and url.rstrip("/") != base.rstrip("/"):
+                found.append(url)
+    ranked = sorted(found, key=lambda u: _tier(urlparse(u).path))  # stable: page order within a tier
+    out: list[str] = []
+    per: dict[int, int] = {}
+    for url in ranked:
+        t = _tier(urlparse(url).path)
+        if per.get(t, 0) < PER_TIER:
+            per[t] = per.get(t, 0) + 1
+            out.append(url)
+    return out
+
+
+def strip_boilerplate(text: str, seen: set[str]) -> str:
+    """Drop lines repeated within the page or already seen on the home page (menus, footers)."""
+    out: list[str] = []
+    mine: set[str] = set()
+    for line in text.splitlines():
+        key = line.strip().lower()
+        if key and key not in mine and key not in seen:
+            mine.add(key)
+            out.append(line.strip())
+    return "\n".join(out)
+
+
+STREET = re.compile(r"^\d{1,6}\s+[A-Za-z0-9.' -]+")
+CITY_ZIP = re.compile(r"\b[A-Z][A-Za-z .'-]+,?\s+(?:[A-Z]{2}|Texas)\.?,?\s+\d{5}(?:-\d{4})?\b")
+
+
+def find_addresses(text: str) -> list[tuple[str, str]]:
+    """[(name, address)] for street addresses on a page: a line starting with a street number that ends in
+    "City, ST 12345" (or whose next line does), named by the short line above it. Skips PO boxes."""
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    out: list[tuple[str, str]] = []
+    for i, line in enumerate(lines):
+        if not STREET.match(line) or re.search(r"p\.?\s*o\.?\s*box", line, re.I):
+            continue
+        address, nxt = line, lines[i + 1] if i + 1 < len(lines) else ""
+        if not CITY_ZIP.search(address) and CITY_ZIP.fullmatch(nxt.strip(" ,")):
+            address = f"{address.rstrip(' ,')}, {nxt}"
+        if not CITY_ZIP.search(address) or len(address) > 140:
+            continue
+        prev = lines[i - 1] if i else ""
+        name = prev if prev and len(prev) <= 60 and not re.search(r"\d{3}", prev) else ""
+        out.append((name, " ".join(address.split())))
     return out
 
 
 async def read_site(url: str) -> list[tuple[str, str]]:
-    """[(url, text)] for the home page and up to MAX_PAGES-1 useful same-site pages."""
+    """[(url, text)] for the home page and up to MAX_PAGES-1 useful same-site pages, menus stripped, not truncated."""
     if not urlparse(url).scheme:
         url = f"https://{url}"
     pages: list[tuple[str, str]] = []
@@ -103,12 +163,14 @@ async def read_site(url: str) -> list[tuple[str, str]]:
         resp = await safe_request(client, "GET", url, max_bytes=3_000_000, any_public_host=True)
         resp.raise_for_status()
         text, links = page_text(resp.text)
-        pages.append((str(resp.request.url), text[:MAX_CHARS]))
+        home = strip_boilerplate(text, set())
+        seen = {l.lower() for l in home.splitlines()}
+        pages.append((str(resp.request.url), home))
         for link in same_site_links(str(resp.request.url), links)[: MAX_PAGES - 1]:
             try:
                 sub = await safe_request(client, "GET", link, max_bytes=3_000_000, any_public_host=True)
                 if sub.status_code == 200 and "html" in sub.headers.get("content-type", "html"):
-                    pages.append((link, page_text(sub.text)[0][:MAX_CHARS]))
+                    pages.append((link, strip_boilerplate(page_text(sub.text)[0], seen)))
             except (BlockedURL, httpx.HTTPError):
                 continue
     return pages
@@ -122,7 +184,9 @@ async def prefill(url: str, previous: PracticeProfile | None, model: BaseChatMod
         profile = previous or PracticeProfile(name="My business")
         return IntakeResponse(reply=f"I couldn't read that website ({type(exc).__name__}). You can fill in the questions instead.",
                               profile=profile, ready=False, missing=[])
-    corpus = "\n\n".join(f"=== PAGE {u}\n{t}" for u, t in pages)[:MAX_TOTAL]
+    # Pages that list addresses go first so they survive the length cap.
+    ordered = sorted(pages, key=lambda p: -len(find_addresses(p[1])))
+    corpus = "\n\n".join(f"=== PAGE {u}\n{t[:MAX_CHARS]}" for u, t in ordered)[:MAX_TOTAL]
     hint = previous.business_type or previous.specialty if previous else ""
     sector = sector_of(f"{hint} {corpus[:3000]}")
     _, qs = SECTORS[sector]
@@ -142,6 +206,18 @@ async def prefill(url: str, previous: PracticeProfile | None, model: BaseChatMod
         draft = draft.model_copy(update={"business_type": "", "healthcare_specialty": ""})
     elif "," in draft.healthcare_specialty or " and " in draft.healthcare_specialty:
         draft = draft.model_copy(update={"healthcare_specialty": ""})
+    # Every street address on the site is a location, whether or not the model listed it; one per place.
+    locs = list(draft.locations)
+    keys = {address_key(l.address) for l in locs}
+    for _, text in pages:
+        for name, address in find_addresses(text):
+            if address_key(address) not in keys:
+                keys.add(address_key(address))
+                locs.append(LocationDraft(name=name or f"Location {len(locs) + 1}", address=address))
+    unique: dict[str, LocationDraft] = {}
+    for loc in locs:
+        unique.setdefault(address_key(loc.address), loc)
+    draft = draft.model_copy(update={"locations": list(unique.values())})
     profile, missing = merge(draft, previous)
     found = []
     if profile.existing_offices:
