@@ -303,7 +303,7 @@ second tab. Recorded runs replay with the same approvals if the network or Bedro
 | 0:15 | Live agent: type "A laundromat for apartment renters without in-unit washers" in the chat | Any business, in your own words; it asks only for what's missing. |
 | 0:25 | The run line fills; a scout branch pulls laundromats from OpenStreetMap | The profiler chose renter households and a neighborhood trip; scouts find data our stock layer lacks. |
 | 0:40 | Approve the data plan, then the weights (reasons under each factor) | Nothing is downloaded or scored without your approval; the weights are tailored to this business. |
-| 0:55 | Results: ranked CoStar spaces, map with the catchment ring | Real spaces for lease, renter households won after competitors, rent per household won; every number verified. |
+| 0:55 | Results: ranked CoStar spaces, map with the catchment ring, "Stays top 10" column | Real spaces for lease, renter households won after competitors, rent per household won; every number verified. The top spaces hold no matter how you weigh the factors: 200 alternative weightings, still top 10. |
 | 1:10 | Click a row: the flyer (sources, 3D tour); Ask tab: "Which has the most parking?" | Answers come only from the verified report. |
 | 1:25 | Recorded run: Orthopedic group | Dr. Deshmukh's practice: a scout finds CDC PLACES arthritis; different factors, different map, patients instead of households. |
 | 1:40 | Trace button (LangSmith), run meter | Every step runs on Amazon Nova through Bedrock; the meter shows calls and cost; the trace shows the parallel scouts. |
