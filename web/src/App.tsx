@@ -1,37 +1,38 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { AGENT_URL, approve, createRun, listGolden, loadRunArtifact } from './api/client'
+import { AGENT_URL, approve, createRun, listGolden, loadRunArtifact, rescore } from './api/client'
 import { FIXTURE_BASE, loadFixtureEvents, startReplay, type Replay } from './api/replay'
 import { subscribeToRun, type Subscription } from './api/sse'
-import ApprovalModal from './components/ApprovalModal'
-import FactorList from './components/FactorList'
-import IntakeForm, { PRESETS, type Preset } from './components/IntakeForm'
+import { Approval, Factors, LogDrawer, Plan } from './components/Agent'
 import MapView, { type GridCell } from './components/MapView'
-import Plan from './components/Plan'
-import SiteCards from './components/SiteCards'
+import PropertySheet from './components/PropertySheet'
+import { Proof, SiteCard, Tune, ZoneCard, topZones } from './components/Results'
+import Start, { PRESETS } from './components/Start'
 import { initialRunState, runReducer, type RunStatus } from './state/runReducer'
-import type { PracticeProfile } from './types/contracts'
+import type { ApproveRequest, PracticeProfile, ScoringSpec } from './types/contracts'
 
 const DEFAULT_MODE: Mode = (import.meta.env.VITE_FIXTURE_MODE ?? '1') === '1' ? 'fixture' : 'live'
 type Mode = 'fixture' | 'live'
+type View = 'start' | 'agent' | 'results'
+type Tab = 'lease' | 'build' | 'proof'
 
-const STATUS_TEXT: Record<RunStatus, string> = {
-  idle: 'Ready',
-  running: 'Working',
-  waiting: 'Waiting for your approval',
-  done: 'Done',
-  error: 'Stopped',
-}
+const HEADLINE: Record<RunStatus, string> = { idle: 'Ready.', running: 'Working…', waiting: 'Your call.', done: 'Done.', error: 'Stopped.' }
 
 export default function App() {
   const [state, dispatch] = useReducer(runReducer, initialRunState)
   const [grid, setGrid] = useState<GridCell[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [preset, setPreset] = useState<Preset>(PRESETS[0])
   const [profile, setProfile] = useState<PracticeProfile>(PRESETS[0].profile)
-  const [selectedSite, setSelectedSite] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>(DEFAULT_MODE)
   const [golden, setGolden] = useState<string[]>([])
   const [replaying, setReplaying] = useState(false)
+  const [view, setView] = useState<View>('start')
+  const [tab, setTab] = useState<Tab>('lease')
+  const [selected, setSelected] = useState<string | null>(null)
+  const [sheet, setSheet] = useState<string | null>(null)
+  const [focus, setFocus] = useState<{ lat: number; lon: number; zoom?: number } | null>(null)
+  const [log, setLog] = useState(false)
+  const [spec, setSpec] = useState<ScoringSpec | null>(null) // the weights the run scored with (for re-tuning)
+  const [tuning, setTuning] = useState(false)
   const replay = useRef<Replay | null>(null)
   const live = useRef<Subscription | null>(null)
   const fixtureMode = mode === 'fixture'
@@ -44,75 +45,58 @@ export default function App() {
       })
       .then(setGrid)
       .catch((e: Error) => setLoadError(e.message))
-    return () => {
-      replay.current?.stop()
-      live.current?.close()
-    }
+    return () => { replay.current?.stop(); live.current?.close() }
   }, [])
 
-  useEffect(() => {
-    if (!fixtureMode) listGolden().then(setGolden)
-  }, [fixtureMode])
+  useEffect(() => { if (!fixtureMode) listGolden().then(setGolden) }, [fixtureMode])
 
-  const start = useCallback(async (recorded?: string) => {
+  const start = useCallback(async (p: PracticeProfile, recorded?: string) => {
     replay.current?.stop()
     live.current?.close()
-    setSelectedSite(null)
-    setLoadError(null)
-    setReplaying(Boolean(recorded))
+    setProfile(p); setSelected(null); setSheet(null); setFocus(null); setTab('lease'); setLoadError(null); setSpec(null)
+    setReplaying(Boolean(recorded)); setView('agent')
     try {
       if (fixtureMode) {
         const events = await loadFixtureEvents()
         replay.current = startReplay(events, dispatch, { runId: 'fixture-replay' })
         return
       }
-      const { run_id: runId } = await createRun(profile, recorded)
+      const { run_id: runId } = await createRun(p, recorded)
       dispatch({ type: 'start', runId })
-      live.current = subscribeToRun(
-        runId,
-        AGENT_URL,
-        (event) => {
-          dispatch({ type: 'event', event })
-          if (event.type === 'file') {
-            loadRunArtifact(runId, String(event.payload?.name ?? ''))
-              .then((action) => action && dispatch(action))
-              .catch((e: Error) => setLoadError(e.message))
-          }
-        },
-        setLoadError,
-      )
+      live.current = subscribeToRun(runId, AGENT_URL, (event) => {
+        dispatch({ type: 'event', event })
+        if (event.type === 'file') {
+          loadRunArtifact(runId, String(event.payload?.name ?? ''))
+            .then((action) => action && dispatch(action))
+            .catch((e: Error) => setLoadError(e.message))
+        }
+      }, setLoadError)
     } catch (e) {
       setLoadError((e as Error).message)
     }
-  }, [fixtureMode, profile])
+  }, [fixtureMode])
 
-  const answerApproval = useCallback(
-    async (decision: 'approve' | 'reject') => {
-      const approval = state.approval
-      if (!approval) return
-      if (fixtureMode) {
-        replay.current?.answer(approval.approval_id)
-        return
-      }
-      try {
-        await approve(state.runId!, { approval_id: approval.approval_id, decision })
-        dispatch({ type: 'approvalAnswered', approvalId: approval.approval_id })
-      } catch (e) {
-        setLoadError((e as Error).message)
-      }
-    },
-    [fixtureMode, state.approval, state.runId],
-  )
+  const answer = useCallback(async (decision: ApproveRequest) => {
+    const approval = state.approval
+    if (!approval) return
+    if (approval.kind === 'weights' && approval.spec) setSpec(decision.edited_spec ?? approval.spec)
+    if (fixtureMode) { replay.current?.answer(approval.approval_id); return }
+    try {
+      await approve(state.runId!, decision)
+      dispatch({ type: 'approvalAnswered', approvalId: approval.approval_id })
+    } catch (e) {
+      setLoadError((e as Error).message)
+    }
+  }, [fixtureMode, state.approval, state.runId])
 
   const reset = useCallback(() => {
-    replay.current?.stop()
-    replay.current = null
-    live.current?.close()
-    live.current = null
-    setSelectedSite(null)
-    setLoadError(null)
+    replay.current?.stop(); replay.current = null
+    live.current?.close(); live.current = null
+    setSelected(null); setSheet(null); setLoadError(null); setView('start')
     dispatch({ type: 'reset' })
   }, [])
+
+  useEffect(() => { if (state.status === 'done' && state.report) setView('results') }, [state.status, state.report])
 
   const factors = useMemo(() => state.factorOrder.map((id) => state.factors[id]), [state.factorOrder, state.factors])
   const featureLabels = useMemo(() => {
@@ -120,94 +104,118 @@ export default function App() {
     for (const f of [...(state.report?.factors ?? []), ...factors]) if (f.feature_id) labels[f.feature_id] = f.factor
     return labels
   }, [factors, state.report])
-  const scouts = useMemo(() => state.scoutOrder.map((id) => state.scouts[id]), [state.scoutOrder, state.scouts])
-  const sites = state.report?.recommendations ?? []
-  const practiceName = state.report?.profile.name ?? (state.status === 'idle' ? null : fixtureMode ? 'Recorded run' : profile.name)
+  const report = state.report
+  const sites = report?.recommendations ?? []
+  const zones = useMemo(() => (state.zones ? topZones(state.zones, grid) : []), [state.zones, grid])
+  const offices = report?.profile.existing_offices ?? profile.existing_offices ?? []
+  const name = report?.profile.name ?? profile.name
+  const recorded = fixtureMode || replaying
+  const open = sites.find((r) => r.site.id === sheet) ?? null
+  const step = `${Math.max(1, state.todos.findIndex((t) => t.status === 'in_progress') + 1)}/${state.todos.length || 1}`
+  const canTune = !recorded && Boolean(spec) && Boolean(state.runId)
+
+  const retune = useCallback(async (weights: Record<string, number>) => {
+    if (!spec || !state.runId || !report) return
+    const total = Object.values(weights).reduce((a, b) => a + b, 0) || 1
+    const next: ScoringSpec = { ...spec, weights: Object.fromEntries(Object.entries(weights).map(([k, v]) => [k, v / total])) }
+    setTuning(true)
+    try {
+      const res = await rescore(state.runId, next)
+      dispatch({ type: 'artifact', name: 'zones.json', data: res.zones })
+      dispatch({ type: 'artifact', name: 'report.json', data: { ...report, recommendations: res.recommendations } })
+    } catch (e) {
+      setLoadError((e as Error).message)
+    } finally {
+      setTuning(false)
+    }
+  }, [spec, state.runId, report])
 
   return (
-    <div className="app">
-      <header className="header">
-        <div className="wordmark">
-          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
-            <path d="M16 2l12 7v14l-12 7-12-7V9z" fill="#1F5866" />
-            <path d="M16 9l6 3.5v7L16 23l-6-3.5v-7z" fill="#E39B2D" />
-          </svg>
-          Siteline
+    <>
+      <nav className="nav">
+        <button className="logo" onClick={reset} aria-label="Siteline home"><i aria-hidden="true" />SITELINE</button>
+        <div className="steps">
+          <button className={view === 'start' ? 'on' : ''} onClick={() => setView('start')}>Describe</button>
+          <button className={view === 'agent' ? 'on' : ''} disabled={state.status === 'idle'} onClick={() => setView('agent')}>Agent</button>
+          <button className={view === 'results' ? 'on' : ''} disabled={!report} onClick={() => setView('results')}>Results</button>
         </div>
-        {practiceName && <span className="practice">{practiceName}</span>}
-        <span className="spacer" />
-        {state.status === 'idle' ? (
-          <div className="modes" role="group" aria-label="Data source">
-            <button className="button" aria-pressed={fixtureMode} onClick={() => setMode('fixture')}>
-              Recorded run
-            </button>
-            <button className="button" aria-pressed={!fixtureMode} onClick={() => setMode('live')}>
-              Live agent
-            </button>
-          </div>
-        ) : (
-          <span className="mode">{fixtureMode || replaying ? 'Recorded run' : 'Live agent'}</span>
-        )}
-        <span className="status" data-state={state.status} role="status">
-          <span className="dot" />
-          {STATUS_TEXT[state.status]}
-        </span>
-        {state.status !== 'idle' && (
-          <button className="button" onClick={reset}>
-            New search
-          </button>
-        )}
-      </header>
+        <div className="nav-r">
+          {state.status === 'idle'
+            ? <div className="mode" role="radiogroup" aria-label="Data source">
+                <button className={fixtureMode ? 'on' : ''} onClick={() => setMode('fixture')}>Recorded</button>
+                <button className={!fixtureMode ? 'on' : ''} onClick={() => setMode('live')}>Live agent</button>
+              </div>
+            : <span className="chip-mode">{recorded ? 'Recorded run' : 'Live agent'}</span>}
+          <button className="cta" onClick={reset}><span className="arrow">↗</span><span className="label">New search</span></button>
+        </div>
+      </nav>
 
-      <main className="main">
-        <aside className="panel left">
-          {state.status === 'idle' ? (
-            <IntakeForm
-              profile={profile}
-              presetId={preset.id}
-              fixtureMode={fixtureMode}
-              onPreset={(p) => {
-                setPreset(p)
-                setProfile(p.profile)
-              }}
-              onChange={setProfile}
-              onSubmit={() => start()}
-              onReplay={!fixtureMode && golden.includes(preset.id) ? () => start(preset.id) : undefined}
-            />
-          ) : (
-            <Plan todos={state.todos} scouts={scouts} factors={state.factors} trace={state.trace} />
+      {view === 'start' && <Start live={!fixtureMode} hasRecording={(id) => !fixtureMode && golden.includes(id)} onRun={start} />}
+
+      {view !== 'start' && (
+        <main className={`work ${view === 'results' ? 'results' : ''}`}>
+          {view === 'agent' && (
+            <aside className="panel">
+              <span className="hand">{recorded && fixtureMode ? 'Recorded run' : name}</span>
+              <h2 className="h2">{HEADLINE[state.status]}</h2>
+              <p className="sub">{recorded ? 'Replaying a recorded run' : 'Live agent'}</p>
+              <Plan todos={state.todos} />
+              <Factors factors={factors} scouts={state.scouts} />
+              {(loadError || state.error) && <div className="err">{loadError ?? state.error}</div>}
+            </aside>
           )}
-        </aside>
 
-        <section className="mapwrap">
-          {(loadError || state.error) && <p className="banner">{loadError ?? state.error}</p>}
-          <MapView
-            grid={grid}
-            zones={state.zones}
-            sites={sites}
-            featureLabels={featureLabels}
-            selectedSiteId={selectedSite}
-            onSelectSite={setSelectedSite}
-          />
-          {state.report && (
-            <SiteCards report={state.report} featureLabels={featureLabels} selectedSiteId={selectedSite} onSelect={setSelectedSite} />
+          <section className="mapcard">
+            <MapView grid={grid} zones={state.zones} sites={view === 'results' && tab !== 'build' ? sites : []}
+              highlight={view === 'results' && tab === 'build' ? zones.map((z) => z.h3) : []} offices={offices}
+              featureLabels={featureLabels} selectedSiteId={selected} onSelectSite={(id) => { setSelected(id); setSheet(id) }} focus={focus} />
+            <div className="logbtn">
+              <button className="pillbtn dark" onClick={() => setLog(true)} disabled={state.trace.length === 0}>Agent log · {state.trace.length}</button>
+            </div>
+            {state.approval && view === 'agent' && (
+              <Approval key={state.approval.approval_id} approval={state.approval} featureLabels={featureLabels} readOnly={fixtureMode}
+                step={step} businessName={name} onApprove={answer}
+                onReject={() => answer({ approval_id: state.approval!.approval_id, decision: 'reject' })} />
+            )}
+          </section>
+
+          {view === 'results' && report && (
+            <aside className="panel">
+              <span className="hand">{report.profile.name}</span>
+              <h2 className="h2">{tab === 'lease' ? 'Ten spaces to lease.' : tab === 'build' ? `${zones.length} places to build.` : 'How we know.'}</h2>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="tabs" role="tablist">
+                  <button role="tab" aria-selected={tab === 'lease'} className={tab === 'lease' ? 'on' : ''} onClick={() => setTab('lease')}>Lease<sup>{sites.length}</sup></button>
+                  <button role="tab" aria-selected={tab === 'build'} className={tab === 'build' ? 'on' : ''} onClick={() => setTab('build')}>Build<sup>{zones.length}</sup></button>
+                  <button role="tab" aria-selected={tab === 'proof'} className={tab === 'proof' ? 'on' : ''} onClick={() => setTab('proof')}>Proof</button>
+                </div>
+              </div>
+              <div className="verified">
+                <span><b>{report.verified ? 'Verified' : 'Unverified'}</b> numbers</span>·
+                <span><b>{report.factors.filter((f) => f.status === 'found').length}</b> datasets found online</span>·
+                <span><b>{Object.keys(report.sources ?? {}).length}</b> cited sources</span>
+              </div>
+              {canTune && tab !== 'proof' && spec && <Tune spec={spec} featureLabels={featureLabels} busy={tuning} onChange={retune} />}
+              {tab === 'lease' && (
+                <div className={`cards ${tuning ? 'dim' : ''}`}>{sites.map((r) => (
+                  <SiteCard key={r.site.id} r={r} report={report} featureLabels={featureLabels} active={selected === r.site.id} onHover={setSelected}
+                    onOpen={() => { setSheet(r.site.id); setFocus({ lat: r.site.lat, lon: r.site.lon }) }} />))}</div>
+              )}
+              {tab === 'build' && (
+                <>
+                  <p className="sub" style={{ marginTop: 14 }}>No building yet? These are the run’s highest-scoring zones, spread across the region.</p>
+                  <div className="cards">{zones.map((z) => (
+                    <ZoneCard key={z.h3} z={z} total={zones.length} featureLabels={featureLabels} onFocus={() => setFocus({ lat: z.lat, lon: z.lon, zoom: 12.5 })} />))}</div>
+                </>
+              )}
+              {tab === 'proof' && <Proof report={report} spec={spec} />}
+            </aside>
           )}
-        </section>
-
-        <aside className="panel right">
-          <FactorList factors={factors} report={state.report} />
-        </aside>
-      </main>
-
-      {state.approval && (
-        <ApprovalModal
-          approval={state.approval}
-          featureLabels={featureLabels}
-          readOnly={fixtureMode}
-          onApprove={() => answerApproval('approve')}
-          onReject={() => answerApproval('reject')}
-        />
+        </main>
       )}
-    </div>
+
+      {log && <LogDrawer trace={state.trace} onClose={() => setLog(false)} />}
+      {open && report && <PropertySheet rec={open} report={report} featureLabels={featureLabels} onClose={() => setSheet(null)} />}
+    </>
   )
 }

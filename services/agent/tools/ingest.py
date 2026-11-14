@@ -188,9 +188,11 @@ async def fetch_rows(url: str, fmt: str, *, tract_key: str | None = None, previe
                 data = (await _get(client, f"{base}/query", params, cap)).json()
                 batch = _features_to_rows(data.get("features", []))
                 rows += batch
-                if preview or len(batch) < page or len(rows) > 200_000:
+                # Servers cap pages at their own maxRecordCount (often 1,000), which can be below `page`, so a short
+                # page does not mean the last page: advance by what came back and stop on an empty page.
+                if preview or not batch or len(rows) > 200_000:
                     break
-                offset += page
+                offset += len(batch)
             return Rows(rows, "arcgis", ["limited to the Houston envelope"])
         resp = await _get(client, url, None, cap)
         text = resp.text
@@ -209,11 +211,21 @@ def guess_geo(rows: list[dict[str, Any]]) -> tuple[str | None, str | None]:
     if not rows:
         return None, None
     cols = {c.lower(): c for c in rows[0]}
-    lat = next((cols[n] for n in LAT_NAMES if n in cols), None)
-    lon = next((cols[n] for n in LON_NAMES if n in cols), None)
-    if lat and lon:
-        return f"{lat},{lon}", "point"
     sample = rows[: min(50, len(rows))]
+
+    def plausible(lat_col: str, lon_col: str) -> bool:
+        """Most sampled rows hold real WGS84 coordinates (attribute columns can be zero, projected or empty)."""
+        pairs = [(_to_float(r.get(lat_col)), _to_float(r.get(lon_col))) for r in sample]
+        good = [1 for la, lo in pairs if la is not None and lo is not None and la != 0 and lo != 0
+                and -90 <= la <= 90 and -180 <= lo <= 180]
+        return len(good) >= max(1, len(pairs) // 2)
+
+    # Coordinates taken from each feature's geometry (_lat/_lon, requested in WGS84) beat same-named attribute columns.
+    lats = [cols[n] for n in ("_lat", *LAT_NAMES) if n in cols]
+    lons = [cols[n] for n in ("_lon", *LON_NAMES) if n in cols]
+    for lat, lon in zip(lats, lons):
+        if plausible(lat, lon):
+            return f"{lat},{lon}", "point"
     for hint in TRACT_HINTS:
         for low, col in cols.items():
             if hint in low and all(re.fullmatch(r"\d{11}", str(r.get(col, ""))) for r in sample if r.get(col)):

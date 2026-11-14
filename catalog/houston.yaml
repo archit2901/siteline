@@ -2,19 +2,320 @@
 # Every url must be the real official URL you opened. Never guess an endpoint.
 # Validate:  PYTHONPATH=. python -c "import yaml; from contracts.models import Catalog; Catalog(**yaml.safe_load(open('catalog/houston.yaml'))); print('ok')"
 region_id: hou
-entries: []
-# Shape of one entry (fill in real values, then move it into entries):
-# - id: cdc_places_tract
-#   title: "CDC PLACES census tract data"
-#   publisher: "Centers for Disease Control and Prevention"
-#   url: "https://<the real dataset page>"
-#   format: socrata
-#   geo_level: tract
-#   geo_key: "<tract id column>"
-#   measures: ["arthritis prevalence", "chronic kidney disease prevalence", "diabetes prevalence", "high blood pressure prevalence"]
-#   coverage: "national, tract level"
-#   connector: places.cdc
-#   notes: ""
-# Sources to cover: City of Houston open data, Harris / Fort Bend / Montgomery county portals, Houston METRO GTFS,
-# CDC PLACES, CMS (clinicians, dialysis), NPPES, OpenStreetMap, ACS language spoken at home (B16001 / C16001),
-# school directories, large employers.
+entries:
+- id: cdc_places_tract_2025
+  title: 'CDC PLACES: census tract health measures (GIS friendly), 2025 release'
+  publisher: Centers for Disease Control and Prevention
+  url: https://data.cdc.gov/d/yjkw-uj5s
+  format: socrata
+  geo_level: tract
+  geo_key: tractfips
+  measures:
+  - arthritis prevalence
+  - diabetes prevalence
+  - high blood pressure prevalence
+  - coronary heart disease
+  - current asthma
+  - COPD
+  - cancer prevalence
+  - stroke
+  - obesity
+  - depression
+  - frequent mental distress
+  - physical inactivity (no leisure-time physical activity)
+  - binge drinking
+  - current smoking
+  - routine checkup in past year
+  - dental visit in past year
+  - all teeth lost among seniors
+  - lack of health insurance
+  - lack of reliable transportation
+  - mobility disability
+  - any disability
+  - hearing disability
+  - vision disability
+  - cognitive disability
+  - food insecurity
+  - loneliness
+  - mammography screening
+  - colorectal cancer screening
+  - high cholesterol
+  - sleep less than 7 hours
+  coverage: national, census tract (2020 geography); 1,376 Houston tracts
+  connector: null
+  notes: One row per tract; columns like arthritis_crudeprev, diabetes_crudeprev, bphigh_crudeprev, lacktrpt_crudeprev (crude
+    prevalence, percent of adults). Kidney disease is not in this release.
+- id: coh_metro_bus_stops
+  title: METRO bus stops
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_METRO_Bus_Stops_view/FeatureServer/8
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - bus stops
+  - public transit access
+  - transit for patients without a car
+  - families without a car
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston layer of Houston METRO bus stops (about 9,000). Use distance_to_nearest for transit access.
+- id: coh_metro_rail_stations
+  title: METRO rail stations (current)
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_Metro_Rail_Stations_(current)_view/FeatureServer/13
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - light rail stations
+  - rail transit access
+  - public transit access
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_metro_transit_centers
+  title: METRO transit centers
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_Metro_Transit_Centers_view/FeatureServer/7
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - transit centers
+  - bus transfer hubs
+  - public transit access
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_metro_park_and_ride
+  title: METRO park and ride lots
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_METRO_Park_and_Ride_Locations_view/FeatureServer/9
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - park and ride
+  - commuter parking
+  - commuters
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_schools
+  title: Schools (public and private)
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_Schools_view/FeatureServer/0
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - schools
+  - elementary schools
+  - middle schools
+  - high schools
+  - school athletics
+  - children and teens
+  - students
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_after_school_programs
+  title: After-school programs
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_After_School_Programs_view/FeatureServer/5
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - after-school programs
+  - youth programs
+  - children and teens
+  - families with children
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_libraries
+  title: Houston Public Library branches
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_Libraries_view/FeatureServer/12
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - libraries
+  - community anchors
+  - families
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_parks
+  title: City of Houston parks
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_Parks_view/FeatureServer/14
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - parks
+  - green space
+  - recreation
+  - active lifestyles
+  - sports fields
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_community_centers
+  title: Community centers
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_Community_Centers_view/FeatureServer/8
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - community centers
+  - recreation centers
+  - senior programs
+  - community anchors
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_multi_service_centers
+  title: Multi-service centers
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_Multi_Service_Centers_view/FeatureServer/7
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - multi-service centers
+  - social services
+  - senior services
+  - community health outreach
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_health_department_facilities
+  title: Houston Health Department facilities
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_Health_Department_Facilities_view/FeatureServer/11
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - public health clinics
+  - health department facilities
+  - safety-net care
+  - WIC and immunization sites
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_hospitals
+  title: Hospitals
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_Hospitals_view/FeatureServer/10
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - hospitals
+  - hospital proximity
+  - referral sources
+  - inpatient care
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: coh_trauma_centers
+  title: Trauma centers
+  publisher: City of Houston (Houston Information Technology Services GIS)
+  url: https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/COH_Trauma_Centers_view/FeatureServer/9
+  format: arcgis
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - trauma centers
+  - emergency care
+  - orthopedic trauma referrals
+  coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
+  connector: null
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+- id: tx_child_care_supply
+  title: Texas licensed child care providers (capacity)
+  publisher: Child Care Aware of America, from Texas HHSC licensing data
+  url: https://services7.arcgis.com/s3vGpGobX9nzlLH3/arcgis/rest/services/TX_Child_Care_Supply/FeatureServer/0
+  format: arcgis
+  geo_level: point
+  geo_key: lat,lon
+  measures:
+  - child care centers
+  - daycares
+  - licensed child care capacity
+  - young families
+  - toddlers and preschoolers
+  coverage: Texas; 3,261 providers in the Houston area
+  connector: null
+  notes: Point locations with licnsecap (licensed capacity) and type of care. Republished licensing data, not an official
+    state endpoint.
+- id: osm_gyms
+  title: 'OpenStreetMap: gyms and sports centres'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22leisure%22%3D%22fitness_centre%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22leisure%22%3D%22sports_centre%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - gyms
+  - fitness centers
+  - sports centres
+  - active adults
+  - exercise
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box)
+  connector: null
+  notes: Fitness and sports centres. Volunteer-mapped; coverage is uneven, so counts are a lower bound.
+- id: osm_sports_fields
+  title: 'OpenStreetMap: sports fields, stadiums and tracks'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22leisure%22%3D%22pitch%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22leisure%22%3D%22stadium%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22leisure%22%3D%22track%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - sports fields
+  - youth sports
+  - athletics
+  - sports injuries
+  - stadiums
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box)
+  connector: null
+  notes: Pitches, stadiums and running tracks. Volunteer-mapped; coverage is uneven, so counts are a lower bound.
+- id: osm_pharmacies
+  title: 'OpenStreetMap: pharmacies'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22amenity%22%3D%22pharmacy%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - pharmacies
+  - retail pharmacy
+  - prescription access
+  - drugstores
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box)
+  connector: null
+  notes: Pharmacies and drugstores. Volunteer-mapped; coverage is uneven, so counts are a lower bound.
+- id: osm_senior_living
+  title: 'OpenStreetMap: assisted living and nursing homes'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22social_facility%22%3D%22assisted_living%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22social_facility%22%3D%22nursing_home%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22amenity%22%3D%22nursing_home%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - assisted living
+  - nursing homes
+  - senior living
+  - older adults
+  - seniors
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box)
+  connector: null
+  notes: Assisted living and nursing homes. Volunteer-mapped; coverage is uneven, so counts are a lower bound.
