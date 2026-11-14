@@ -43,6 +43,7 @@ export default function SourceLink({ evidenceRef, report, featureLabels }: Props
 }
 
 function sourceName(href: string): string {
+  if (href.includes('/NummVBqZSIJKUeVR/')) return 'City of Houston'  // the City's ArcGIS Online organization
   const host = new URL(href).hostname
   if (host.endsWith('census.gov')) return 'U.S. Census'
   if (host.endsWith('cms.gov') || host.endsWith('hhs.gov')) return 'CMS'
