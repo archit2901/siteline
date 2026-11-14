@@ -74,6 +74,13 @@ def _fmt(value: float, unit: str, feature_id: str = "") -> str:
     return f"{value:,.0f}"
 
 
+def singular(label: str) -> str:
+    """'renter households' -> 'renter household', 'children' -> 'child' (labels are short plural nouns)."""
+    if label.endswith("children"):
+        return label[: -len("children")] + "child"
+    return label[:-1] if label.endswith("s") and not label.endswith("ss") else label
+
+
 def rent_per_customer(site: SiteCandidate, ranked: RankedSite) -> float | None:
     """Annual asking rent ÷ net-new customers (None when rent, size or net-new is missing)."""
     if site.rent_psf and site.sqft and ranked.net_new_patients >= 1:
@@ -85,13 +92,16 @@ async def claim_options(site: SiteCandidate, ranked: RankedSite, factors: list[F
                         label: str = "patients") -> list[ClaimOption]:
     """Every claim the critic may use for one site, with text rendered from stored values."""
     out = []
-    per_year = " a year" if label == "patients" else ""
-    text = f"Estimated {ranked.net_new_patients:,.0f} net-new {label}{per_year}"
     refs = [f"model:net_new@{site.id}"]
-    if ranked.cannibalized_patients >= 1:
-        text += f", after {ranked.cannibalized_patients:,.0f} shift over from your existing offices"
-        refs.append(f"model:cannibalized@{site.id}")
-    out.append(ClaimOption("net_new", text + ".", refs))
+    if label == "patients":
+        text = f"Estimated {ranked.net_new_patients:,.0f} net-new patients a year"
+        if ranked.cannibalized_patients >= 1:
+            text += f", after {ranked.cannibalized_patients:,.0f} shift over from your existing locations"
+            refs.append(f"model:cannibalized@{site.id}")
+        text += "."
+    else:  # a reach measure, not a sales forecast
+        text = f"About {ranked.net_new_patients:,.0f} {label} in reach would pick this site over competitors and your other locations."
+    out.append(ClaimOption("net_new", text, refs))
 
     meta = {m.id: m for m in await geo.list_features("hou")}  # stock + agent-found features
     seen: set[str] = set()
@@ -117,7 +127,7 @@ async def claim_options(site: SiteCandidate, ranked: RankedSite, factors: list[F
                                [f"site:parking_spaces@{site.id}"]))
     per_customer = rent_per_customer(site, ranked)
     if per_customer is not None:
-        out.append(ClaimOption("rent_per_customer", f"Annual asking rent per net-new {label}: ${per_customer:,.2f}.",
+        out.append(ClaimOption("rent_per_customer", f"Annual asking rent per net-new {singular(label)}: ${per_customer:,.2f}.",
                                [f"model:rent_per_customer@{site.id}"]))
     if ranked.stability is not None:
         out.append(ClaimOption("stability", f"Stays in the top 10 in {ranked.stability * 100:.0f}% of alternative weightings.",

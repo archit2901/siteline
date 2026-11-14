@@ -29,6 +29,7 @@ DETOUR = 1.3  # straight line -> road distance
 SPEED_KMH = 56.33  # 35 mph
 MIN_MINUTES = 2.0
 MAX_MINUTES = 30.0  # Huff catchment: competitors, offices and the new site only reach cells within 30 minutes
+TRIP_MINUTES = {"neighborhood": 10.0, "local": 20.0, "destination": 30.0}
 TOP_K = 10  # stability = share of draws in which a site stays in the top 10
 BAND_COLUMNS = {"0-17": "pop_u18", "18-44": "pop_18_44", "45-64": "pop_45_64", "65+": "pop_65p"}
 # Payer -> share of residents with that coverage (ACS). CHIP is counted inside Medicaid; workers' comp has no
@@ -178,11 +179,11 @@ def competitor_column(pack: StockPack, competitor_feature: str | None) -> str | 
     return competitor_feature or pack.site_rules.get("competitor_feature")
 
 
-def competitor_attraction(grid: Grid, column: str | None, beta: float) -> np.ndarray:
-    """Σ_m A_m t_im^−β over competitor cells m within 30 minutes (A_m = clinicians counted in cell m)."""
+def competitor_attraction(grid: Grid, column: str | None, beta: float, max_minutes: float = MAX_MINUTES) -> np.ndarray:
+    """Σ_m A_m t_im^−β over competitor cells m within the catchment (A_m = competitors counted in cell m)."""
     if column is None:
         return np.zeros(len(grid))
-    key = (column, beta)
+    key = (column, beta, max_minutes)
     if key not in grid._competitors:
         counts = np.nan_to_num(grid.columns[column], nan=0.0)
         m = np.flatnonzero(counts > 0)
@@ -190,7 +191,7 @@ def competitor_attraction(grid: Grid, column: str | None, beta: float) -> np.nda
         for start in range(0, len(grid), 2000):  # chunked cells × competitors
             rows = slice(start, start + 2000)
             t = _pairwise_minutes(grid.lat[rows], grid.lon[rows], grid.lat[m], grid.lon[m])
-            total[rows] = np.where(t <= MAX_MINUTES, counts[m] * t ** -beta, 0.0).sum(axis=1)
+            total[rows] = np.where(t <= max_minutes, counts[m] * t ** -beta, 0.0).sum(axis=1)
         grid._competitors[key] = total
     return grid._competitors[key]
 
@@ -207,9 +208,10 @@ def _pairwise_minutes(lat1: np.ndarray, lon1: np.ndarray, lat2: np.ndarray, lon2
     return np.maximum(MIN_MINUTES, pairwise_km(lat1, lon1, lat2, lon2) * DETOUR / SPEED_KMH * 60)
 
 
-def _reach(grid: Grid, lat: float, lon: float, attractiveness: float, beta: float) -> np.ndarray:
+def _reach(grid: Grid, lat: float, lon: float, attractiveness: float, beta: float,
+           max_minutes: float = MAX_MINUTES) -> np.ndarray:
     t = travel_minutes(grid.lat, grid.lon, lat, lon)
-    return np.where(t <= MAX_MINUTES, attractiveness * t ** -beta, 0.0)
+    return np.where(t <= max_minutes, attractiveness * t ** -beta, 0.0)
 
 
 def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, candidates: list[SiteCandidate],
@@ -218,9 +220,10 @@ def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
     d = demand(grid, pack, profile, model)
     column = competitor_feature or (model.competitor_feature if model else None)
     column = column if column is None or column in grid.columns else None
-    competitors = competitor_attraction(grid, competitor_column(pack, column), spec.beta)
+    reach = TRIP_MINUTES[model.trip] if model is not None else MAX_MINUTES
+    competitors = competitor_attraction(grid, competitor_column(pack, column), spec.beta, reach)
     offices = [o for o in profile.existing_offices if o.lat is not None and o.lon is not None]
-    office_attr = sum((_reach(grid, o.lat, o.lon, max(1, o.clinicians), spec.beta) for o in offices),  # type: ignore[arg-type]
+    office_attr = sum((_reach(grid, o.lat, o.lon, max(1, o.clinicians), spec.beta, reach) for o in offices),  # type: ignore[arg-type]
                       np.zeros(len(grid)))
     site_size = max(1.0, float(np.mean([o.clinicians for o in profile.existing_offices]))) if profile.existing_offices else 1.0
     before_denom = competitors + office_attr
@@ -228,7 +231,7 @@ def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
 
     results = []
     for site in candidates:
-        site_attr = _reach(grid, site.lat, site.lon, site_size, spec.beta)
+        site_attr = _reach(grid, site.lat, site.lon, site_size, spec.beta, reach)
         after_denom = before_denom + site_attr
         p_site = np.divide(site_attr, after_denom, out=np.zeros(len(grid)), where=after_denom > 0)
         after_share = np.divide(office_attr, after_denom, out=np.zeros(len(grid)), where=after_denom > 0)

@@ -95,6 +95,16 @@
           "default": "",
           "title": "Rationale",
           "type": "string"
+        },
+        "trip": {
+          "default": "destination",
+          "enum": [
+            "neighborhood",
+            "local",
+            "destination"
+          ],
+          "title": "Trip",
+          "type": "string"
         }
       },
       "title": "DemandModel",

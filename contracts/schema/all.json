@@ -535,6 +535,16 @@
           "default": "",
           "title": "Rationale",
           "type": "string"
+        },
+        "trip": {
+          "default": "destination",
+          "enum": [
+            "neighborhood",
+            "local",
+            "destination"
+          ],
+          "title": "Trip",
+          "type": "string"
         }
       },
       "title": "DemandModel",
@@ -911,7 +921,7 @@
           "type": "boolean"
         },
         "contract_version": {
-          "default": "1.1.0",
+          "default": "1.2.0",
           "title": "Contract Version",
           "type": "string"
         }

@@ -86,6 +86,7 @@ export type CompetitorFeature = string | null;
 export type CompetitorLabel = string;
 export type SpaceUses1 = string[];
 export type Rationale1 = string;
+export type Trip = "neighborhood" | "local" | "destination";
 export type Id3 = string;
 export type Name = string;
 export type Specialty = string;
@@ -429,6 +430,7 @@ export interface DemandModel {
   competitor_label?: CompetitorLabel;
   space_uses?: SpaceUses1;
   rationale?: Rationale1;
+  trip?: Trip;
   [k: string]: unknown;
 }
 /**

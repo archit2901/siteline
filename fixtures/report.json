@@ -3,6 +3,8 @@
   "profile": {
     "name": "Example Pediatric Dental Practice",
     "specialty": "pediatric_dentistry",
+    "business_type": "",
+    "customers": "",
     "services": [
       "pediatric dental exams",
       "cleanings",
@@ -34,7 +36,8 @@
       "max_rent_psf": null,
       "min_parking_per_1000sf": 3.0,
       "ground_floor": true,
-      "special_rooms": []
+      "special_rooms": [],
+      "space_uses": []
     },
     "free_text": "Most families are on Medicaid or CHIP; many parents prefer Spanish and some don't have a car.",
     "stock_pack": "healthcare.pediatric_dentistry",
@@ -204,7 +207,8 @@
           ]
         }
       ],
-      "caveats": []
+      "caveats": [],
+      "annual_rent_per_customer": null
     },
     {
       "rank": 2,
@@ -259,7 +263,8 @@
           ]
         }
       ],
-      "caveats": []
+      "caveats": [],
+      "annual_rent_per_customer": null
     },
     {
       "rank": 3,
@@ -316,7 +321,8 @@
       ],
       "caveats": [
         "Parking count estimated from aerial imagery."
-      ]
+      ],
+      "annual_rent_per_customer": null
     },
     {
       "rank": 4,
@@ -371,7 +377,8 @@
           ]
         }
       ],
-      "caveats": []
+      "caveats": [],
+      "annual_rent_per_customer": null
     },
     {
       "rank": 5,
@@ -426,7 +433,8 @@
           ]
         }
       ],
-      "caveats": []
+      "caveats": [],
+      "annual_rent_per_customer": null
     },
     {
       "rank": 6,
@@ -483,7 +491,8 @@
       ],
       "caveats": [
         "Parking count estimated from aerial imagery."
-      ]
+      ],
+      "annual_rent_per_customer": null
     },
     {
       "rank": 7,
@@ -538,7 +547,8 @@
           ]
         }
       ],
-      "caveats": []
+      "caveats": [],
+      "annual_rent_per_customer": null
     },
     {
       "rank": 8,
@@ -596,7 +606,8 @@
       "caveats": [
         "Parking count estimated from aerial imagery.",
         "The source does not say whether space is available; treat as a candidate building."
-      ]
+      ],
+      "annual_rent_per_customer": null
     },
     {
       "rank": 9,
@@ -652,7 +663,8 @@
           ]
         }
       ],
-      "caveats": []
+      "caveats": [],
+      "annual_rent_per_customer": null
     },
     {
       "rank": 10,
@@ -708,7 +720,8 @@
           ]
         }
       ],
-      "caveats": []
+      "caveats": [],
+      "annual_rent_per_customer": null
     }
   ],
   "caveats": [
@@ -728,5 +741,7 @@
     "schools_within_5km": "https://wiki.openstreetmap.org/wiki/Overpass_API",
     "peds_dentists_within_5km": "https://npiregistry.cms.hhs.gov/api-page"
   },
-  "verified": true
+  "verified": true,
+  "demand_label": "patients",
+  "demand": null
 }

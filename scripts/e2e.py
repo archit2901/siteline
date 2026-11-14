@@ -78,8 +78,9 @@ async def check(client: httpx.AsyncClient, name: str, body: RunCreate) -> bool:
                 problems.append("report.verified is false")
             print(f"\n  top sites ({len(report.recommendations)}), verified={report.verified}:")
             for rec in report.recommendations[:5]:
-                print(f"   {rec.rank:>2}. {rec.site.address[:44]:44s} net-new {rec.net_new_patients:>8,.0f}  "
-                      f"final {rec.final_score:.3f}  stability {rec.stability}")
+                rpc = f"${rec.annual_rent_per_customer:,.2f}/{report.demand_label[:-1]}" if rec.annual_rent_per_customer else "-"
+                print(f"   {rec.rank:>2}. {rec.site.address[:40]:40s} net-new {rec.net_new_patients:>8,.0f} {report.demand_label}  "
+                      f"rent/cust {rpc}  final {rec.final_score:.3f}")
                 for claim in rec.justification[:2]:
                     print(f"       - {claim.text}")
     usage = next((e.payload.get("usage") for e in reversed(events) if e.payload.get("usage")), None)
@@ -96,15 +97,16 @@ async def main() -> int:
     parser.add_argument("--agent-url", default=os.environ.get("AGENT_URL", "http://localhost:8000"))
     parser.add_argument("--live-only", action="store_true")
     parser.add_argument("--replay-only", action="store_true")
+    parser.add_argument("--case", default="orthopedic_group", help="eval case id for the live run (evals/<id>.yaml)")
     args = parser.parse_args()
-    case = EvalCase.model_validate(yaml.safe_load((ROOT / "evals" / "orthopedic_group.yaml").read_text()))
+    case = EvalCase.model_validate(yaml.safe_load((ROOT / "evals" / f"{args.case}.yaml").read_text()))
     ok = True
     async with httpx.AsyncClient(base_url=args.agent_url, timeout=60) as client:
         (await client.get("/health")).raise_for_status()
         if not args.live_only:
             ok &= await check(client, "replay (fixtures/events.jsonl)", RunCreate(profile=case.profile, mode="replay"))
         if not args.replay_only:
-            ok &= await check(client, "live orthopedic_group", RunCreate(profile=case.profile, mode="live"))
+            ok &= await check(client, f"live {case.id}", RunCreate(profile=case.profile, mode="live"))
     return 0 if ok else 1
 
 

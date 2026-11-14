@@ -131,7 +131,8 @@ async def run_pipeline(run: Run) -> None:
     if demand is not None:
         segments = ", ".join(f"{s.label} ({s.weight:g})" for s in demand.segments)
         summary = (f"Customers: {segments}. Competitors: {demand.competitor_label} "
-                   f"({', '.join(competitor_tags) or 'none found'}). Space: {', '.join(demand.space_uses)}. {demand.rationale}")
+                   f"({', '.join(competitor_tags) or 'none found'}). Trip: {demand.trip}. "
+                   f"Space: {', '.join(demand.space_uses)}. {demand.rationale}")
     else:
         summary = " ".join(notes)
     await run.emit(P, "tool_result", {"tool": "profile_business", "ok": True, "summary": summary.strip()})
@@ -243,7 +244,7 @@ async def run_pipeline(run: Run) -> None:
     run.state["sites"] = sites
     run.write_artifact("sites.json", TypeAdapter(list[SiteCandidate]).dump_json(sites, indent=2).decode())
     await run.emit("site-scout", "tool_result", {"tool": "search_sites", "ok": True,
-                                                 "summary": f"{len(sites)} spaces that fit the practice near the top zones."})
+                                                 "summary": f"{len(sites)} spaces that fit the business near the top zones."})
     await run.emit("site-scout", "file", {"name": "sites.json", "path": "/sites.json"})
 
     # 7. rank

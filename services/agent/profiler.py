@@ -29,7 +29,10 @@ PROMPT = (
     "amenity=clinic, amenity=veterinary, shop=supermarket, shop=convenience. Up to 4 tags.\n"
     "4. competitor_label: plural plain-language name of those competitors.\n"
     "5. space_uses: which commercial space types fit, from: " + ", ".join(SPACE_USES) + ".\n"
-    "6. rationale: one sentence. No numbers about the market."
+    "6. trip: how far customers usually travel: neighborhood (walk or a few minutes: laundromat, coffee shop, "
+    "convenience store), local (a short drive: tutoring, gym, salon, childcare), destination (worth a longer drive: "
+    "specialist clinic, furniture store).\n"
+    "7. rationale: one sentence. No numbers about the market."
 )
 
 
@@ -45,6 +48,7 @@ class ProfileDraft(BaseModel):
     competitor_osm_tags: list[str] = Field(default_factory=list)
     competitor_label: str = "competitors"
     space_uses: list[str] = Field(default_factory=list)
+    trip: str = "local"
     rationale: str = ""
 
 
@@ -72,6 +76,7 @@ def validate(draft: ProfileDraft) -> tuple[DemandModel, list[str], list[str]]:
         demand_label=(draft.demand_label or DEFAULT.demand_label).strip()[:40],
         competitor_label=(draft.competitor_label or "competitors").strip()[:60],
         space_uses=uses, rationale=draft.rationale[:300],
+        trip=draft.trip if draft.trip in ("neighborhood", "local", "destination") else "local",  # type: ignore[arg-type]
     )
     return model, tags, notes
 

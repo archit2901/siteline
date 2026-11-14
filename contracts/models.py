@@ -14,7 +14,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, HttpUrl
 
-CONTRACT_VERSION = "1.1.0"
+CONTRACT_VERSION = "1.2.0"
 
 # ---------------------------------------------------------------------------
 # Shared literals
@@ -87,6 +87,9 @@ class DemandModel(BaseModel):
     competitor_label: str = ""
     space_uses: list[str] = Field(default_factory=list)  # CoStar space uses, e.g. ["Retail", "Flex"]
     rationale: str = ""
+    # How far customers travel: neighborhood ≈ 10 min (laundromat, coffee), local ≈ 20 min (tutoring, gym),
+    # destination ≈ 30 min (specialist clinic). Python maps it to the Huff catchment.
+    trip: Literal["neighborhood", "local", "destination"] = "destination"
 
 
 # ---------------------------------------------------------------------------
