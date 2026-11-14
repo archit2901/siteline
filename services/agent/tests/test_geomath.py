@@ -97,3 +97,9 @@ def test_same_input_same_output() -> None:
     a = geomath.rank(grid, pack, PROFILE, SPEC, sites, None, with_stability=True)
     b = geomath.rank(small_grid(), pack, PROFILE, SPEC, sites, None, with_stability=True)
     assert a == b
+
+
+def test_packs_without_competitor_data_are_flagged() -> None:
+    assert geomath.competitor_column(load_pack("healthcare.orthopedics"), None) == "n_orthopedics"
+    assert geomath.competitor_column(load_pack("healthcare.pediatric_dentistry"), None) is None
+    assert geomath.competitor_column(load_pack("healthcare.pediatric_dentistry"), "peds_dentists") == "peds_dentists"

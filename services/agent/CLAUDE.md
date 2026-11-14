@@ -86,6 +86,8 @@ Five agents only. Profiler, data-engineer and market-modeler are plain Python to
 | verify_claims(report) | local | ok + list of unmatched numbers |
 
 Geo and sites tools call `GeoClient` / `SitesClient` (backend from `AGENT_BACKEND`), never a service URL directly.
+When `geomath.competitor_column(pack, ...)` is None (e.g. pediatric dentistry before NPPES is ingested), every
+recommendation must carry `geomath.NO_COMPETITOR_CAVEAT`.
 Tool outputs given to the LLM should be short summaries (top rows, counts); store full results as run artifacts.
 
 ## Events (RunEvent.payload conventions — the web reducer depends on these)

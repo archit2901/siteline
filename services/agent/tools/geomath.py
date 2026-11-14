@@ -150,6 +150,18 @@ def score(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSp
 # ---------------------------------------------------------------------------
 # Huff net-new
 # ---------------------------------------------------------------------------
+NO_COMPETITOR_CAVEAT = ("No competitor data for this specialty yet, so net-new counts every resident in reach that "
+                        "the practice's existing offices don't already serve; treat it as an upper bound.")
+
+
+def competitor_column(pack: StockPack, competitor_feature: str | None) -> str | None:
+    """The per-cell competitor count column: the request's, else the pack's site_rules.competitor_feature.
+
+    None means net-new has no competition term; callers must show NO_COMPETITOR_CAVEAT (never invent a cap).
+    """
+    return competitor_feature or pack.site_rules.get("competitor_feature")
+
+
 def competitor_attraction(grid: Grid, column: str | None, beta: float) -> np.ndarray:
     """Σ_m A_m t_im^−β over competitor cells m within 30 minutes (A_m = clinicians counted in cell m)."""
     if column is None:
@@ -184,8 +196,7 @@ def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
          competitor_feature: str | None) -> list[HuffResult]:
     """Captured, cannibalized and net-new patients per candidate (docs/DESIGN.md Huff + net-new)."""
     d = demand(grid, pack, profile)
-    column = competitor_feature or pack.site_rules.get("competitor_feature")
-    competitors = competitor_attraction(grid, column, spec.beta)
+    competitors = competitor_attraction(grid, competitor_column(pack, competitor_feature), spec.beta)
     offices = [o for o in profile.existing_offices if o.lat is not None and o.lon is not None]
     office_attr = sum((_reach(grid, o.lat, o.lon, max(1, o.clinicians), spec.beta) for o in offices),  # type: ignore[arg-type]
                       np.zeros(len(grid)))
