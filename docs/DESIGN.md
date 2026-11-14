@@ -1,14 +1,16 @@
 # Siteline design (condensed for Claude Code)
 
 ## Pitch
-Siteline tells any healthcare practice where to open its next office. Generic location tools treat "healthcare"
-as one category, but a pediatric dentist, a dialysis clinic and an orthopedic group share almost no patients, payers
-or competitors. Siteline's agent works out what this practice needs, finds data to measure it, and returns the 10
-best real office spaces with net-new patients per site, after competitors and the practice's own offices take their
-share. The customer problem comes from Dr. Rahul Deshmukh, an orthopedic surgeon at Southeast Orthopedic
+Siteline tells any business where in Houston to open its next location. Generic location tools treat "retail" or
+"healthcare" as one category, but a laundromat, a tutoring center, a pediatric dentist and an orthopedic group share
+almost no customers or competitors. Siteline's business profiler works out who the customers are, who competes and
+what space fits; its agents find data to measure what matters and return the 10 best real spaces with the customers
+each would win and the rent per customer, after competitors and the owner's other locations take their share.
+Devpost main track: Business + Enterprise. The customer problem comes from Dr. Rahul Deshmukh, an orthopedic surgeon at Southeast Orthopedic
 Specialists (SOS), a multi-office private practice in Jacksonville, FL.
 
-Scope this weekend: healthcare only, Houston only (where the CoStar and Matterport data is). Jacksonville
+Scope this weekend: any business, Houston only (where the CoStar and Matterport data is); healthcare is the deepest
+preset (curated packs, CMS clinician supply). Jacksonville
 zones-only run as a stretch for Peri judges. `docs/HANDOFF.md` overrides this file where they conflict. Later: every US metro, then other industries by swapping the stock pack.
 
 ## Data layers
@@ -93,8 +95,9 @@ Example factor (pediatric dentist):
 - `verify_claims` parses every number in the report and matches it to a stored value or model output, within rounding.
 
 ## Two-minute demo
-0:00 the problem + Dr. Deshmukh's quote · 0:15 live orthopedic-group run: factors appear, a scout finds CDC PLACES
-arthritis data, approval · 0:45 switch to a second practice's golden run (different factors, different map) ·
-1:05 real CoStar top 10: net-new patients, rent, floor, parking, Matterport link, cited reasons, stability; drag a
-weight slider · 1:35 Dr. Deshmukh's reaction · 1:50 vision: every US metro, then other industries by swapping the
-stock pack.
+0:00 the problem: generic location tools treat "retail" or "healthcare" as one category, but a laundromat, a tutoring
+center and an orthopedic group share no customers or competitors; Dr. Deshmukh's quote · 0:15 live laundromat run:
+the profiler picks renter households, a scout pulls competing laundromats from OpenStreetMap, approval · 0:45 switch
+to the orthopedic group's golden run (Dr. Deshmukh's practice: a scout finds CDC PLACES arthritis; different factors,
+different map) · 1:05 real CoStar top 10: customers won, rent per customer, floor, parking, Matterport link, cited
+reasons; drag a weight slider · 1:35 Dr. Deshmukh's reaction · 1:50 vision: every US metro.

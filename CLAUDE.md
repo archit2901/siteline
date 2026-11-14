@@ -1,11 +1,15 @@
 # Siteline — project memory for Claude Code
 
 ## What we're building
-Siteline tells a healthcare practice where to open its next office. The practice fills out an intake form. An
-agent reasons about what makes a new office succeed for *this* practice, finds public data to measure each factor
-(including data that isn't in our stock layer), and asks the user to approve the data plan. Deterministic Python
-then scores every H3 hexagon in Houston and estimates net-new patients with a Huff model. CoStar returns real
-spaces in the best zones, and a critic verifies every number before the top 10 is shown with citations.
+Siteline tells any business where in Houston to open its next location: a laundromat, a tutoring center, a coffee
+shop or a medical practice. The owner describes the business and its customers. An agent works out who the customers
+are, who competes and what makes a new location succeed for *this* business, finds public data to measure each
+factor (including data that isn't in our stock layer, such as OpenStreetMap competitors or CDC health measures), and
+asks the user to approve the data plan. Deterministic Python scores every H3 hexagon in Houston and estimates the
+customers each site would win (Huff model) after competitors and the owner's other locations take their share. Real
+CoStar spaces in the best zones are ranked with rent per customer won, and a critic verifies every number before the
+top 10 is shown with citations.
+Devpost main track: **Business + Enterprise**.
 
 HackPrinceton Fall 2026. Code freeze **Sun Nov 15, 6:00 am ET**; Devpost deadline 8:00 am ET; judging 9:30 am.
 Demo region: Houston (Harris, Fort Bend, Montgomery counties). Stretch for Peri judges: Jacksonville zones only.

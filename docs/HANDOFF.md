@@ -21,12 +21,17 @@ conflicts you found, and then start Task 2.
 - Hackathon: HackPrinceton Fall 2026. **Code freeze Sun Nov 15, 6:00 am ET. Devpost deadline 8:00 am. Judging 9:30 am.**
 
 ## 2. What Siteline is
-Siteline tells a healthcare practice where to open its next office. The practice fills out an intake form (specialty,
-payers, languages, existing offices, space needs, free text). An agent reasons about what makes a new office succeed
-for *this* practice, finds public data to measure each factor (including data not in our stock layer), and asks the
-user to approve the data plan. Deterministic Python scores every H3 hexagon in Houston and estimates net-new patients
-(Huff model) after competitors and the practice's own offices take their share. Real CoStar spaces in the best zones
-are ranked, and a critic verifies every number before the top 10 is shown with citations.
+> **Update Nov 14:** Siteline is for ANY business in Houston, and the Devpost main track is **Business + Enterprise**
+> (not Healthcare). Healthcare practices remain the deepest preset; Dr. Deshmukh's practice is the customer story.
+
+Siteline tells any business where in Houston to open its next location: a laundromat, a tutoring center, a coffee
+shop or a medical practice. The owner describes the business and its customers. An agent works out who the customers
+are, who competes and what makes a new location succeed for *this* business, finds public data to measure each
+factor (including data that isn't in our stock layer, such as OpenStreetMap competitors or CDC health measures), and
+asks the user to approve the data plan. Deterministic Python scores every H3 hexagon in Houston and estimates the
+customers each site would win (Huff model) after competitors and the owner's other locations take their share. Real
+CoStar spaces in the best zones are ranked with rent per customer won, and a critic verifies every number before the
+top 10 is shown with citations.
 
 Customer: Dr. Rahul Deshmukh, orthopedic surgeon at Southeast Orthopedic Specialists (SOS), a multi-office private
 practice in Jacksonville, FL. Demo region: Houston (Harris, Fort Bend, Montgomery). Stretch for Peri judges:
@@ -78,7 +83,8 @@ Parth and Jayan send files and URLs to Archit, who commits them.
     bus stops are ingested.
 11. **Cuts:** Photon iMessage; OpenRouteService; arbitrary ingestion; Vexcel parking counts (parking now comes from
     CoStar property data). Matterport is back in: 1,734 CoStar properties have Matterport model ids.
-12. **Tracks:** Healthcare (main), CoStar, LangChain deepagents, Peri, Amazon, ChatOverflow leaderboard.
+12. **Tracks:** Business + Enterprise (main, changed from Healthcare on Nov 14), CoStar, LangChain deepagents, Peri,
+    Amazon, ChatOverflow leaderboard.
 13. **Free-tier hygiene still applies:** LLM response cache, per-run call budget, token/cost logging, golden runs for
     the demo so it never depends on a live API.
 
@@ -288,11 +294,12 @@ dentist demo. Never cut: factor list on screen, one live-found dataset, Huff net
 - README states which parts were written with Claude Code.
 
 ## 12. Two-minute demo
-0:00 the problem + Dr. Deshmukh's quote · 0:15 live orthopedic-group run: factors appear, a scout finds CDC PLACES
-arthritis data, approval · 0:45 switch to a second practice's golden run (different factors, different map) ·
-1:05 real CoStar top 10: net-new patients, rent, floor, parking, Matterport link, cited reasons, stability; drag a
-weight slider · 1:35 Dr. Deshmukh's reaction · 1:50 vision: every US metro, then other industries by swapping the
-stock pack. Per judge: CoStar → result cards and Matterport; Peri → SOS and Jacksonville; LangChain → LangSmith trace
+0:00 the problem: generic location tools treat "retail" or "healthcare" as one category, but a laundromat, a tutoring
+center and an orthopedic group share no customers or competitors; Dr. Deshmukh's quote · 0:15 live laundromat run:
+the profiler picks renter households, a scout pulls competing laundromats from OpenStreetMap, approval · 0:45 switch
+to the orthopedic group's golden run (Dr. Deshmukh's practice: a scout finds CDC PLACES arthritis; different factors,
+different map) · 1:05 real CoStar top 10: customers won, rent per customer, floor, parking, Matterport link, cited
+reasons; drag a weight slider · 1:35 Dr. Deshmukh's reaction · 1:50 vision: every US metro. Per judge: CoStar → result cards and Matterport; Peri → SOS and Jacksonville; LangChain → LangSmith trace
 of parallel scouts; Amazon → Nova on Bedrock + EC2.
 
 ## 13. Open questions
