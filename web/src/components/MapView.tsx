@@ -215,16 +215,23 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
   // Fit the three counties when the grid arrives and again whenever a run resets (no ranked sites).
   const hasSites = sites.length > 0
   useEffect(() => {
-    if (!map.current || grid.length === 0 || hasSites) return
+    const m = map.current
+    if (!m || grid.length === 0 || hasSites) return
     const lats = grid.map((c) => c.cell_lat)
     const lons = grid.map((c) => c.cell_lon)
-    map.current.fitBounds(
-      [
-        [Math.min(...lons), Math.min(...lats)],
-        [Math.max(...lons), Math.max(...lats)],
-      ],
-      { padding: 40, duration: 600 },
-    )
+    const fit = () => {
+      m.resize() // a map created inside a fresh layout may have measured its container before it had a size
+      m.fitBounds(
+        [
+          [Math.min(...lons), Math.min(...lats)],
+          [Math.max(...lons), Math.max(...lats)],
+        ],
+        { padding: 40, duration: 600 },
+      )
+    }
+    // A newly created map ignores fits until its style has loaded (seen as a zoom-out to all of Texas).
+    if (m.loaded()) fit()
+    else m.once('load', fit)
   }, [grid, hasSites])
 
   // Frame every ranked site when results land, clear of the legend (bottom-left).

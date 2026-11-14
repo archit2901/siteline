@@ -299,15 +299,14 @@ second tab. Recorded runs replay with the same approvals if the network or Bedro
 
 | Time | On screen | Say |
 |---|---|---|
-| 0:00 | Start screen | Generic tools treat "retail" or "healthcare" as one category; a laundromat and an orthopedic group share no customers or competitors. Dr. Deshmukh's quote. |
-| 0:15 | Live agent: type "A laundromat for apartment renters without in-unit washers" in the chat | Any business, in your own words; it asks only for what's missing. |
-| 0:25 | The run line fills; a scout branch pulls laundromats from OpenStreetMap | The profiler chose renter households and a neighborhood trip; scouts find data our stock layer lacks. |
-| 0:40 | Approve the data plan, then the weights (reasons under each factor) | Nothing is downloaded or scored without your approval; the weights are tailored to this business. |
-| 0:55 | Results: ranked CoStar spaces, map with the catchment ring, "Stays top 10" column | Real spaces for lease, renter households won after competitors, rent per household won; every number verified. The top spaces hold no matter how you weigh the factors: 200 alternative weightings, still top 10. |
-| 1:10 | Click a row: the flyer (sources, 3D tour); Ask tab: "Which has the most parking?" | Answers come only from the verified report. |
-| 1:25 | Recorded run: Orthopedic group | Dr. Deshmukh's practice: a scout finds CDC PLACES arthritis; different factors, different map, patients instead of households. |
-| 1:40 | Trace button (LangSmith), run meter | Every step runs on Amazon Nova through Bedrock; the meter shows calls and cost; the trace shows the parallel scouts. |
-| 1:50 | | Next: every US metro. |
+| 0:00 | Customer view start screen | Generic tools treat "retail" or "healthcare" as one category; a laundromat and an orthopedic group share no customers or competitors. Dr. Deshmukh's quote. |
+| 0:15 | Type "A laundromat for apartment renters without in-unit washers" in the chat | Any business, in your own words; it asks only for what's missing. |
+| 0:25 | The plain progress feed; "Can I use this data?" then "Does this look right?" | The agent explains each step in plain words and asks before it downloads or scores anything. |
+| 0:45 | Results: the best 3 spaces with verdicts, the map | Real spaces for lease: renter households in reach, rent per household won, "parking may be tight at peak" from the aerial. Every number verified. |
+| 1:00 | "See details" on #2 (flyer, 3D tour); Ask: "Which has the most parking?" | Answers come only from the verified report. |
+| 1:15 | Click "Developer view" (same run) | Under the hood: the run line, parallel scouts, the site-inspector's checks with CoStar, Vexcel and Matterport, the factors and sources, the run meter. |
+| 1:35 | Trace (LangSmith); Recorded run: orthopedic group | Every step runs on Amazon Nova; the orthopedic run finds CDC arthritis data, different factors, patients instead of households. |
+| 1:50 | | Next: every US metro. And it also works by text message (Photon). |
 
 Per judge: CoStar → ranked spaces, flyer, Matterport tour; Peri → Dr. Deshmukh's practice (SOS) as the customer story;
 LangChain → the LangSmith trace (run the server with AGENT_MODE=planned to show the deepagents/LangGraph planner);
