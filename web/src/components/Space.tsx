@@ -3,7 +3,7 @@ import type { Strategy } from '../api/client'
 const usd = (v: number) => (v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${Math.round(v / 1000).toLocaleString('en-US')}k`)
 const LINE: Record<string, string> = {
   xray: 'X-ray', mri: 'MRI', physical_therapy: 'Physical therapy', asc: 'Surgery center', urgent_care: 'Walk-in / urgent care',
-  cold_storage: 'Cold storage', loading: 'Loading', kitchen: 'Kitchen',
+  dental: 'Dental', pharmacy: 'Pharmacy', cold_storage: 'Cold storage', loading: 'Loading', kitchen: 'Kitchen',
 }
 
 /** Space program, visibility need and lease / buy / build per top space (Python, planning assumptions). */

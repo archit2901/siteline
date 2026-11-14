@@ -44,7 +44,8 @@ PROMPT = """You pre-fill a site-selection intake from a business's own website. 
 Fill only what the website states; leave everything else empty. Never guess numbers, sizes or rents.
 
 - business_type / healthcare_specialty: what the business is (a medical practice goes in healthcare_specialty, e.g.
-  "orthopedics", "sports medicine", "pediatric dentistry").
+  "orthopedics", "sports medicine", "pediatric dentistry"; a nonprofit, FQHC, free or charity clinic is
+  "community health center").
 - name: the business's name.
 - customers: who it serves, as the site describes them (patients, clients, members), in a sentence.
 - services: the service lines it lists (up to 8 short items).
@@ -204,6 +205,8 @@ async def prefill(url: str, previous: PracticeProfile | None, model: BaseChatMod
     # What the owner already typed wins over the website; a multi-specialty system names no single specialty.
     if previous and (previous.business_type or previous.specialty):
         draft = draft.model_copy(update={"business_type": "", "healthcare_specialty": ""})
+    elif sector == "healthcare.community_health":  # the site says it is a nonprofit / community health center
+        draft = draft.model_copy(update={"business_type": "", "healthcare_specialty": "community health center"})
     elif "," in draft.healthcare_specialty or " and " in draft.healthcare_specialty:
         draft = draft.model_copy(update={"healthcare_specialty": ""})
     # Every street address on the site is a location, whether or not the model listed it; one per place.

@@ -13,7 +13,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from contracts.models import PracticeProfile
-from services.agent.tools.packs import pack_for, sector_for
+from services.agent.tools.packs import is_community_health, pack_for, sector_for
 
 Kind = Literal["text", "long", "choice", "multi", "locations"]
 
@@ -100,6 +100,36 @@ HEALTHCARE = [
     Q(id="hospital", kind="text",
       text="Which hospitals do your physicians operate or round at?",
       why="Surgeons lose hours driving between clinic and hospital; distance to their hospitals is a real cost."),
+]
+
+COMMUNITY_HEALTH = [  # healthcare AND nonprofit: FQHCs, Look-Alikes, free and charity clinics
+    Q(id="payers", kind="multi", required=True, field="payers",
+      options=["Medicaid", "CHIP", "Medicare", "Commercial", "Uninsured / sliding fee"],
+      text="Which payers do you see, and roughly what share of patients is each?",
+      why="A health center serves everyone; the mix tells us whether to look for uninsured, Medicaid or older patients."),
+    Q(id="hc_status", kind="choice",
+      options=["Federally Qualified Health Center (FQHC)", "FQHC Look-Alike", "Free or charity clinic", "Other nonprofit clinic"],
+      text="What kind of health center are you?",
+      why="FQHCs are judged by HRSA on unmet need and on not overlapping other health centers' service areas."),
+    Q(id="who_served", kind="long", required=True, field="customers", replaces=["customers"],
+      text="Who do you serve? (uninsured, Medicaid families, immigrants, languages, ages)",
+      why="Picks the population we count: people below 200% of poverty, uninsured, Medicaid, limited English."),
+    Q(id="service_lines", kind="multi", field="services",
+      options=["Primary care", "Pediatrics", "Women's health / OB", "Behavioral health", "Dental", "Vision",
+               "Pharmacy (340B)", "Lab", "Enabling services (eligibility, interpreters, transport)"],
+      text="Which services will the new site offer?",
+      why="Dental chairs and a pharmacy add space and buildout; behavioral health and pediatrics change who comes."),
+    Q(id="service_area", kind="text",
+      text="Is the new site part of a grant or HRSA service area? Any ZIP codes or counties you must, or must not, serve?",
+      why="Funder boundaries become hard rules, and overlap with other health centers counts against a new site."),
+    Q(id="volume", kind="text",
+      text="How many patients does a site see a year, and with how many clinicians?",
+      why="Sizes the new site's capacity against the need it can reach."),
+    Q(id="client_travel", kind="choice", options=["Mostly bus or walk", "Mostly drive", "Mix", "Get dropped off"], replaces=["access"],
+      text="How do patients reach you?", why="Weighs bus stops and households without a car against parking."),
+    Q(id="partners", kind="text",
+      text="Which partners refer patients or share space? (hospital emergency rooms, schools, churches, food pantries)",
+      why="Partner locations become factors the scouts go find data for."),
 ]
 
 FOOD_BANK = [
@@ -227,6 +257,7 @@ GENERAL = [
 ]
 
 SECTORS: dict[str, tuple[str, list[Question]]] = {
+    "healthcare.community_health": ("Community health center (nonprofit clinic)", COMMUNITY_HEALTH),
     "healthcare": ("Medical practice", HEALTHCARE),
     "nonprofit.food_bank": ("Food bank or pantry", FOOD_BANK),
     "nonprofit.base": ("Nonprofit or social services", NONPROFIT),
@@ -244,6 +275,8 @@ HEALTH_WORDS = ("clinic", "medical", "doctor", "physician", "dental", "dentist",
 
 def sector_of(text: str, specialty: str = "") -> str:
     """Business type text (and healthcare specialty) -> question set id. Social services win over 'health' words."""
+    if is_community_health(f"{text} {specialty}"):
+        return "healthcare.community_health"
     if specialty:
         return "healthcare"
     sector = sector_for(text)

@@ -26,6 +26,7 @@ COLUMNS = [
     "pop_total_within_5km", "pop_u18_within_5km", "pop_45_64_within_5km", "pop_65p_within_5km",
     # payers (shares of residents) and income
     "share_any_medicare", "share_any_medicaid", "share_any_private", "share_uninsured", "medicaid_u19_within_5km",
+    "ins_any_medicaid", "ins_any_medicaid_within_5km", "ins_uninsured",
     "median_hh_income",
     # language
     "share_spanish", "share_lep",

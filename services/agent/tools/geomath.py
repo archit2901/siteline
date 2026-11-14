@@ -44,9 +44,10 @@ DEMAND_COLUMNS = {
     "below_200fpl_pop": "people below 200% of poverty", "children_in_poverty": "children in poverty",
     "seniors_in_poverty": "seniors (65+) in poverty", "snap_households": "households on SNAP",
     "children_under_5": "children under 5", "pop_low_food_access": "people in low-income, low-food-access tracts",
+    "uninsured": "uninsured residents", "ins_any_medicaid": "residents on Medicaid",
 }
 PAYER_COLUMNS = {"medicare": "share_any_medicare", "medicaid": "share_any_medicaid", "chip": "share_any_medicaid",
-                 "commercial": "share_any_private", "private": "share_any_private"}
+                 "commercial": "share_any_private", "private": "share_any_private", "self_pay": "share_uninsured"}
 
 
 @dataclass
@@ -146,7 +147,8 @@ def demand(grid: Grid, pack: StockPack, profile: PracticeProfile, model: DemandM
         for seg in model.segments:
             if seg.feature_id in DEMAND_COLUMNS and seg.feature_id in grid.columns:
                 people += max(0.0, seg.weight) * np.nan_to_num(grid.columns[seg.feature_id], nan=0.0)
-        return payer_share(grid, profile) * people if profile.payers_accepted else people
+        sliding = bool(pack.site_rules.get("sliding_fee"))  # serves everyone regardless of coverage
+        return payer_share(grid, profile) * people if profile.payers_accepted and not sliding else people
     bands = pack.demand_age_bands or list(BAND_COLUMNS)
     people = sum(np.nan_to_num(grid.columns[BAND_COLUMNS[b]], nan=0.0) * pack.visit_rates.get(b, 1.0) for b in bands)
     return payer_share(grid, profile) * people
@@ -219,6 +221,24 @@ def _reach(grid: Grid, lat: float, lon: float, attractiveness: float, beta: floa
     return np.where(t <= max_minutes, attractiveness * t ** -beta, 0.0)
 
 
+def without_own_sites(grid: Grid, competitors: np.ndarray, column: str | None, offices: list, pack: StockPack,
+                      beta: float, reach: float) -> np.ndarray:
+    """Competitor attraction minus the owner's own locations where the competitor data already lists them (an HRSA
+    site list includes the owner's health centers; a clinician count includes its clinicians): they enter the model
+    once, as the owner's offices."""
+    if column is None or not offices or column not in grid.columns:
+        return competitors
+    counts = np.nan_to_num(grid.columns[column], nan=0.0)
+    out = competitors.copy()
+    for o in offices:
+        cell = int(np.argmin((grid.lat - o.lat) ** 2 + (grid.lon - o.lon) ** 2))
+        k = min(counts[cell], 1.0 if pack.site_rules.get("competitor_unit") == "sites" else float(max(1, o.clinicians)))
+        if k > 0:  # same geometry as competitor_attraction: from the competitor's cell centre
+            t = _pairwise_minutes(grid.lat, grid.lon, grid.lat[[cell]], grid.lon[[cell]])[:, 0]
+            out -= np.where(t <= reach, k * t ** -beta, 0.0)
+    return np.maximum(out, 0.0)
+
+
 def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, candidates: list[SiteCandidate],
          competitor_feature: str | None, model: DemandModel | None = None) -> list[HuffResult]:
     """Captured, cannibalized and net-new customers per candidate (docs/DESIGN.md Huff + net-new)."""
@@ -228,6 +248,7 @@ def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
     reach = TRIP_MINUTES[model.trip] if model is not None else MAX_MINUTES
     competitors = competitor_attraction(grid, competitor_column(pack, column), spec.beta, reach)
     offices = [o for o in profile.existing_offices if o.lat is not None and o.lon is not None]
+    competitors = without_own_sites(grid, competitors, competitor_column(pack, column), offices, pack, spec.beta, reach)
     office_attr = sum((_reach(grid, o.lat, o.lon, max(1, o.clinicians), spec.beta, reach) for o in offices),  # type: ignore[arg-type]
                       np.zeros(len(grid)))
     site_size = max(1.0, float(np.mean([o.clinicians for o in profile.existing_offices]))) if profile.existing_offices else 1.0

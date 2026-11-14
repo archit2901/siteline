@@ -12,6 +12,10 @@ Sources (key-free, cached in data/cache/):
   2020-24 ACS; gisportal.ers.usda.gov FARA_2025_StraightLine): low-income/low-access tract flags at 1/2 mile and
   1 mile, and the low-vehicle-access flag. (CDC PLACES social-needs measures such as food insecurity would be better,
   but Texas did not field that BRFSS module, so PLACES has none for Houston tracts.)
+- HRSA Health Center Service Delivery and Look-Alike Sites (data.hrsa.gov, refreshed daily): active, permanent
+  FQHC / Look-Alike clinic sites (not administrative-only, mobile vans or school-based sites, which are counted
+  separately) -> n_health_centers and n_school_health_centers per cell.
+- ACS uninsured residents (already on the grid as ins_uninsured) -> uninsured_within_5km.
 Counts are split evenly across a tract's cells (tracts with no cell centroid go to the nearest cell), shares and
 rates carry over, and *_within_5km are k=6 ring sums, all exactly like scripts/build_general_stock.py.
 "pop_low_food_access" = residents of cells whose tract USDA flags low-income AND low access (1 mile) to a SNAP retailer.
@@ -39,6 +43,8 @@ FARA_FLAGS = {  # USDA flag -> our 0/1 column
     "SD_SRAM_LILATracts_1And10": "lila_1_mile",
     "SD_SRAM_HUNVFlag": "low_vehicle_access",
 }
+HRSA = "https://data.hrsa.gov/DataDownload/DD_Files/Health_Center_Service_Delivery_and_LookAlike_Sites.csv"
+COUNTIES = ("48201", "48157", "48339")
 COUNTS = ("poverty_pop", "below_185fpl_pop", "below_200fpl_pop", "children_in_poverty", "seniors_in_poverty",
           "snap_households", "children_under_5", "pop_low_food_access")
 
@@ -58,10 +64,26 @@ def food_access_flags() -> dict[str, dict[str, float]]:
     return out
 
 
+def health_center_sites() -> list[dict[str, str]]:
+    """Active HRSA health center sites in the Houston counties (CSV cached in data/cache/)."""
+    import csv
+    import io
+
+    cache = ROOT / "data" / "cache" / "hrsa_health_center_sites.csv"
+    if not cache.is_file():
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        resp = httpx.get(HRSA, timeout=120, headers={"User-Agent": "Siteline/0.1"}, follow_redirects=True)
+        resp.raise_for_status()
+        cache.write_bytes(resp.content)
+    rows = csv.DictReader(io.StringIO(cache.read_text(encoding="utf-8-sig")))
+    return [r for r in rows if r["State and County Federal Information Processing Standard Code"] in COUNTIES
+            and r["Site Status Description"] == "Active"]
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     grid = pq.read_table(RAW / "houston_h3_r8.parquet",
-                         columns=["h3", "GEOID", "cell_lat", "cell_lon", "pop_total"]).to_pylist()
+                         columns=["h3", "GEOID", "cell_lat", "cell_lon", "pop_total", "ins_uninsured"]).to_pylist()
     cells = [r["h3"] for r in grid]
     index = {c: i for i, c in enumerate(cells)}
     by_tract: dict[str, list[int]] = defaultdict(list)
@@ -108,14 +130,33 @@ def main() -> None:
     # Residents of low-income, low-access (1 mile) tracts.
     counts["pop_low_food_access"] = [(g.get("pop_total") or 0.0) * (flag if not math.isnan(flag) else 0.0)
                                      for g, flag in zip(grid, rates["lila_1_mile"])]
+    # HRSA health centers: clinic sites vs. school-based sites, by the cell they sit in.
+    for k in ("n_health_centers", "n_school_health_centers"):
+        counts[k] = [0.0] * n
+    sites = health_center_sites()
+    for r in sites:
+        if r["Health Center Type Description"] == "Administrative" or r["Health Center Location Type Description"] == "Mobile Van":
+            continue
+        try:
+            cell = h3.latlng_to_cell(float(r["Geocoding Artifact Address Primary Y Coordinate"]),
+                                     float(r["Geocoding Artifact Address Primary X Coordinate"]), 8)
+        except ValueError:
+            continue
+        if cell in index:
+            school = r["Health Center Service Delivery Site Location Setting Description"] == "School"
+            counts["n_school_health_centers" if school else "n_health_centers"][index[cell]] += 1
+    log.info("HRSA: %s active sites; %s clinic and %s school-based sites on the grid", len(sites),
+             round(sum(counts["n_health_centers"])), round(sum(counts["n_school_health_centers"])))
+    counts["uninsured"] = [float(g.get("ins_uninsured") or 0.0) for g in grid]
+
     columns: dict[str, list[float]] = {**counts, **rates}
-    for k in COUNTS:
+    for k in (*COUNTS, "n_health_centers", "n_school_health_centers", "uninsured"):
         columns[f"{k}_within_5km"] = [sum(counts[k][index[x]] for x in h3.grid_disk(c, RING_K) if x in index) for c in cells]
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(pa.table({"h3": cells, **{k: pa.array(v, pa.float64()) for k, v in columns.items()}}), OUT)
     log.info("wrote %s: %s cells x %s columns; totals %s", OUT.relative_to(ROOT), n, len(columns),
-             {k: round(sum(counts[k])) for k in COUNTS})
+             {k: round(sum(counts[k])) for k in counts})
 
 
 if __name__ == "__main__":

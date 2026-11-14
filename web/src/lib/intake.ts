@@ -8,6 +8,7 @@ const LINE = /^\[([a-z_]+)\] [^:]{1,80}: (.+)$/
 
 export const PAYER_IDS: Record<string, string> = {
   Medicare: 'medicare', Medicaid: 'medicaid', CHIP: 'chip', Commercial: 'commercial', "Workers' comp": 'workers_comp',
+  'Self-pay': 'self_pay', 'Uninsured / sliding fee': 'self_pay',
 }
 export const PAYER_LABELS = Object.fromEntries(Object.entries(PAYER_IDS).map(([k, v]) => [v, k]))
 

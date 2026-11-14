@@ -29,6 +29,9 @@ SPECIALTIES = {
     "dialysis": "dialysis", "nephrology": "dialysis", "kidney care": "dialysis",
     "physical_therapy": "physical_therapy", "physical therapy": "physical_therapy", "physiotherapy": "physical_therapy",
     "pt": "physical_therapy", "rehab": "physical_therapy", "rehabilitation": "physical_therapy",
+    "community health center": "community_health", "community health": "community_health",
+    "community_health": "community_health", "fqhc": "community_health", "federally qualified health center": "community_health",
+    "free clinic": "community_health", "charity clinic": "community_health", "nonprofit clinic": "community_health",
 }
 FIRST_LOCATION = "Current locations: none yet (this will be the first)"
 SQFT_RANGE = (200, 100_000)
@@ -109,7 +112,8 @@ def _clamp(v: float, lo: float, hi: float) -> float:
 
 PAYERS = {"medicare": "medicare", "medicaid": "medicaid", "chip": "chip", "commercial": "commercial",
           "private": "commercial", "workers' comp": "workers_comp", "workers comp": "workers_comp",
-          "workers_comp": "workers_comp"}
+          "workers_comp": "workers_comp", "self-pay": "self_pay", "self pay": "self_pay", "self_pay": "self_pay",
+          "uninsured": "self_pay", "sliding fee": "self_pay", "uninsured / sliding fee": "self_pay"}
 ANSWER_LINE = re.compile(r"^\[(?P<id>[a-z_]+)\] (?P<label>[^:]{1,80}): (?P<answer>.+)$")
 
 

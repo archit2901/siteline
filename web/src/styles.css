@@ -225,7 +225,8 @@ input[type=range] { accent-color: #000; width: 100%; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 2px; }
 .pill { border: 1px solid var(--line); background: none; border-radius: 999px; padding: 6px 13px; font-size: 13px; cursor: pointer; }
 .pill.on { background: #000; color: #fff; border-color: #000; }
-.orow { display: grid; grid-template-columns: 1fr 1.6fr 56px 24px; gap: 12px; align-items: center; }
+.orow { display: grid; grid-template-columns: 1.15fr 1.6fr 44px 20px; gap: 10px; align-items: center; }
+.orow input { text-overflow: ellipsis; }
 .orow input { font-size: 15px; }
 .x { border: 0; background: none; font-size: 18px; color: var(--ink3); cursor: pointer; }
 .addl { align-self: flex-start; border: 0; background: none; padding: 6px 0 0; cursor: pointer; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
@@ -314,6 +315,8 @@ a.source:hover { border-color: #000; color: #000; }
 .sector-step { background: var(--card); margin: 18px -16px 0; padding: 24px 16px 18px; border-radius: var(--r-lg); border: 0; }
 .locfoot { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; padding-top: 6px; cursor: pointer; }
+.fl .check input, .check input[type=checkbox] { width: 15px; height: 15px; flex: none; margin: 0; padding: 0; border: 1px solid var(--line); accent-color: #000; }
+.locfoot .check { white-space: nowrap; padding-top: 0; color: var(--muted, #555); }
 .foot-note.warn { color: #b3261e; }
 .cta:disabled { opacity: .45; cursor: not-allowed; }
 .intake-mode { margin: 0 0 4px; }

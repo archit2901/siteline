@@ -44,7 +44,7 @@ SPECIFIC = [  # (pattern over specialty, business type, services and notes) -> p
     (r"urgent care|walk-in|walk in|retail clinic", "urgent_care"),
     (r"physical therap|physiotherap|\brehab", "physical_therapy"),
 ]
-SECTOR_PLAYBOOK = {"healthcare": "healthcare", "nonprofit.food_bank": "food_bank", "nonprofit.base": "nonprofit",
+SECTOR_PLAYBOOK = {"healthcare": "healthcare", "healthcare.community_health": "community_health", "nonprofit.food_bank": "food_bank", "nonprofit.base": "nonprofit",
                    "retail.services": "retail", "food.restaurant": "restaurant", "education.childcare": "childcare",
                    "fitness.base": "fitness"}
 MAX_CANDIDATES = 40
@@ -56,6 +56,8 @@ def playbooks_for(profile: PracticeProfile) -> list[str]:
 
     names = ["general"]
     sector = SECTOR_PLAYBOOK.get(profile_sector(profile))
+    if sector == "community_health":  # both halves of a nonprofit clinic, then what is specific to it
+        names += ["healthcare", "nonprofit"]
     if sector:
         names.append(sector)
     text = " ".join([profile.specialty, profile.business_type, profile.name, *profile.services, profile.free_text]).lower().replace("_", " ")

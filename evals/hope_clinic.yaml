@@ -1,0 +1,93 @@
+# EvalCase (contracts/models.py). Demo: HOPE Clinic, a Houston FQHC.
+id: hope_clinic
+profile:
+  name: HOPE Clinic
+  specialty: community_health
+  business_type: ''
+  customers: Patients of all ages, in particular the uninsured, under-insured, people with limited English and low-income
+    families in Greater Houston.
+  services:
+  - Primary care
+  - Pediatrics
+  - Women's health / OB
+  - Behavioral health
+  - Dental
+  - Vision
+  - Pharmacy (340B)
+  - Lab
+  payers_accepted:
+  - medicaid
+  - chip
+  - medicare
+  - commercial
+  - self_pay
+  languages:
+  - English
+  - Mandarin
+  - Cantonese
+  - Vietnamese
+  - Korean
+  - Burmese
+  - Arabic
+  existing_offices:
+  - name: HOPE Beltway
+    address: '7001 Corporate Dr. #120, Houston, TX 77036'
+    lat: 29.70334959
+    lon: -95.55085859
+    clinicians: 1
+  - name: HOPE West
+    address: '12121 Westheimer Rd. #205, Houston, TX 77077'
+    lat: 29.73622916
+    lon: -95.59385062
+    clinicians: 1
+  - name: HOPE Alief
+    address: 13930 Bellaire Blvd., Houston, TX 77083
+    lat: 29.70444817
+    lon: -95.62841952
+    clinicians: 1
+  - name: HOPE Aldine
+    address: '3000 Aldine Mail Rd. Building C #200, Houston, TX 77039'
+    lat: 29.90198142
+    lon: -95.34323692
+    clinicians: 1
+  - name: HOPE Aldine Meadows
+    address: 2112 Aldine Meadows Rd., Houston, TX 77032
+    lat: 29.93464
+    lon: -95.35286001
+    clinicians: 1
+  constraints:
+    min_sqft: 5000
+    max_sqft: 15000
+    max_rent_psf: 35.0
+    min_parking_per_1000sf: 4.0
+    ground_floor: false
+    special_rooms:
+    - dental operatories
+    - pharmacy
+    space_uses: []
+  free_text: '[hc_status] What kind of health center are you: Federally Qualified Health Center (FQHC)
+
+    [payers] Which payers do you see, and roughly what share of patients is each: Medicaid, CHIP, Medicare and commercial
+    plans; uninsured patients on a sliding fee. Shares not stated.
+
+    [service_area] Is the new site part of a grant or HRSA service area: Greater Houston: Harris and Fort Bend counties. Avoid
+    overlapping other health centers'' service areas.
+
+    [client_travel] How do patients reach you: Mix
+
+    [partners] Which partners refer patients or share space: Website: partnered with Houston Methodist for pulmonology; a
+    school-based clinic in Aldine ISD (Aldine Meadows).
+
+    [visibility] How much does being seen from the road matter: Helps, not essential
+
+    [tenure] Would you lease, buy or build: Not sure'
+must_include:
+- uninsured
+- poverty
+- health center
+- bus
+- medicaid
+must_not_include: []
+sign_checks: {}
+notes: Demo case. Locations, services, languages from hopechc.org; FQHC status and site coordinates from HRSA's Health Center
+  Service Delivery Sites list. Payer shares, square footage and rent ceiling are demo assumptions.

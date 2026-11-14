@@ -17,7 +17,13 @@ PROVENANCE = {
     "cms.doctors": "https://data.cms.gov/provider-data/dataset/mj5m-pzi6",
     "cms.hospitals": "https://data.cms.gov/provider-data/dataset/xubh-q36u",
     "usda.fara": "https://www.ers.usda.gov/data-products/food-access-research-atlas/",
+    "hrsa": "https://data.hrsa.gov/data/download?data=HCC",
 }
+COMMUNITY_HEALTH = "healthcare.community_health"
+_CHC = r"community health|health center|fqhc|federally qualified|look-?alike|free clinic|charity clinic|safety[- ]net|sliding[- ]fee"
+_NONPROFIT = r"non-?profit|not-for-profit|charit|community|ministry|safety[- ]net|underserved|uninsured|low-income|free\b"
+_CLINIC = r"clinic|medical|health|doctor|physician|primary care|dental|patients"
+
 # Business type words -> sector pack (first match wins; checked on business_type, then the name and services).
 SECTORS: list[tuple[str, tuple[str, ...]]] = [
     ("nonprofit.food_bank", ("food bank", "food pantry", "pantry", "food distribution", "soup kitchen",
@@ -60,9 +66,22 @@ def load_pack(pack_id: str) -> StockPack:
     })
 
 
+def is_community_health(text: str) -> bool:
+    """A nonprofit / safety-net clinic: healthcare AND nonprofit at once (FQHC, Look-Alike, free or charity clinic,
+    "nonprofit clinic"). Checked before either sector alone, which would each miss half of what matters."""
+    import re
+
+    low = text.lower().replace("_", " ")
+    return bool(re.search(_CHC, low) or (re.search(_NONPROFIT, low) and re.search(_CLINIC, low)
+                                          and re.search(r"non-?profit|not-for-profit|charit|free clinic|safety|uninsured|underserved", low)))
+
+
 def sector_for(text: str) -> str | None:
     """The sector pack a business description names, or None (whole-word match, case-insensitive)."""
     import re
+
+    if is_community_health(text):
+        return COMMUNITY_HEALTH
 
     low = f" {text.lower()} "
     for pack_id, words in SECTORS:
@@ -73,6 +92,8 @@ def sector_for(text: str) -> str | None:
 
 def pack_for(profile: PracticeProfile) -> StockPack:
     """profile.stock_pack, else healthcare.<specialty>, else the sector the business type names, else general.base."""
+    if is_community_health(" ".join([profile.business_type, profile.specialty, profile.name, *profile.services])):
+        return load_pack(COMMUNITY_HEALTH)
     sector = sector_for(profile.business_type or "") or (
         None if profile.specialty else sector_for(" ".join([profile.name, *profile.services])))
     specialty = (f"healthcare.{profile.specialty}", "healthcare.base") if profile.specialty else (None, None)

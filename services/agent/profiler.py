@@ -96,10 +96,12 @@ def preset(profile: PracticeProfile) -> tuple[DemandModel, list[str]] | None:
 
 
 async def profile_business(profile: PracticeProfile, meter: llm.UsageMeter | None = None) -> tuple[DemandModel | None, list[str], list[str]]:
-    if is_healthcare(profile):
-        return None, [], [f"Healthcare practice: demand and competitors from pack {pack_for(profile).id}."]
     sector = preset(profile)
-    if sector is not None and sector[1]:  # the pack names who is served and who else serves them
+    pack = pack_for(profile)
+    if is_healthcare(profile) and sector is None:
+        return None, [], [f"Healthcare practice: demand and competitors from pack {pack.id}."]
+    if sector is not None and (sector[1] or pack.site_rules.get("competitor_feature")):
+        # the pack names who is served and who else serves them (OpenStreetMap tags or a stock competitor column)
         return sector[0], sector[1], [f"Customers and competitors from sector pack {pack_for(profile).id}."]
     columns = "\n".join(f"- {k}: {v}" for k, v in DEMAND_COLUMNS.items())
     intake = (f"BUSINESS: {profile.business_type or profile.specialty or profile.name}\nNAME: {profile.name}\n"

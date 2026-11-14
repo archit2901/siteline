@@ -25,6 +25,8 @@ LINES: dict[str, tuple[str, int, int, list[str]]] = {
     "asc": (r"surgery center|surgical center|\basc\b|ambulatory surg|operating room", 10_000, 2_500_000,
             ["Medicare-certified ASC buildout", "separate entrance", "generator", "medical gas", "ground floor"]),
     "urgent_care": (r"urgent care|walk-?in", 0, 50_000, ["street visibility and signage", "evening and weekend access"]),
+    "dental": (r"\bdental|dentist|operator(y|ies)", 1_500, 300_000, ["dental plumbing, compressor and vacuum"]),
+    "pharmacy": (r"\bpharmacy|340b", 800, 120_000, ["pharmacy counter with secure storage"]),
     "cold_storage": (r"cold storage|walk-in cooler|freezer|refrigerat", 400, 80_000, ["walk-in cooler or freezer"]),
     "loading": (r"loading dock|box truck|\bdock\b|truck", 0, 40_000, ["loading dock or truck access"]),
     "kitchen": (r"commercial kitchen|\bhoods?\b|hot meals|restaurant|\bcafe\b|bakery", 0, 150_000, ["grease trap and hood"]),

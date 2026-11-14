@@ -1,0 +1,39 @@
+# StockPack (contracts/models.py). Community health centers: FQHCs, Look-Alikes, free and charity clinics, and other
+# nonprofit safety-net clinics. Healthcare AND nonprofit: patients are people who can't easily get care elsewhere
+# (uninsured, Medicaid, below 200% of poverty, limited English), not everyone with a matching insurance card.
+# Stock covers who is eligible and who else serves them; disease burden (CDC PLACES), transit (METRO), schools,
+# churches and hospital partners are left to the dataset scouts, which find them in the Houston catalog.
+# Need features come from data/derived/sector_stock.parquet (scripts/build_sector_stock.py, incl. HRSA sites).
+id: healthcare.community_health
+extends: healthcare.base
+specialty: community_health
+demand_age_bands: ["0-17", "18-44", "45-64", "65+"]
+features:
+  - {id: below_200fpl_within_5km, source: acs.sf, value: below_200fpl_pop_within_5km, label: "People below 200% of poverty within 5 km (sliding-fee eligible)", agg: sum, direction: 1, unit: "people"}
+  - {id: uninsured_within_5km, source: acs, value: uninsured_within_5km, label: "Uninsured residents within 5 km", agg: sum, direction: 1, unit: "people"}
+  - {id: share_uninsured, source: acs, value: share_uninsured, label: "Share of residents without insurance (the patients a health center exists for)", agg: mean, direction: 1, unit: "share"}
+  - {id: medicaid_within_5km, source: acs, value: ins_any_medicaid_within_5km, label: "Residents on Medicaid within 5 km", agg: sum, direction: 1, unit: "people"}
+  - {id: n_health_centers_within_5km, source: hrsa, value: n_health_centers_within_5km, label: "Other community health center sites within 5 km (HRSA)", agg: sum, direction: -1, unit: "sites"}
+site_rules:
+  sliding_fee: true  # everyone is served regardless of coverage: payers do not shrink demand
+  competitor_feature: n_health_centers  # HRSA FQHC / Look-Alike clinic sites; the owner's own sites are subtracted
+  competitor_unit: sites
+  space_uses: ["Medical", "OfficeMedical", "Office", "OfficeRetail", "Retail"]
+  demand:
+    # Weights are the share of each group that uses a health center in a year, so demand reads as likely patients,
+    # not everyone eligible. PLANNING ASSUMPTIONS: HRSA UDS 2023 counts ~31.9M health center patients, ~90% at or
+    # below 200% of poverty, against ~95M Americans below 200% (about 0.3); Texas health centers reach fewer, so 0.2.
+    # The uninsured (mostly already below 200%) get a further 0.1 because they have the fewest other options.
+    segments:
+      - {feature_id: below_200fpl_pop, label: "people below 200% of poverty (about 1 in 5 uses a health center)", weight: 0.2}
+      - {feature_id: uninsured, label: "uninsured residents (extra weight: fewest other options)", weight: 0.1}
+    demand_label: "likely health center patients"
+    trip: local
+    competitor_label: "other community health centers (HRSA)"
+factor_hints:
+  - "where the patients live: below 200% of poverty, uninsured, Medicaid and CHIP families"
+  - "gaps between existing health center sites (HRSA counts overlapping service areas against new sites)"
+  - "chronic disease burden: diabetes, high blood pressure, obesity, depression (CDC PLACES)"
+  - "bus stops and households without a car: patients ride transit to appointments"
+  - "limited-English households in the languages the clinic speaks"
+  - "partners: schools (school-based clinics), churches, hospital emergency departments to divert non-emergency visits"

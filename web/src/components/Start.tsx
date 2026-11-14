@@ -21,9 +21,9 @@ const TILE = [
   { bg: 'var(--steel)', shape: { borderRadius: '50%', transform: 'scale(.7)' } },
   { bg: 'var(--lime2)', shape: { clipPath: 'polygon(50% 0,100% 100%,0 100%)' } },
 ]
-const SPECIALTIES = ['orthopedics', 'pediatric dentistry', 'dialysis', 'physical therapy', 'primary care', 'urgent care',
+const SPECIALTIES = ['community health center', 'orthopedics', 'pediatric dentistry', 'dialysis', 'physical therapy', 'primary care', 'urgent care',
   'cardiology', 'dermatology', 'optometry', 'behavioral health', 'chiropractic']
-const PACKED = new Set(['orthopedics', 'pediatric_dentistry', 'dialysis', 'physical_therapy'])
+const PACKED = new Set(['orthopedics', 'pediatric_dentistry', 'dialysis', 'physical_therapy', 'community_health'])
 const LANGS = ['English', 'Spanish', 'Vietnamese', 'Chinese', 'Arabic']
 const KIND_HINTS = ['food pantry', 'laundromat', 'pediatric dentist', 'daycare', 'coffee shop', 'boxing gym', 'nonprofit youth center']
 const AREA_HINTS = ['On a bus line', 'Near schools', 'Near churches', 'Next to a grocery store', 'Near large employers',
@@ -125,7 +125,10 @@ export default function Start({ live, hasRecording, onRun }: Props) {
     const head = <span>{q.text}{q.required && <em className="req"> required</em>}</span>
     if (q.kind === 'choice' || q.kind === 'multi') {
       const chosen = q.field === 'payers' ? (p.payers_accepted ?? []).map((x) => PAYER_LABELS[x] ?? x)
-        : value.split(', ').filter(Boolean)
+        : q.kind === 'choice' ? (value ? [value] : [])
+        // options may contain commas ("Helps, not essential"): match whole options, keep anything else typed
+        : [...q.options.filter((o) => `, ${value}, `.includes(`, ${o}, `)),
+           ...q.options.reduce((rest, o) => rest.split(o).join(''), value).split(',').map((x) => x.trim()).filter(Boolean)]
       const toggle = (o: string) => {
         const next = q.kind === 'choice' ? (chosen.includes(o) ? [] : [o]) : chosen.includes(o) ? chosen.filter((x) => x !== o) : [...chosen, o]
         if (q.field === 'payers') set({ payers_accepted: next.map((x) => PAYER_IDS[x]).filter(Boolean) })
@@ -249,7 +252,7 @@ export default function Start({ live, hasRecording, onRun }: Props) {
                 <h3>Your {who}</h3>
                 {inStep('customers')}
                 <div className="fl"><span>Languages your staff speak</span>
-                  <div className="pills">{LANGS.map((l) => (
+                  <div className="pills">{[...LANGS, ...(p.languages ?? []).filter((l) => !LANGS.includes(l))].map((l) => (
                     <button type="button" key={l} className={`pill ${(p.languages ?? []).includes(l) ? 'on' : ''}`} aria-pressed={(p.languages ?? []).includes(l)}
                       onClick={() => set({ languages: (p.languages ?? []).includes(l) ? (p.languages ?? []).filter((x) => x !== l) : [...(p.languages ?? []), l] })}>{l}</button>))}</div>
                 </div>
