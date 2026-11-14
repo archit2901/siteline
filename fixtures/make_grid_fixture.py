@@ -17,7 +17,7 @@ SOURCE = ROOT / "data" / "raw" / "houston_h3_r8.parquet"
 GENERAL = ROOT / "data" / "derived" / "general_stock.parquet"  # public ACS + LODES (scripts/build_general_stock.py)
 OUT = Path(__file__).parent / "grid.json"
 
-KEYS = ["h3", "cell_lat", "cell_lon", "county"]
+KEYS = ["h3", "GEOID", "cell_lat", "cell_lon", "county"]
 # ACS 5-year (Census) and CMS Doctors and Clinicians / Hospital General Information columns only.
 COLUMNS = [
     # population and demand bands

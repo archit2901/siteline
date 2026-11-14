@@ -87,5 +87,8 @@ async def safe_request(client: httpx.AsyncClient, method: str, url: str, *, max_
                 body += chunk
                 if len(body) > max_bytes:
                     raise BlockedURL(f"{url} is larger than {max_bytes} bytes")
-            return httpx.Response(resp.status_code, headers=resp.headers, content=body, request=resp.request)
+            # The body is already decompressed: drop the encoding headers so httpx doesn't decode it twice.
+            headers = [(k, v) for k, v in resp.headers.multi_items()
+                       if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")]
+            return httpx.Response(resp.status_code, headers=headers, content=body, request=resp.request)
     raise BlockedURL(f"too many redirects from {url}")

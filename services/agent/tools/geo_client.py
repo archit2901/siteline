@@ -32,6 +32,7 @@ from contracts.models import (
     ValidationReport,
 )
 from services.agent.tools import geomath
+from services.agent.tools import ingest as ingest_mod
 from services.agent.tools.packs import feature_catalog, pack_for, region_features
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -59,6 +60,7 @@ class GridGeo:
 
     def __init__(self, grid: geomath.Grid) -> None:
         self.grid = grid
+        self.found: dict[str, RegionFeature] = {}  # agent-found features ingested this session
 
     def _check_region(self, region_id: str) -> None:
         if region_id not in REGIONS:
@@ -66,7 +68,7 @@ class GridGeo:
 
     async def list_features(self, region_id: str) -> list[RegionFeature]:
         self._check_region(region_id)
-        return region_features()
+        return region_features() + list(self.found.values())
 
     async def score(self, request: ScoreRequest) -> ScoreResponse:
         self._check_region(request.region_id)
@@ -94,14 +96,32 @@ class GridGeo:
         if cell is None:
             raise KeyError(f"cell {h3} is not in region {region_id}")
         known = feature_catalog().get(feature_id)
-        value = self.grid.column(known.value or known.id if known else feature_id)[cell]
+        try:
+            value = self.grid.column(known.value or known.id if known else feature_id)[cell]
+        except KeyError:
+            raise KeyError(f"unknown feature {feature_id!r}") from None
         return FeatureValue(feature_id=feature_id, h3=h3, value=None if np.isnan(value) else float(value))
 
     async def preview(self, request: PreviewRequest) -> DatasetPreview:
-        raise NotImplementedError("generic ingestion arrives in Task 6")
+        self._check_region(request.region_id)
+        return await ingest_mod.preview(request)
 
     async def ingest(self, request: IngestRequest) -> ValidationReport:
-        raise NotImplementedError("generic ingestion arrives in Task 6")
+        """Fetch, aggregate and validate; on success the feature becomes a grid column (+ `<id>_count` for points)."""
+        self._check_region(request.region_id)
+        spec = request.spec
+        report, values, counts = await ingest_mod.ingest(spec, self.grid)
+        if report.ok and values is not None:
+            self.grid.columns[spec.id] = values
+            if counts is not None:
+                self.grid.columns[f"{spec.id}_count"] = counts
+                self.grid._competitors.clear()
+            self.found[spec.id] = RegionFeature(id=spec.id, label=spec.label, source=spec.source_id, unit=spec.unit,
+                                                layer="agent_found", provenance_url=spec.provenance_url)
+        return report
+
+    def feature_meta(self, feature_id: str) -> RegionFeature | None:
+        return self.found.get(feature_id) or next((f for f in region_features() if f.id == feature_id), None)
 
 
 def _grid_from_rows(rows: list[dict[str, object]]) -> geomath.Grid:
@@ -113,6 +133,7 @@ def _grid_from_rows(rows: list[dict[str, object]]) -> geomath.Grid:
         lat=np.array([r["cell_lat"] for r in rows], dtype=float),
         lon=np.array([r["cell_lon"] for r in rows], dtype=float),
         columns=columns,
+        tracts=[str(r["GEOID"]) for r in rows] if "GEOID" in rows[0] else None,
     )
 
 
@@ -131,7 +152,7 @@ class LocalGeo(GridGeo):
 
         table = pq.read_table(path)
         numeric = [f.name for f in table.schema if pat.is_integer(f.type) or pat.is_floating(f.type)]
-        keep = ["h3", *[c for c in numeric if not c.startswith(COSTAR_COLUMNS)]]
+        keep = ["h3", "GEOID", *[c for c in numeric if not c.startswith(COSTAR_COLUMNS)]]
         rows = table.select(keep).to_pylist()
         if GENERAL_STOCK.exists():  # renters, housing, vehicles, households, jobs (ACS + LODES)
             extra = {r["h3"]: r for r in pq.read_table(GENERAL_STOCK).to_pylist()}

@@ -1,0 +1,293 @@
+"""Generic ingestion: an approved FeatureSpec -> one value per H3 cell (+ a ValidationReport).
+
+Readers: Socrata (server-side county filter), ArcGIS FeatureServer/MapServer layers (Houston envelope, paged),
+GeoJSON, CSV/JSON with lat/lon, tract-keyed tables. Every fetch goes through allowlist.safe_request (allowlist,
+public DNS, peer check, size cap). Filters come only from filter_column/filter_values; nothing in a spec is ever
+evaluated. Aggregation: tract tables join on the cell's tract GEOID; points become per-cell counts, ring counts
+(count_within) or distance to the nearest point.
+"""
+
+import csv
+import io
+import json
+import logging
+import math
+import re
+from dataclasses import dataclass, field
+from itertools import islice
+from typing import Any
+from urllib.parse import urlparse
+
+import h3
+import httpx
+import numpy as np
+
+from contracts.models import DatasetPreview, FeatureSpec, PreviewRequest, ValidationReport
+from services.agent.tools import geomath
+from services.agent.tools.allowlist import BlockedURL, safe_request
+
+log = logging.getLogger(__name__)
+COUNTIES = ("48201", "48157", "48339")
+BBOX = (29.2, -96.3, 30.8, -94.6)  # lat_min, lon_min, lat_max, lon_max around the three counties
+MAX_BYTES = 200 * 1024 * 1024
+PREVIEW_BYTES = 2 * 1024 * 1024
+HEADERS = {"User-Agent": "Siteline/0.1 (HackPrinceton; public data research)"}
+IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
+SOCRATA_ID = re.compile(r"/(?:d|resource|dataset/[^/]+)/([a-z0-9]{4}-[a-z0-9]{4})")
+LAT_NAMES = ("lat", "latitude", "y", "stop_lat", "_lat")
+LON_NAMES = ("lon", "lng", "long", "longitude", "x", "stop_lon", "_lon")
+TRACT_HINTS = ("tractfips", "tract_fips", "geoid", "locationid", "tract", "fips", "census_tract")
+KM_PER_RING_STEP = 0.83  # ~ H3 res-8 cell spacing; k=6 ≈ 5 km
+
+
+@dataclass
+class Rows:
+    rows: list[dict[str, Any]]
+    format: str
+    notes: list[str] = field(default_factory=list)
+
+
+def detect_format(url: str, fmt: str | None) -> str:
+    """The URL decides when it clearly names a service; otherwise the declared format, then the file extension."""
+    path = urlparse(url).path.lower()
+    if re.search(r"/(featureserver|mapserver)/\d+/?$", path):
+        return "arcgis"
+    if SOCRATA_ID.search(url):
+        return "socrata"
+    if fmt:
+        return fmt
+    if path.endswith(".geojson"):
+        return "geojson"
+    return "csv" if path.endswith(".csv") else "json"
+
+
+def _where_counties(column: str) -> str:
+    return " OR ".join(f"starts_with({column}, '{c}')" for c in COUNTIES)
+
+
+async def _get(client: httpx.AsyncClient, url: str, params: dict[str, Any] | None = None, cap: int = MAX_BYTES) -> httpx.Response:
+    full = str(httpx.URL(url, params=params)) if params else url
+    resp = await safe_request(client, "GET", full, timeout=60, max_bytes=cap)
+    log.info("GET %s status=%s bytes=%s", full[:200], resp.status_code, len(resp.content))
+    resp.raise_for_status()
+    return resp
+
+
+def _features_to_rows(features: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    for feat in features:
+        row = dict(feat.get("properties") or {})
+        geom = feat.get("geometry") or {}
+        coords = geom.get("coordinates")
+        if geom.get("type") == "Point" and coords:
+            row["_lon"], row["_lat"] = float(coords[0]), float(coords[1])
+        elif coords:  # use the first vertex of lines/polygons as a location
+            flat = coords
+            while isinstance(flat, list) and flat and isinstance(flat[0], list):
+                flat = flat[0]
+            if isinstance(flat, list) and len(flat) >= 2:
+                row["_lon"], row["_lat"] = float(flat[0]), float(flat[1])
+        rows.append(row)
+    return rows
+
+
+async def fetch_rows(url: str, fmt: str, *, tract_key: str | None = None, preview: bool = False) -> Rows:
+    if fmt in ("gtfs", "census_api"):
+        raise ValueError(f"{fmt} sources need a connector, not the generic reader")
+    cap = PREVIEW_BYTES if preview else MAX_BYTES
+    async with httpx.AsyncClient(headers=HEADERS, trust_env=False) as client:
+        if fmt == "socrata":
+            m = SOCRATA_ID.search(url)
+            if not m:
+                raise ValueError("not a Socrata dataset URL")
+            endpoint = f"https://{urlparse(url).hostname}/resource/{m.group(1)}.json"
+            params: dict[str, Any] = {"$limit": 200 if preview else 50000}
+            notes = []
+            if tract_key and IDENT.match(tract_key):
+                params["$where"] = _where_counties(tract_key)
+                notes.append(f"filtered server-side to Houston counties on {tract_key}")
+            data = (await _get(client, endpoint, params, cap)).json()
+            return Rows(data if isinstance(data, list) else [], "socrata", notes)
+        if fmt == "arcgis":
+            base = url.rstrip("/")
+            rows: list[dict[str, Any]] = []
+            offset, page = 0, 200 if preview else 2000
+            while True:
+                params = {"where": "1=1", "outFields": "*", "f": "geojson", "outSR": 4326, "inSR": 4326,
+                          "geometryType": "esriGeometryEnvelope", "spatialRel": "esriSpatialRelIntersects",
+                          "geometry": f"{BBOX[1]},{BBOX[0]},{BBOX[3]},{BBOX[2]}",
+                          "resultOffset": offset, "resultRecordCount": page}
+                data = (await _get(client, f"{base}/query", params, cap)).json()
+                batch = _features_to_rows(data.get("features", []))
+                rows += batch
+                if preview or len(batch) < page or len(rows) > 200_000:
+                    break
+                offset += page
+            return Rows(rows, "arcgis", ["limited to the Houston envelope"])
+        resp = await _get(client, url, None, cap)
+        text = resp.text
+        if fmt == "geojson" or text.lstrip().startswith('{"type"') or '"FeatureCollection"' in text[:500]:
+            return Rows(_features_to_rows(json.loads(text).get("features", [])), "geojson")
+        if fmt == "csv" or not text.lstrip().startswith(("[", "{")):
+            reader = csv.DictReader(io.StringIO(text))
+            return Rows([dict(r) for r in islice(reader, 1000 if preview else None)], "csv")
+        data = json.loads(text)
+        return Rows(data if isinstance(data, list) else data.get("data", []), "json")
+
+
+def guess_geo(rows: list[dict[str, Any]]) -> tuple[str | None, str | None]:
+    """(geo_key, geo_level): "lat,lon" for points, else a tract / county column."""
+    if not rows:
+        return None, None
+    cols = {c.lower(): c for c in rows[0]}
+    lat = next((cols[n] for n in LAT_NAMES if n in cols), None)
+    lon = next((cols[n] for n in LON_NAMES if n in cols), None)
+    if lat and lon:
+        return f"{lat},{lon}", "point"
+    sample = rows[: min(50, len(rows))]
+    for hint in TRACT_HINTS:
+        for low, col in cols.items():
+            if hint in low and all(re.fullmatch(r"\d{11}", str(r.get(col, ""))) for r in sample if r.get(col)):
+                return col, "tract"
+    for low, col in cols.items():
+        if "county" in low and all(re.fullmatch(r"\d{5}", str(r.get(col, ""))) for r in sample if r.get(col)):
+            return col, "county"
+    return None, None
+
+
+async def preview(request: PreviewRequest) -> DatasetPreview:
+    url = str(request.url)
+    fmt = detect_format(url, request.format)
+    try:
+        first = await fetch_rows(url, fmt, preview=True)
+        key, level = guess_geo(first.rows)
+        # Re-fetch tract-keyed Socrata data with the county filter so the sample is from Houston.
+        if fmt == "socrata" and level == "tract" and key:
+            first = await fetch_rows(url, fmt, tract_key=key, preview=True)
+    except (BlockedURL, httpx.HTTPError, ValueError, json.JSONDecodeError) as exc:
+        return DatasetPreview(url=url, format=fmt, columns=[], ingestible=False, reason=f"could not read: {str(exc)[:200]}")  # type: ignore[arg-type]
+    rows = first.rows
+    columns = list(rows[0].keys()) if rows else []
+    reason = None
+    if not rows:
+        reason = "no rows in Houston"
+    elif key is None:
+        reason = "no geography column (lat/lon, tract GEOID or county FIPS) found"
+    elif level == "tract" and not any(str(r.get(key, ""))[:5] in COUNTIES for r in rows):
+        reason = "no Houston-area tracts in the sample"
+    return DatasetPreview(
+        url=url, format=fmt, columns=columns[:200], sample_rows=[{k: r.get(k) for k in columns[:25]} for r in rows[:5]],  # type: ignore[arg-type]
+        row_count=len(rows), geo_key_guess=key, geo_level_guess=level, ingestible=reason is None, reason=reason,  # type: ignore[arg-type]
+    )
+
+
+def _to_float(value: Any) -> float | None:
+    try:
+        x = float(str(value).replace(",", ""))
+        return x if math.isfinite(x) else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _apply_filter(rows: list[dict[str, Any]], spec: FeatureSpec) -> list[dict[str, Any]]:
+    if not spec.filter_column or not spec.filter_values:
+        return rows
+    wanted = {v.lower() for v in spec.filter_values}
+    return [r for r in rows if str(r.get(spec.filter_column, "")).lower() in wanted]
+
+
+def ring_k(spec: FeatureSpec) -> int:
+    """radius_min is minutes in the contract; straight-line ring steps at the Huff speed (1 min ≈ 0.72 km)."""
+    minutes = spec.radius_min or 7.0
+    km = minutes * geomath.SPEED_KMH / 60 / geomath.DETOUR
+    return max(1, round(km / KM_PER_RING_STEP))
+
+
+def aggregate(rows: list[dict[str, Any]], spec: FeatureSpec, grid: geomath.Grid) -> tuple[np.ndarray, np.ndarray | None, list[str]]:
+    """(cell values, per-cell point counts for Huff or None, notes)."""
+    n = len(grid)
+    notes: list[str] = []
+    if spec.geo_level == "point":
+        lat_col, _, lon_col = spec.geo_key.partition(",")
+        pts = [(la, lo) for r in rows if (la := _to_float(r.get(lat_col))) is not None
+               and (lo := _to_float(r.get(lon_col))) is not None
+               and BBOX[0] <= la <= BBOX[2] and BBOX[1] <= lo <= BBOX[3]]
+        counts = np.zeros(n)
+        for la, lo in pts:
+            i = grid.cell_of(la, lo)
+            if i is not None:
+                counts[i] += 1
+        notes.append(f"{len(pts)} points in the Houston area, {int(counts.sum())} inside grid cells")
+        if spec.agg == "distance_to_nearest":
+            if not pts:
+                return np.full(n, np.nan), counts, notes
+            plat, plon = np.array([p[0] for p in pts]), np.array([p[1] for p in pts])
+            out = np.empty(n)
+            for start in range(0, n, 1000):
+                sl = slice(start, start + 1000)
+                out[sl] = geomath.pairwise_km(grid.lat[sl], grid.lon[sl], plat, plon).min(axis=1)
+            notes.append("distance to the nearest point in km (straight line)")
+            return out, counts, notes
+        if spec.agg == "density":
+            area = np.array([h3.cell_area(c, "km^2") for c in grid.h3])
+            return counts / area, counts, notes
+        k = ring_k(spec)
+        ring = np.array([sum(counts[grid.index[x]] for x in h3.grid_disk(c, k) if x in grid.index) for c in grid.h3])
+        notes.append(f"points within about {k * KM_PER_RING_STEP:.0f} km")
+        return ring, counts, notes
+
+    if grid.tracts is None:
+        raise ValueError("this grid has no tract ids; tract tables cannot be joined")
+    by_key: dict[str, list[float]] = {}
+    for r in rows:
+        key, val = str(r.get(spec.geo_key, "")).strip(), _to_float(r.get(spec.value_column or ""))
+        if val is None or not key:
+            continue
+        if spec.geo_level == "county":
+            key = key[-5:]
+        by_key.setdefault(key, []).append(val)
+    tract_value = {k: (sum(v) if spec.agg == "sum" else sum(v) / len(v)) for k, v in by_key.items()}
+    out = np.full(n, np.nan)
+    if spec.geo_level == "tract":
+        cells_per_tract: dict[str, int] = {}
+        for t in grid.tracts:
+            cells_per_tract[t] = cells_per_tract.get(t, 0) + 1
+        for i, t in enumerate(grid.tracts):
+            if t in tract_value:  # rates carry over; counts split evenly across the tract's cells
+                out[i] = tract_value[t] / cells_per_tract[t] if spec.agg == "sum" else tract_value[t]
+    else:
+        for i, t in enumerate(grid.tracts):
+            if t[:5] in tract_value:
+                out[i] = tract_value[t[:5]]
+    notes.append(f"{len(tract_value)} {spec.geo_level} values joined")
+    return out, None, notes
+
+
+def validate(values: np.ndarray, spec: FeatureSpec, rows_read: int, notes: list[str], point_count: float | None) -> ValidationReport:
+    ok_vals = values[~np.isnan(values)]
+    coverage = float(len(ok_vals) / len(values)) if len(values) else 0.0
+    ok = (point_count or 0) >= 5 if spec.geo_level == "point" else coverage >= 0.8
+    if not ok:
+        notes.append("too few points inside Houston" if spec.geo_level == "point" else "covers less than 80% of cells")
+    return ValidationReport(
+        feature_id=spec.id, ok=ok, coverage_pct=round(coverage, 4), null_pct=round(1 - coverage, 4),
+        min=float(ok_vals.min()) if len(ok_vals) else None, max=float(ok_vals.max()) if len(ok_vals) else None,
+        mean=float(ok_vals.mean()) if len(ok_vals) else None, rows_read=rows_read, notes=notes,
+    )
+
+
+async def ingest(spec: FeatureSpec, grid: geomath.Grid) -> tuple[ValidationReport, np.ndarray | None, np.ndarray | None]:
+    """(report, cell values, per-cell point counts). Values are None when the dataset could not be read."""
+    if spec.source_url is None:
+        return ValidationReport(feature_id=spec.id, ok=False, coverage_pct=0, null_pct=1, notes=["no source_url"]), None, None
+    url = str(spec.source_url)
+    fmt = detect_format(url, spec.format)
+    try:
+        fetched = await fetch_rows(url, fmt, tract_key=spec.geo_key if spec.geo_level == "tract" else None)
+        rows = _apply_filter(fetched.rows, spec)
+        values, counts, notes = aggregate(rows, spec, grid)
+    except (BlockedURL, httpx.HTTPError, ValueError, json.JSONDecodeError) as exc:
+        return ValidationReport(feature_id=spec.id, ok=False, coverage_pct=0, null_pct=1,
+                                notes=[f"could not ingest: {str(exc)[:200]}"]), None, None
+    report = validate(values, spec, len(rows), fetched.notes + notes, None if counts is None else float(counts.sum()))
+    return report, values, counts

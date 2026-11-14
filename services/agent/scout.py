@@ -4,6 +4,7 @@ Python drives the steps; the model (MODEL_FAST) only writes search queries and c
 Up to 3 tries; then the factor is dropped with a caveat. Scouts never download anything.
 """
 
+import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
@@ -11,8 +12,9 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
-from contracts.models import DatasetCandidate, DatasetFormat, EventType, Factor, GeoLevel
+from contracts.models import Agg, DatasetCandidate, DatasetFormat, DatasetPreview, EventType, Factor, FeatureSpec, GeoLevel, PreviewRequest
 from services.agent import llm
+from services.agent.tools.backends import get_geo
 from services.agent.tools.catalog import catalog_search
 from services.agent.tools.search import SearchHit, web_search
 
@@ -38,6 +40,26 @@ class Queries(BaseModel):
     queries: list[str] = Field(min_length=1, max_length=3)
 
 
+class SpecDraft(BaseModel):
+    """The model's reading of a previewed dataset; Python validates every field against the real columns."""
+
+    value_column: str | None = Field(default=None, description="numeric column measuring the factor (tables only)")
+    agg: Agg = Field(default="mean", description="mean/sum for tables; count_within/distance_to_nearest/density for points")
+    filter_column: str | None = None
+    filter_values: list[str] = Field(default_factory=list)
+    label: str = ""
+    unit: str = ""
+
+
+SPEC_PROMPT = (
+    "You map a public dataset to ONE measurable factor. Given the factor, the dataset's columns and sample rows, "
+    "choose: for tract/county tables the numeric value_column that measures the factor (agg mean for rates or "
+    "percentages, sum for counts); for point datasets value_column null and agg count_within (how many nearby) or "
+    "distance_to_nearest (how far to the closest). Optionally a filter_column/filter_values to keep only relevant "
+    "rows (exact values seen in the sample). label: short plain-language name; unit: %, km, count, share, USD..."
+)
+
+
 class Choice(BaseModel):
     choice: int | None = Field(default=None, description="1-based number of the chosen result, or null if none fits")
     format: DatasetFormat = "csv"
@@ -51,6 +73,34 @@ class ScoutResult:
     candidate: DatasetCandidate | None
     tries: int
     caveat: str | None = None
+    spec: FeatureSpec | None = None
+
+
+def build_spec(factor: Factor, candidate: DatasetCandidate, preview: DatasetPreview, draft: SpecDraft) -> FeatureSpec | None:
+    """A FeatureSpec only if every field the model chose exists in the previewed data."""
+    columns = set(preview.columns)
+    level, key = preview.geo_level_guess, preview.geo_key_guess
+    if level is None or key is None:
+        return None
+    if level == "point":
+        agg = draft.agg if draft.agg in ("count_within", "distance_to_nearest", "density") else "count_within"
+        value = None
+    else:
+        value = draft.value_column if draft.value_column in columns else None
+        if value is None:
+            return None
+        agg = draft.agg if draft.agg in ("mean", "sum") else "mean"
+    keep_filter = draft.filter_column in columns and bool(draft.filter_values)
+    fid = "found_" + re.sub(r"[^a-z0-9_]+", "_", factor.id.lower())[:40]
+    unit = draft.unit or ("km" if agg == "distance_to_nearest" else "count" if level == "point" else "")
+    return FeatureSpec(
+        id=fid, label=(draft.label or factor.factor)[:80], source_id=candidate.id, source_url=candidate.url,
+        format=preview.format, geo_level=level, geo_key=key, value_column=value,
+        filter_column=draft.filter_column if keep_filter else None,
+        filter_values=[str(v) for v in draft.filter_values][:20] if keep_filter else [],
+        agg=agg, radius_min=7.0 if agg == "count_within" else None,  # ≈5 km straight line
+        direction=factor.direction, unit=unit, layer="agent_found", provenance_url=candidate.url,
+    )
 
 
 def _hit_lines(hits: list[SearchHit]) -> str:
@@ -94,8 +144,27 @@ async def run_scout(factor: Factor, meter: llm.UsageMeter, emit: Emit) -> ScoutR
                 why=picked.why or f"Measures {factor.proxy.lower()}",
             )
             await emit(agent, "tool_result", {"tool": "choose_dataset", "factor_id": factor.id, "ok": True,
-                                              "summary": f"Proposed {candidate.title} ({candidate.publisher})"})
-            return ScoutResult(factor.id, candidate, attempt)
+                                              "summary": f"Chose {candidate.title} ({candidate.publisher})"})
+            await emit(agent, "tool_call", {"tool": "preview_dataset", "args": {"url": hit.url}, "factor_id": factor.id})
+            preview = await get_geo().preview(PreviewRequest(url=hit.url))  # type: ignore[arg-type]
+            spec = None
+            if preview.ingestible:
+                draft_out = await fast.with_structured_output(SpecDraft).ainvoke([SystemMessage(SPEC_PROMPT), HumanMessage(
+                    f"{ask}\n\nDATASET: {candidate.title}\nGEOGRAPHY: {preview.geo_level_guess} via {preview.geo_key_guess}\n"
+                    f"COLUMNS: {', '.join(preview.columns[:120])}\nSAMPLE: {preview.sample_rows[:2]}")])
+                draft = draft_out if isinstance(draft_out, SpecDraft) else SpecDraft()
+                spec = build_spec(factor, candidate, preview, draft)
+            if spec is not None:
+                candidate = candidate.model_copy(update={"status": "valid", "format": preview.format,
+                                                         "geo_level": spec.geo_level})
+                await emit(agent, "tool_result", {"tool": "preview_dataset", "factor_id": factor.id, "ok": True,
+                                                  "summary": f"Ingestible: {spec.geo_level} data; will measure "
+                                                             f"{spec.value_column or spec.agg.replace('_', ' ')}."})
+                return ScoutResult(factor.id, candidate, attempt, spec=spec)
+            reason = preview.reason or "no column measures this factor"
+            await emit(agent, "tool_result", {"tool": "preview_dataset", "factor_id": factor.id, "ok": False,
+                                              "summary": f"Not usable: {reason}. Trying again (try {attempt} of {MAX_TRIES})."})
+            continue
         await emit(agent, "tool_result", {"tool": "choose_dataset", "factor_id": factor.id, "ok": False,
                                           "summary": f"No result fits (try {attempt} of {MAX_TRIES})"})
     return ScoutResult(factor.id, None, MAX_TRIES,

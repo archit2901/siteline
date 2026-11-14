@@ -18,6 +18,7 @@ from contracts.models import (
     ApprovalRequest,
     DatasetCandidate,
     Factor,
+    IngestRequest,
     PracticeProfile,
     RankedSite,
     RankRequest,
@@ -130,18 +131,29 @@ async def run_pipeline(run: Run) -> None:
         if fid not in keep:
             by_id[fid] = by_id[fid].model_copy(update={"status": "dropped", "caveat": "Removed in the data plan."})
 
-    # register features. Task 6 replaces this with geo.ingest per approved FeatureSpec; until then a found dataset
-    # is recorded on its factor but not scored.
-    await run.emit(S, "tool_call", {"tool": "register_features", "args": {"datasets": len(candidates)}})
-    for c in candidates:
+    # register features: geo ingests each approved FeatureSpec; the ValidationReport decides the factor's status
+    specs = {r.factor_id: r.spec for r in results if r.spec is not None}
+    approved = [c for c in candidates if by_id[c.factor_id].status != "dropped" and c.factor_id in specs]
+    await run.emit(S, "tool_call", {"tool": "register_features", "args": {"datasets": len(approved)}})
+    ingested = 0
+    for c in approved:
+        spec = specs[c.factor_id]
+        report = await geo.ingest(IngestRequest(spec=spec))
         f = by_id[c.factor_id]
-        if f.status == "dropped":
-            continue
-        by_id[c.factor_id] = f.model_copy(update={
-            "status": "dropped", "caveat": f"Found {c.title} ({c.publisher}); automatic ingestion is not enabled yet."})
+        if report.ok:
+            ingested += 1
+            by_id[c.factor_id] = f.model_copy(update={"status": "found", "feature_id": spec.id, "caveat": None})
+        else:
+            by_id[c.factor_id] = f.model_copy(update={
+                "status": "dropped", "caveat": f"Found {c.title}, but it did not pass validation: {'; '.join(report.notes)[:160]}"})
         await run.emit(S, "factor", by_id[c.factor_id].model_dump(mode="json"))
+    for c in candidates:  # chosen but not readable as map data
+        if c.factor_id not in specs and by_id[c.factor_id].status != "dropped":
+            by_id[c.factor_id] = by_id[c.factor_id].model_copy(update={
+                "status": "dropped", "caveat": f"Found {c.title}, but it is not in a format we can map automatically."})
+            await run.emit(S, "factor", by_id[c.factor_id].model_dump(mode="json"))
     await run.emit(S, "tool_result", {"tool": "register_features", "ok": True,
-                                      "summary": f"{len(candidates)} datasets found; not ingested in this build."})
+                                      "summary": f"{ingested} of {len(approved)} datasets ingested and validated."})
     factors = list(by_id.values())
     run.state["factors"] = factors
     run.write_artifact("factors.json", TypeAdapter(list[Factor]).dump_json(factors, indent=2).decode())

@@ -23,7 +23,7 @@ from contracts.models import (
 from services.agent import llm
 from services.agent.tools import geomath
 from services.agent.tools.geo_client import GeoClient
-from services.agent.tools.packs import feature_catalog, pack_for, region_features
+from services.agent.tools.packs import pack_for
 
 TOP = 10
 MAX_CLAIMS = 5
@@ -61,13 +61,15 @@ class Selection(BaseModel):
     sites: list[SiteChoice]
 
 
-def _fmt(value: float, unit: str) -> str:
+def _fmt(value: float, unit: str, feature_id: str = "") -> str:
     if unit == "share":
         return f"{value * 100:.0f}%"
     if unit == "USD":
         return f"${value:,.0f}"
     if unit == "%":
-        return f"{value:+.1f}%"
+        return f"{value:+.1f}%" if "growth" in feature_id else f"{value:.1f}%"
+    if unit == "km":
+        return f"{value:.1f} km"
     return f"{value:,.0f}"
 
 
@@ -81,18 +83,18 @@ async def claim_options(site: SiteCandidate, ranked: RankedSite, factors: list[F
         refs.append(f"model:cannibalized@{site.id}")
     out.append(ClaimOption("net_new", text + ".", refs))
 
-    catalog = feature_catalog()
+    meta = {m.id: m for m in await geo.list_features("hou")}  # stock + agent-found features
     seen: set[str] = set()
     for f in factors:
         fid = f.feature_id
-        if not fid or fid.startswith("site:") or fid in seen or fid not in catalog or not site.h3:
+        if not fid or fid.startswith("site:") or fid in seen or fid not in meta or not site.h3:
             continue
         seen.add(fid)
         value = (await geo.feature_value(fid, site.h3)).value
         if value is None:
             continue
-        meta = catalog[fid]
-        out.append(ClaimOption(f"feature:{fid}", f"{meta.label or f.factor} here: {_fmt(value, meta.unit)}.",
+        m = meta[fid]
+        out.append(ClaimOption(f"feature:{fid}", f"{m.label or f.factor} here: {_fmt(value, m.unit, fid)}.",
                                [f"feature:{fid}@{site.h3}"]))
 
     if site.sqft:
@@ -209,7 +211,7 @@ async def build_report(run_id: str, profile: PracticeProfile, factors: list[Fact
             justification=[Claim(text=opts[k].text, evidence_refs=opts[k].refs) for k in keys], caveats=site_caveats,
         ))
 
-    provenance = {f.id: f.provenance_url for f in region_features()}
+    provenance = {f.id: f.provenance_url for f in await geo.list_features("hou")}
     report = Report(
         run_id=run_id, profile=profile, factors=factors, recommendations=recs, caveats=caveats,
         sources={f.feature_id: provenance[f.feature_id] for f in factors if f.feature_id in provenance},

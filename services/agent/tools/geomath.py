@@ -44,6 +44,7 @@ class Grid:
     lat: np.ndarray
     lon: np.ndarray
     columns: dict[str, np.ndarray]
+    tracts: list[str] | None = None  # tract GEOID per cell (for joining tract tables)
     index: dict[str, int] = field(init=False)
     _competitors: dict[tuple[str, float], np.ndarray] = field(default_factory=dict, init=False, repr=False)
 
@@ -179,12 +180,16 @@ def competitor_attraction(grid: Grid, column: str | None, beta: float) -> np.nda
     return grid._competitors[key]
 
 
-def _pairwise_minutes(lat1: np.ndarray, lon1: np.ndarray, lat2: np.ndarray, lon2: np.ndarray) -> np.ndarray:
+def pairwise_km(lat1: np.ndarray, lon1: np.ndarray, lat2: np.ndarray, lon2: np.ndarray) -> np.ndarray:
+    """Straight-line km between every (lat1, lon1) and every (lat2, lon2)."""
     p1, p2 = np.radians(lat1)[:, None], np.radians(lat2)[None, :]
     dl = np.radians(lon2)[None, :] - np.radians(lon1)[:, None]
     a = np.sin((p2 - p1) / 2) ** 2 + np.cos(p1) * np.cos(p2) * np.sin(dl / 2) ** 2
-    km = 2 * 6371.0 * np.arcsin(np.sqrt(a))
-    return np.maximum(MIN_MINUTES, km * DETOUR / SPEED_KMH * 60)
+    return 2 * 6371.0 * np.arcsin(np.sqrt(a))
+
+
+def _pairwise_minutes(lat1: np.ndarray, lon1: np.ndarray, lat2: np.ndarray, lon2: np.ndarray) -> np.ndarray:
+    return np.maximum(MIN_MINUTES, pairwise_km(lat1, lon1, lat2, lon2) * DETOUR / SPEED_KMH * 60)
 
 
 def _reach(grid: Grid, lat: float, lon: float, attractiveness: float, beta: float) -> np.ndarray:
