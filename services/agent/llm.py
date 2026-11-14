@@ -33,6 +33,9 @@ Provider = Literal["bedrock", "gemini", "openrouter"]
 
 SMART_ROLES: frozenset[str] = frozenset({"orchestrator", "factor_analyst", "critic"})
 ZERO_TEMPERATURE_ROLES: frozenset[str] = frozenset({"factor_analyst", "critic", "judge"})
+# Strongest Nova model the team account can call (scripts/check_bedrock.py, Nov 14 2026: Nova 2 Pro unavailable,
+# Nova Premier end of life).
+DEFAULT_MODEL_SMART = "us.amazon.nova-pro-v1:0"
 DEFAULT_MODEL_FAST = "us.amazon.nova-2-lite-v1:0"
 DEFAULT_RPS: dict[str, float] = {"bedrock": 2.0, "gemini": 0.15, "openrouter": 0.2}
 OPENROUTER_URL = "https://openrouter.ai/api/v1"
@@ -81,8 +84,8 @@ def model_id(role: Role) -> str:
     value = env(tier)
     if value:
         return value
-    if provider_for(role) == "bedrock" and tier == "MODEL_FAST":
-        return DEFAULT_MODEL_FAST
+    if provider_for(role) == "bedrock":
+        return DEFAULT_MODEL_SMART if tier == "MODEL_SMART" else DEFAULT_MODEL_FAST
     raise RuntimeError(f"{tier} is not set (needed for role {role!r})")
 
 

@@ -39,7 +39,7 @@ interrupt_on={...}, checkpointer=..., backend=...)`, subagent dict keys (`name`,
 ## Models (`llm.py`, never build a chat model anywhere else)
 `get_chat_model(role, meter)` with role in orchestrator | factor_analyst | dataset_scout | site_scout | critic | judge.
 - `LLM_PROVIDER=bedrock` (default): `ChatBedrockConverse`, `AWS_REGION=us-east-1`, default AWS credential chain.
-  `MODEL_SMART` (strongest Nova on the account) for orchestrator, factor_analyst, critic; `MODEL_FAST`
+  `MODEL_SMART` (strongest Nova on the account; default `us.amazon.nova-pro-v1:0`) for orchestrator, factor_analyst, critic; `MODEL_FAST`
   (default `us.amazon.nova-2-lite-v1:0`) for dataset_scout, site_scout, judge. `gemini` / `openrouter` are dev-only.
 - Per-role overrides: `MODEL_<ROLE>`, `LLM_PROVIDER_<ROLE>`. Temperature 0 for factor_analyst, critic, judge.
 - Shared per-provider rate limiter (`LLM_RPS`), provider retries with backoff (`LLM_MAX_RETRIES`).

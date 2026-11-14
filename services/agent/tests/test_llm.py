@@ -31,7 +31,9 @@ def test_model_ids_per_role(monkeypatch: pytest.MonkeyPatch) -> None:
     assert llm.model_id("critic") == "us.amazon.nova-pro-v1:0"
 
 
-def test_smart_model_must_be_set() -> None:
+def test_bedrock_defaults_and_other_providers_need_ids(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert llm.model_id("orchestrator") == llm.DEFAULT_MODEL_SMART
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
     with pytest.raises(RuntimeError, match="MODEL_SMART"):
         llm.model_id("orchestrator")
 
