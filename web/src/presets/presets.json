@@ -1,0 +1,172 @@
+[
+  {
+    "id": "orthopedic_group",
+    "label": "Orthopedic group",
+    "profile": {
+      "name": "Example Orthopedic Group",
+      "specialty": "orthopedics",
+      "services": [
+        "sports medicine",
+        "joint replacement",
+        "fracture care",
+        "x-ray"
+      ],
+      "payers_accepted": [
+        "medicare",
+        "commercial"
+      ],
+      "patient_mix": {},
+      "languages": [
+        "English"
+      ],
+      "existing_offices": [
+        {
+          "name": "Office A (Medical Center area)",
+          "address": null,
+          "lat": 29.707,
+          "lon": -95.401,
+          "clinicians": 4
+        },
+        {
+          "name": "Office B (Katy area)",
+          "address": null,
+          "lat": 29.786,
+          "lon": -95.824,
+          "clinicians": 3
+        },
+        {
+          "name": "Office C (The Woodlands area)",
+          "address": null,
+          "lat": 30.166,
+          "lon": -95.461,
+          "clinicians": 3
+        }
+      ],
+      "constraints": {
+        "min_sqft": 4000,
+        "max_sqft": 9000,
+        "max_rent_psf": null,
+        "min_parking_per_1000sf": 5.0,
+        "ground_floor": true,
+        "special_rooms": [
+          "x-ray"
+        ]
+      },
+      "free_text": "Many patients are older adults and weekend athletes. Most drive; some arrive on crutches.",
+      "stock_pack": "healthcare.orthopedics",
+      "region_id": "hou"
+    }
+  },
+  {
+    "id": "pediatric_dentist",
+    "label": "Pediatric dentist",
+    "profile": {
+      "name": "Example Pediatric Dental Practice",
+      "specialty": "pediatric_dentistry",
+      "services": [
+        "pediatric dental exams",
+        "cleanings",
+        "sealants",
+        "fillings"
+      ],
+      "payers_accepted": [
+        "medicaid",
+        "chip",
+        "commercial"
+      ],
+      "patient_mix": {},
+      "languages": [
+        "English",
+        "Spanish"
+      ],
+      "existing_offices": [
+        {
+          "name": "Office A (Gulfton area)",
+          "address": null,
+          "lat": 29.721,
+          "lon": -95.476,
+          "clinicians": 2
+        }
+      ],
+      "constraints": {
+        "min_sqft": 2000,
+        "max_sqft": 4500,
+        "max_rent_psf": null,
+        "min_parking_per_1000sf": 3.0,
+        "ground_floor": true,
+        "special_rooms": []
+      },
+      "free_text": "Most families are on Medicaid or CHIP; many parents prefer Spanish and some don't have a car.",
+      "stock_pack": "healthcare.pediatric_dentistry",
+      "region_id": "hou"
+    }
+  },
+  {
+    "id": "dialysis_clinic",
+    "label": "Dialysis clinic",
+    "profile": {
+      "name": "Example Dialysis Clinic",
+      "specialty": "dialysis",
+      "services": [
+        "in-center hemodialysis"
+      ],
+      "payers_accepted": [
+        "medicare",
+        "medicaid",
+        "commercial"
+      ],
+      "patient_mix": {},
+      "languages": [
+        "English",
+        "Spanish"
+      ],
+      "existing_offices": [],
+      "constraints": {
+        "min_sqft": 6000,
+        "max_sqft": 12000,
+        "max_rent_psf": null,
+        "min_parking_per_1000sf": 4.0,
+        "ground_floor": true,
+        "special_rooms": [
+          "dialysis stations"
+        ]
+      },
+      "free_text": "Patients come three times a week; many are older and some rely on buses or rides.",
+      "stock_pack": "healthcare.dialysis",
+      "region_id": "hou"
+    }
+  },
+  {
+    "id": "physical_therapy",
+    "label": "Physical therapy",
+    "profile": {
+      "name": "Example Physical Therapy Clinic",
+      "specialty": "physical_therapy",
+      "services": [
+        "post-surgical rehab",
+        "sports rehab",
+        "work injury rehab"
+      ],
+      "payers_accepted": [
+        "commercial",
+        "workers_comp"
+      ],
+      "patient_mix": {},
+      "languages": [
+        "English"
+      ],
+      "existing_offices": [],
+      "constraints": {
+        "min_sqft": 2500,
+        "max_sqft": 5000,
+        "max_rent_psf": null,
+        "min_parking_per_1000sf": 4.0,
+        "ground_floor": true,
+        "special_rooms": []
+      },
+      "free_text": "Most referrals come from orthopedic surgeons; many patients are working adults.",
+      "stock_pack": "healthcare.physical_therapy",
+      "region_id": "hou"
+    }
+  }
+]
