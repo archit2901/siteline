@@ -101,6 +101,23 @@ export type EvidenceRefs = string[];
 export type Justification = Claim[];
 export type Caveats = string[];
 export type AnnualRentPerCustomer = number | null;
+export type Checked = string[];
+export type ParkedCars = number | null;
+export type RadiusM = number | null;
+export type ListedParking = number | null;
+export type Occupancy = number | null;
+export type ScanAreaSqft = number | null;
+export type ScanRooms = number | null;
+export type ScanFloors = number | null;
+export type ScanName = string | null;
+export type Findings = string[];
+export type Unavailable = string[];
+export type Minutes = number;
+export type Households = number | null;
+export type NoCarShare = number | null;
+export type RenterShare = number | null;
+export type MedicaidShare = number | null;
+export type LowerIncomeShare = number | null;
 export type Recommendations = Recommendation[];
 export type Caveats1 = string[];
 export type Verified = boolean;
@@ -463,6 +480,8 @@ export interface Recommendation {
   justification: Justification;
   caveats?: Caveats;
   annual_rent_per_customer?: AnnualRentPerCustomer;
+  inspection?: SiteInspection | null;
+  community?: CommunityNeed | null;
   [k: string]: unknown;
 }
 /**
@@ -499,6 +518,42 @@ export interface Checks {
 export interface Claim {
   text: Text1;
   evidence_refs: EvidenceRefs;
+  [k: string]: unknown;
+}
+/**
+ * What the site-inspector checked for one space, combining CoStar (listing), Vexcel (aerial) and Matterport (3D).
+ * Every number comes from those APIs or the listing; findings are rendered by Python from these values.
+ *
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "SiteInspection".
+ */
+export interface SiteInspection {
+  checked?: Checked;
+  parked_cars?: ParkedCars;
+  radius_m?: RadiusM;
+  listed_parking?: ListedParking;
+  occupancy?: Occupancy;
+  scan_area_sqft?: ScanAreaSqft;
+  scan_rooms?: ScanRooms;
+  scan_floors?: ScanFloors;
+  scan_name?: ScanName;
+  findings?: Findings;
+  unavailable?: Unavailable;
+  [k: string]: unknown;
+}
+/**
+ * Who lives in a site's catchment, from Census data (Python-computed, population-weighted).
+ *
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "CommunityNeed".
+ */
+export interface CommunityNeed {
+  minutes: Minutes;
+  households?: Households;
+  no_car_share?: NoCarShare;
+  renter_share?: RenterShare;
+  medicaid_share?: MedicaidShare;
+  lower_income_share?: LowerIncomeShare;
   [k: string]: unknown;
 }
 export interface Sources {

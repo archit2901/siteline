@@ -45,6 +45,9 @@ flowchart LR
 - **Backends.** `AGENT_BACKEND=mock` serves fixtures with no data needed. `local` uses `data/raw` and `data/derived` parquet files plus the CoStar files.
 - **Approvals.** A run pauses for the owner twice: after the data plan and after the weights.
 - **Recorded runs.** `scripts/record_golden.py` saves a live run to `data/golden/`, and agent-api replays it with the same pauses. The demo never depends on a live API.
+- **Site inspector.** After ranking, a deepagents agent plans checks of the top spaces with all three CoStar-kit layers: the CoStar listing, parked cars on the Vexcel aerial, and the Matterport scan. Python makes the calls and stores the numbers, and the critic verifies the findings like any other claim.
+- **Community need.** Each space shows who lives within its catchment (households without a car, in lower-income tracts, renters, Medicaid), from Census data.
+- **Chat and iMessage.** Describe the business in your own words in the web app, or text it to Siteline on iMessage through Photon 2.0 (`make run-photon`). Approvals are a YES reply, and follow-up questions are answered from the verified report.
 
 ## Run it
 
@@ -110,13 +113,14 @@ invented.
 ## Track notes
 
 - **Business + Enterprise.** Any business types its own description; nothing is hard-coded per industry. The result is a decision a business can act on: which real space to lease, how many customers it would win, and the annual rent per customer won.
-- **CoStar.** CoStar spaces are the candidates:
+- **CoStar.** The site inspector combines all three layers for the same address: the CoStar listing's parking against parked cars Vexcel detects on the aerial, and the listed size against the Matterport scan. CoStar spaces are the candidates:
   - Each card shows the space's asking rent, size, floor and parking, plus a Matterport 3D tour link when the building has one.
   - Spaces are filtered by the CoStar space uses that fit the business and de-duplicated by building.
 - **LangChain deepagents.** In `planned` mode a deepagents orchestrator (LangGraph `create_agent`) plans with a factor-analyst subagent and a validated tool. Runs are traced with LangSmith when `LANGSMITH_API_KEY` is set.
 - **Peri.** The customer story is Dr. Rahul Deshmukh's orthopedic practice:
   - In the orthopedic run, a scout finds CDC PLACES arthritis prevalence live and ingests it.
   - That data changes the ranking, and the claims cite it.
+- **Photon.** Siteline runs on iMessage: text a business, approve the data plan and weights by replying YES, get the top spaces back, and ask follow-up questions (`services/photon/agent.py`).
 - **Amazon.** All reasoning runs on Amazon Nova through Bedrock, with credentials from the default chain (never in code). The run meter in the app shows each run's model calls, tokens and cost. An EC2 deploy setup is in `infra/`; the hackathon's AWS account allows Bedrock only, so the demo runs on a laptop.
 
 ## Limits

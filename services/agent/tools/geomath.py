@@ -11,8 +11,10 @@ import h3
 import numpy as np
 
 from contracts.models import (
+    CommunityNeed,
     Constraints,
     DemandModel,
+    DemandSegment,
     HuffResult,
     PracticeProfile,
     RankedSite,
@@ -30,6 +32,11 @@ SPEED_KMH = 56.33  # 35 mph
 MIN_MINUTES = 2.0
 MAX_MINUTES = 30.0  # Huff catchment: competitors, offices and the new site only reach cells within 30 minutes
 TRIP_MINUTES = {"neighborhood": 10.0, "local": 20.0, "destination": 30.0}
+# Businesses scored from a DemandModel use OpenStreetMap competitors, which miss many real ones, so their Huff model
+# adds an "other options" alternative (stores we can't see, online, not going at all) that is as attractive as a
+# store a quarter of the trip time away, so half the people that far out already choose something else. Without it,
+# every household in reach with no mapped competitor counts as captured.
+OUTSIDE_OPTION_FRACTION = 0.25
 TOP_K = 10  # stability = share of draws in which a site stays in the top 10
 BAND_COLUMNS = {"0-17": "pop_u18", "18-44": "pop_18_44", "45-64": "pop_45_64", "65+": "pop_65p"}
 # Payer -> share of residents with that coverage (ACS). CHIP is counted inside Medicaid; workers' comp has no
@@ -139,6 +146,12 @@ def payer_share(grid: Grid, profile: PracticeProfile) -> np.ndarray:
     return np.minimum(1.0, share)
 
 
+def primary_segment(model: DemandModel) -> DemandSegment | None:
+    """The core customer group (highest weight, first on ties): reach is counted in its units, never in a mix."""
+    usable = [s for s in model.segments if s.feature_id in DEMAND_COLUMNS]
+    return max(usable, key=lambda s: s.weight) if usable else None
+
+
 def demand(grid: Grid, pack: StockPack, profile: PracticeProfile, model: DemandModel | None = None) -> np.ndarray:
     """D_i = π_i · Σ_a P_ia · r_a over the pack's demand bands (r_a = 1.0 if missing), or, with a DemandModel,
     Σ_s w_s · count_is over its customer segments (π only when the practice lists accepted payers)."""
@@ -242,11 +255,16 @@ def without_own_sites(grid: Grid, competitors: np.ndarray, column: str | None, o
 def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, candidates: list[SiteCandidate],
          competitor_feature: str | None, model: DemandModel | None = None) -> list[HuffResult]:
     """Captured, cannibalized and net-new customers per candidate (docs/DESIGN.md Huff + net-new)."""
-    d = demand(grid, pack, profile, model)
+    core = primary_segment(model) if model is not None else None
+    # Reach counts one kind of person (the core segment) so the number has a single unit and label.
+    d = demand(grid, pack, profile, model.model_copy(update={"segments": [core.model_copy(update={"weight": 1.0})]})
+               if model is not None and core is not None else model)
     column = competitor_feature or (model.competitor_feature if model else None)
     column = column if column is None or column in grid.columns else None
     reach = TRIP_MINUTES[model.trip] if model is not None else MAX_MINUTES
     competitors = competitor_attraction(grid, competitor_column(pack, column), spec.beta, reach)
+    if model is not None:  # see OUTSIDE_OPTION_FRACTION; healthcare packs keep the CMS-competitor model unchanged
+        competitors = competitors + (reach * OUTSIDE_OPTION_FRACTION) ** -spec.beta
     offices = [o for o in profile.existing_offices if o.lat is not None and o.lon is not None]
     competitors = without_own_sites(grid, competitors, competitor_column(pack, column), offices, pack, spec.beta, reach)
     office_attr = sum((_reach(grid, o.lat, o.lon, max(1, o.clinicians), spec.beta, reach) for o in offices),  # type: ignore[arg-type]
@@ -365,3 +383,42 @@ def sensitivity(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: Sco
                 model: DemandModel | None = None) -> list[SensitivityResult]:
     ranked = rank(grid, pack, profile, spec, candidates, None, with_stability=True, draws=draws, kappa=kappa, model=model)
     return [SensitivityResult(site_id=r.site_id, stability=r.stability or 0.0) for r in ranked]
+
+
+# ---------------------------------------------------------------------------
+# Community need: who lives in a site's catchment
+# ---------------------------------------------------------------------------
+LOWER_INCOME = 0.8  # HUD's low-and-moderate income line: 80% of the area median
+
+
+def community_need(grid: Grid, lat: float, lon: float, minutes: float) -> CommunityNeed:
+    """Household- and population-weighted shares over the cells within `minutes` of the site (Census columns)."""
+    t = travel_minutes(grid.lat, grid.lon, lat, lon)
+    inside = t <= minutes
+    col = lambda name: np.nan_to_num(grid.columns[name], nan=0.0) if name in grid.columns else None  # noqa: E731
+    hh, pop = col("households"), col("pop_total")
+    out = CommunityNeed(minutes=minutes)
+    if hh is None or not inside.any():
+        return out
+    total_hh = float(hh[inside].sum())
+    out.households = round(total_hh)
+    if total_hh <= 0:
+        return out
+    share = lambda num: round(float(num[inside].sum()) / total_hh, 4)  # noqa: E731
+    if (no_car := col("no_vehicle_households")) is not None:
+        out.no_car_share = share(no_car)
+    if (renters := col("renter_households")) is not None:
+        out.renter_share = share(renters)
+    if "median_hh_income" in grid.columns and pop is not None:
+        income = grid.columns["median_hh_income"]
+        known = ~np.isnan(income) & (pop > 0)
+        # Region median of tract incomes, weighted by population (same for every site in the run).
+        order = np.argsort(income[known])
+        cum = np.cumsum(pop[known][order])
+        region_median = float(income[known][order][np.searchsorted(cum, cum[-1] / 2)])
+        low = inside & known & (income < LOWER_INCOME * region_median)
+        out.lower_income_share = round(float(hh[low].sum()) / total_hh, 4)
+    if "share_any_medicaid" in grid.columns and pop is not None and float(pop[inside].sum()) > 0:
+        medicaid = np.nan_to_num(grid.columns["share_any_medicaid"], nan=0.0)
+        out.medicaid_share = round(float((medicaid * pop)[inside].sum() / pop[inside].sum()), 4)
+    return out

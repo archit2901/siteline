@@ -12,3 +12,14 @@ describe('presetSentence', () => {
     }
   })
 })
+
+import { singular } from './SiteCards'
+
+describe('singular', () => {
+  it('singularizes the plural noun, not the qualifier', () => {
+    expect(singular('children under 18')).toBe('child under 18')
+    expect(singular('adults 18-44')).toBe('adult 18-44')
+    expect(singular('renter households')).toBe('renter household')
+    expect(singular('patients')).toBe('patient')
+  })
+})

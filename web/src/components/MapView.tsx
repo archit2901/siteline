@@ -21,6 +21,8 @@ type RGBA = [number, number, number, number]
 
 const BASEMAP = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
 const RAMP: [number, number, number][] = [[224, 246, 97], [196, 240, 65], [170, 194, 170], [95, 138, 106], [35, 74, 51]]
+/** Hex fill fades as the map zooms in, so streets show where sites are compared (full at city scale, light up close). */
+const fadeForZoom = (z: number) => (z <= 9.5 ? 1 : z >= 11.5 ? 0.3 : 1 - ((z - 9.5) / 2) * 0.7)
 const CUT = 0.7 // with a score, only the top 30% of cells are coloured so the basemap stays readable
 
 function ramp(t: number, cut: number, alphaMin: number, alphaMax: number): RGBA {
@@ -59,11 +61,13 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const overlay = useRef<MapboxOverlay | null>(null)
+  const [fade, setFade] = useState(1)
 
   useEffect(() => {
     if (!container.current) return
     const m = new maplibregl.Map({ container: container.current, style: BASEMAP, center: [-95.37, 29.76], zoom: 9, attributionControl: { compact: true } })
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
+    m.on('zoomend', () => setFade(Math.round(fadeForZoom(m.getZoom()) * 10) / 10))
     const o = new MapboxOverlay({ interleaved: false, layers: [] })
     m.addControl(o)
     map.current = m
@@ -101,11 +105,11 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
       new H3HexagonLayer<GridCell>({
         id: 'cells', data: grid, getHexagon: (d) => d.h3, stroked: false, extruded: false, pickable: true, highPrecision: false,
         getFillColor: (d) => (layerPct
-          ? ramp(layerPct.get(d.h3) ?? 0, 0.3, 70, 190)
+          ? ramp(layerPct.get(d.h3) ?? 0, 0.3, 70 * fade, 190 * fade)
           : scorePct
-          ? ramp(scorePct.get(d.h3) ?? 0, CUT, 95, 190)
-          : ramp(densityPct[cellIndex.get(d.h3) ?? 0] ?? 0, 0.5, 25, 110)),
-        updateTriggers: { getFillColor: [scorePct, densityPct, layerPct] },
+          ? ramp(scorePct.get(d.h3) ?? 0, CUT, 95 * fade, 190 * fade)
+          : ramp(densityPct[cellIndex.get(d.h3) ?? 0] ?? 0, 0.5, 25 * fade, 110 * fade)),
+        updateTriggers: { getFillColor: [scorePct, densityPct, layerPct, fade] },
       }),
       new H3HexagonLayer<string>({
         id: 'highlight', data: highlight, getHexagon: (d) => d, filled: true, stroked: true,
@@ -144,7 +148,7 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
         return { html: `<b>${esc(cell.county)} County</b><br/>${esc(fmt(cell.pop_density_km2))} people per km²<br/>${esc(fmt(cell.pop_total_within_5km))} people within 5 km`, style }
       },
     })
-  }, [grid, densityPct, scorePct, layerPct, zoneByCell, highlight, offices, sites, selectedSiteId, featureLabels, onSelectSite])
+  }, [grid, densityPct, scorePct, layerPct, zoneByCell, highlight, offices, sites, selectedSiteId, featureLabels, onSelectSite, fade])
 
   useEffect(() => {
     if (!map.current || grid.length === 0) return

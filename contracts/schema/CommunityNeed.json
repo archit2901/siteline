@@ -1,0 +1,74 @@
+{
+  "description": "Who lives in a site's catchment, from Census data (Python-computed, population-weighted).",
+  "properties": {
+    "minutes": {
+      "title": "Minutes",
+      "type": "number"
+    },
+    "households": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Households"
+    },
+    "no_car_share": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "No Car Share"
+    },
+    "renter_share": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Renter Share"
+    },
+    "medicaid_share": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Medicaid Share"
+    },
+    "lower_income_share": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lower Income Share"
+    }
+  },
+  "required": [
+    "minutes"
+  ],
+  "title": "CommunityNeed",
+  "type": "object"
+}

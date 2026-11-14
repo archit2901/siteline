@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { HAS_VEXCEL, aerialUrl, countParkedCars, matterportScan, type CarCount, type ScanInfo } from '../lib/media'
-import type { Recommendation, Report, ScoringSpec } from '../types/contracts'
+import type { CommunityNeed, Recommendation, Report, ScoringSpec, SiteInspection } from '../types/contracts'
 import Icon from './Icon'
 import SourceLink from './SourceLink'
 import WeightSliders from './WeightSliders'
@@ -8,9 +8,16 @@ import WeightSliders from './WeightSliders'
 export const money = (v: number) => `$${v.toFixed(2)}`
 export const whole = (v: number) => Math.round(v).toLocaleString('en-US')
 
+const IRREGULAR: Record<string, string> = { children: 'child', people: 'person', adults: 'adult', patients: 'patient' }
+const QUALIFIERS = new Set(['under', 'over', 'aged', 'with', 'without'])
+
+/** 'renter households' -> 'renter household', 'children under 18' -> 'child under 18' (same rule as critic.singular). */
 export function singular(label: string): string {
-  if (label.endsWith('children')) return `${label.slice(0, -'children'.length)}child`
-  return label.endsWith('s') && !label.endsWith('ss') ? label.slice(0, -1) : label
+  const words = label.split(' ')
+  const i = words.findIndex((_, k) => k === words.length - 1 || QUALIFIERS.has(words[k + 1]) || /^\d/.test(words[k + 1]))
+  const w = words[i]
+  words[i] = IRREGULAR[w] ?? (w.endsWith('s') && !w.endsWith('ss') && w.length > 3 ? w.slice(0, -1) : w)
+  return words.join(' ')
 }
 
 const isPatients = (label?: string) => !label || label === 'patients'
@@ -262,6 +269,8 @@ export function SiteFlyer({ report, rec, featureLabels, onSelect }: FlyerProps) 
         </>
       )}
 
+      {rec.inspection && <Inspection insp={rec.inspection} />}
+      {rec.community && <Community need={rec.community} />}
       <Aerial key={s.id} rec={rec} />
       <TourDetails key={`t-${s.id}`} id={s.matterport_id ?? null} />
       {checks.listing_type != null && (
@@ -352,5 +361,98 @@ function TourDetails({ id }: { id: string | null }) {
       {scan.areaSqft ? `, ${scan.areaSqft.toLocaleString('en-US')} sq ft scanned` : ''}
       {scan.rooms ? `, ${scan.rooms} rooms` : ''} (Matterport)
     </p>
+  )
+}
+
+const pct = (v: number | null | undefined) => (v == null ? 'n/a' : `${Math.round(v * 100)}%`)
+
+const CHECKS: [string, string][] = [
+  ['listing', 'CoStar listing'],
+  ['aerial', 'Vexcel aerial'],
+  ['3d', 'Matterport 3D scan'],
+]
+
+/** What the site-inspector checked: listing, aerial and 3D scan, with the numbers each layer gave. */
+function Inspection({ insp }: { insp: SiteInspection }) {
+  const done = new Set(insp.checked ?? [])
+  const why = (key: string) => (insp.unavailable ?? []).find((u) => u.startsWith(`${key}:`))?.split(': ').slice(1).join(': ')
+  const occ = insp.occupancy ?? null
+  return (
+    <section className="inspect" aria-label="Site inspection">
+      <h3>Inspected from above and inside</h3>
+      <ul className="checks">
+        {CHECKS.map(([key, label]) => (
+          <li key={key} data-done={done.has(key)}>
+            <span className="tick" aria-hidden="true">{done.has(key) ? <Icon name="check" size={14} /> : null}</span>
+            <span>
+              {label}
+              {!done.has(key) && <small>{why(key) ?? 'not checked for this space'}</small>}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {insp.parked_cars != null && (
+        <div className="meter-row">
+          <div className="meter-head">
+            <span>Parking at the time of the aerial</span>
+            <b>
+              {insp.parked_cars} cars{insp.listed_parking ? ` / ${insp.listed_parking} spaces` : ''}
+            </b>
+          </div>
+          {occ != null && (
+            <div className="occ" data-tight={occ >= 0.85} aria-hidden="true">
+              <span style={{ width: `${Math.min(100, occ * 100)}%` }} />
+            </div>
+          )}
+          <p className="srcline">
+            Vexcel parked-car detection within {insp.radius_m} m{occ != null ? `, ${pct(occ)} full` : ''}; listed spaces from CoStar.
+          </p>
+        </div>
+      )}
+      {(insp.scan_area_sqft != null || insp.scan_rooms != null) && (
+        <p className="srcline" style={{ marginTop: 8 }}>
+          3D scan{insp.scan_name ? ` "${insp.scan_name}"` : ''}:{' '}
+          <b>
+            {[insp.scan_area_sqft != null ? `${insp.scan_area_sqft.toLocaleString('en-US')} sq ft indoors` : null, insp.scan_floors ? `${insp.scan_floors} floors` : null, insp.scan_rooms ? `${insp.scan_rooms} rooms` : null]
+              .filter(Boolean)
+              .join(', ')}
+          </b>{' '}
+          (Matterport)
+        </p>
+      )}
+    </section>
+  )
+}
+
+/** Who lives within the catchment, from Census data: the community-need lens. */
+function Community({ need }: { need: CommunityNeed }) {
+  const rows: [string, number | null | undefined][] = [
+    ['Households without a car', need.no_car_share],
+    ['Households in lower-income tracts', need.lower_income_share],
+    ['Renter households', need.renter_share],
+    ['Residents with Medicaid', need.medicaid_share],
+  ]
+  return (
+    <section className="community" aria-label="Who lives within reach">
+      <h3>Who lives within {Math.round(need.minutes)} minutes</h3>
+      <dl className="shares">
+        {rows
+          .filter(([, v]) => v != null)
+          .map(([label, v]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>
+                <span className="sharebar" aria-hidden="true">
+                  <span style={{ width: `${Math.min(100, (v ?? 0) * 100)}%` }} />
+                </span>
+                <b>{pct(v)}</b>
+              </dd>
+            </div>
+          ))}
+      </dl>
+      <p className="srcline">
+        {need.households != null ? `${need.households.toLocaleString('en-US')} households` : 'Households'} in reach. Census ACS 2024; lower-income means a tract median under 80% of the region's.
+      </p>
+    </section>
   )
 }

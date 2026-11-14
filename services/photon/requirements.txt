@@ -1,0 +1,3 @@
+# Siteline on iMessage (Photon 2.0). Install next to services/agent/requirements.txt.
+photonhq-api==0.5.0
+python-dotenv>=1.0

@@ -16,6 +16,7 @@ import numpy as np
 from pydantic import BaseModel, TypeAdapter
 
 from contracts.models import (
+    CommunityNeed,
     DatasetPreview,
     FeatureValue,
     HuffRequest,
@@ -53,6 +54,7 @@ class GeoClient(Protocol):
     async def rank(self, request: RankRequest) -> list[RankedSite]: ...
     async def sensitivity(self, request: SensitivityRequest) -> list[SensitivityResult]: ...
     async def feature_value(self, feature_id: str, h3: str, region_id: str = "hou") -> FeatureValue: ...
+    async def community(self, lat: float, lon: float, minutes: float) -> CommunityNeed | None: ...
     async def preview(self, request: PreviewRequest) -> DatasetPreview: ...
     async def ingest(self, request: IngestRequest) -> ValidationReport: ...
 
@@ -91,6 +93,9 @@ class GridGeo:
         self._check_region(request.region_id)
         return geomath.sensitivity(self.grid, pack_for(request.profile), request.profile, request.spec,
                                    request.candidates, request.draws, request.kappa, request.demand)
+
+    async def community(self, lat: float, lon: float, minutes: float) -> CommunityNeed | None:
+        return geomath.community_need(self.grid, lat, lon, minutes)
 
     async def feature_value(self, feature_id: str, h3: str, region_id: str = "hou") -> FeatureValue:
         self._check_region(region_id)
@@ -198,6 +203,9 @@ class HttpGeo:
 
     async def sensitivity(self, request: SensitivityRequest) -> list[SensitivityResult]:
         return TypeAdapter(list[SensitivityResult]).validate_python(await self._post("/sensitivity", request))
+
+    async def community(self, lat: float, lon: float, minutes: float) -> CommunityNeed | None:
+        return None  # geo-service has no community endpoint yet
 
     async def feature_value(self, feature_id: str, h3: str, region_id: str = "hou") -> FeatureValue:
         resp = await self.client.get(f"/features/{feature_id}/value", params={"h3": h3, "region_id": region_id})

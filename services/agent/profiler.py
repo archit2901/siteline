@@ -73,9 +73,13 @@ def validate(draft: ProfileDraft) -> tuple[DemandModel, list[str], list[str]]:
     if len(tags) < len(draft.competitor_osm_tags):
         notes.append("ignored malformed OpenStreetMap tags")
     uses = [u for u in draft.space_uses if u in SPACE_USES] or list(DEFAULT.space_uses)
+    segments = segments or list(DEFAULT.segments)
+    core = max(segments, key=lambda s: s.weight)
     model = DemandModel(
-        segments=segments or list(DEFAULT.segments),
-        demand_label=(draft.demand_label or DEFAULT.demand_label).strip()[:40],
+        segments=segments,
+        # reach is counted in the core segment only (geomath.primary_segment), so the label names that group
+        demand_label=DEMAND_COLUMNS.get(core.feature_id, core.label)[:40] if len(segments) > 1 or not draft.demand_label
+        else draft.demand_label.strip()[:40],
         competitor_label=(draft.competitor_label or "competitors").strip()[:60],
         space_uses=uses, rationale=draft.rationale[:300],
         trip=draft.trip if draft.trip in ("neighborhood", "local", "destination") else "local",  # type: ignore[arg-type]

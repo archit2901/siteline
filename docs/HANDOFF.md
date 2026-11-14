@@ -294,18 +294,25 @@ dentist demo. Never cut: factor list on screen, one live-found dataset, Huff net
 - README states which parts were written with Claude Code.
 
 ## 12. Two-minute demo
-0:00 the problem: generic location tools treat "retail" or "healthcare" as one category, but a laundromat, a tutoring
-center and an orthopedic group share no customers or competitors; Dr. Deshmukh's quote · 0:15 live laundromat run:
-the profiler picks renter households, a scout pulls competing laundromats from OpenStreetMap, approval · 0:45 switch
-to the orthopedic group's golden run (Dr. Deshmukh's practice: a scout finds CDC PLACES arthritis; different factors,
-different map) · 1:05 real CoStar top 10: customers won, rent per customer, floor, parking, Matterport link, cited
-reasons; click a site: its flyer, catchment ring and sourced claims · 1:35 Dr. Deshmukh's reaction · 1:50 vision: every US
-metro. Per judge: CoStar → ranked spaces, flyer and Matterport tour; Peri → Dr. Deshmukh's practice (SOS) as the
-customer story; LangChain → the Trace button opens the run's LangSmith trace (parallel scouts); Amazon → every step
-runs on Nova through Bedrock, and the run meter shows model calls, tokens and cost (no AWS keys in code). Safety net:
-Recorded run replays a saved live run with the same approvals; Offline demo needs no server.
-(Nov 14: no EC2 — the hackathon AWS account allows Bedrock only, so the demo runs on a laptop; Jacksonville is not
-built; weight sliders are later — add "drag a weight slider" back at 1:05 if they ship.)
+Run the laptop with agent-api (`make run-agent`, AGENT_BACKEND=local) and the web app; open the LangSmith project in a
+second tab. Recorded runs replay with the same approvals if the network or Bedrock fails; Offline demo needs no server.
+
+| Time | On screen | Say |
+|---|---|---|
+| 0:00 | Start screen | Generic tools treat "retail" or "healthcare" as one category; a laundromat and an orthopedic group share no customers or competitors. Dr. Deshmukh's quote. |
+| 0:15 | Live agent: type "A laundromat for apartment renters without in-unit washers" in the chat | Any business, in your own words; it asks only for what's missing. |
+| 0:25 | The run line fills; a scout branch pulls laundromats from OpenStreetMap | The profiler chose renter households and a neighborhood trip; scouts find data our stock layer lacks. |
+| 0:40 | Approve the data plan, then the weights (reasons under each factor) | Nothing is downloaded or scored without your approval; the weights are tailored to this business. |
+| 0:55 | Results: ranked CoStar spaces, map with the catchment ring, "Stays top 10" column | Real spaces for lease, renter households won after competitors, rent per household won; every number verified. The top spaces hold no matter how you weigh the factors: 200 alternative weightings, still top 10. |
+| 1:10 | Click a row: the flyer (sources, 3D tour); Ask tab: "Which has the most parking?" | Answers come only from the verified report. |
+| 1:25 | Recorded run: Orthopedic group | Dr. Deshmukh's practice: a scout finds CDC PLACES arthritis; different factors, different map, patients instead of households. |
+| 1:40 | Trace button (LangSmith), run meter | Every step runs on Amazon Nova through Bedrock; the meter shows calls and cost; the trace shows the parallel scouts. |
+| 1:50 | | Next: every US metro. |
+
+Per judge: CoStar → ranked spaces, flyer, Matterport tour; Peri → Dr. Deshmukh's practice (SOS) as the customer story;
+LangChain → the LangSmith trace (run the server with AGENT_MODE=planned to show the deepagents/LangGraph planner);
+Amazon → Nova on Bedrock, run meter, no AWS keys in code. (Nov 14: no EC2 — the hackathon AWS account allows Bedrock
+only; Jacksonville is not built.)
 
 ## 13. Open questions
 - Which Nova model is the strongest available on the account (for MODEL_SMART)?
