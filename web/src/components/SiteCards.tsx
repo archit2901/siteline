@@ -8,9 +8,16 @@ import WeightSliders from './WeightSliders'
 export const money = (v: number) => `$${v.toFixed(2)}`
 export const whole = (v: number) => Math.round(v).toLocaleString('en-US')
 
+const IRREGULAR: Record<string, string> = { children: 'child', people: 'person', adults: 'adult', patients: 'patient' }
+const QUALIFIERS = new Set(['under', 'over', 'aged', 'with', 'without'])
+
+/** 'renter households' -> 'renter household', 'children under 18' -> 'child under 18' (same rule as critic.singular). */
 export function singular(label: string): string {
-  if (label.endsWith('children')) return `${label.slice(0, -'children'.length)}child`
-  return label.endsWith('s') && !label.endsWith('ss') ? label.slice(0, -1) : label
+  const words = label.split(' ')
+  const i = words.findIndex((_, k) => k === words.length - 1 || QUALIFIERS.has(words[k + 1]) || /^\d/.test(words[k + 1]))
+  const w = words[i]
+  words[i] = IRREGULAR[w] ?? (w.endsWith('s') && !w.endsWith('ss') && w.length > 3 ? w.slice(0, -1) : w)
+  return words.join(' ')
 }
 
 const isPatients = (label?: string) => !label || label === 'patients'

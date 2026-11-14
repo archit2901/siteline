@@ -13,6 +13,7 @@ import numpy as np
 from contracts.models import (
     Constraints,
     DemandModel,
+    DemandSegment,
     HuffResult,
     PracticeProfile,
     RankedSite,
@@ -30,6 +31,11 @@ SPEED_KMH = 56.33  # 35 mph
 MIN_MINUTES = 2.0
 MAX_MINUTES = 30.0  # Huff catchment: competitors, offices and the new site only reach cells within 30 minutes
 TRIP_MINUTES = {"neighborhood": 10.0, "local": 20.0, "destination": 30.0}
+# Businesses scored from a DemandModel use OpenStreetMap competitors, which miss many real ones, so their Huff model
+# adds an "other options" alternative (stores we can't see, online, not going at all) that is as attractive as a
+# store a quarter of the trip time away, so half the people that far out already choose something else. Without it,
+# every household in reach with no mapped competitor counts as captured.
+OUTSIDE_OPTION_FRACTION = 0.25
 TOP_K = 10  # stability = share of draws in which a site stays in the top 10
 BAND_COLUMNS = {"0-17": "pop_u18", "18-44": "pop_18_44", "45-64": "pop_45_64", "65+": "pop_65p"}
 # Payer -> share of residents with that coverage (ACS). CHIP is counted inside Medicaid; workers' comp has no
@@ -133,6 +139,12 @@ def payer_share(grid: Grid, profile: PracticeProfile) -> np.ndarray:
     return np.minimum(1.0, share)
 
 
+def primary_segment(model: DemandModel) -> DemandSegment | None:
+    """The core customer group (highest weight, first on ties): reach is counted in its units, never in a mix."""
+    usable = [s for s in model.segments if s.feature_id in DEMAND_COLUMNS]
+    return max(usable, key=lambda s: s.weight) if usable else None
+
+
 def demand(grid: Grid, pack: StockPack, profile: PracticeProfile, model: DemandModel | None = None) -> np.ndarray:
     """D_i = π_i · Σ_a P_ia · r_a over the pack's demand bands (r_a = 1.0 if missing), or, with a DemandModel,
     Σ_s w_s · count_is over its customer segments (π only when the practice lists accepted payers)."""
@@ -217,11 +229,16 @@ def _reach(grid: Grid, lat: float, lon: float, attractiveness: float, beta: floa
 def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, candidates: list[SiteCandidate],
          competitor_feature: str | None, model: DemandModel | None = None) -> list[HuffResult]:
     """Captured, cannibalized and net-new customers per candidate (docs/DESIGN.md Huff + net-new)."""
-    d = demand(grid, pack, profile, model)
+    core = primary_segment(model) if model is not None else None
+    # Reach counts one kind of person (the core segment) so the number has a single unit and label.
+    d = demand(grid, pack, profile, model.model_copy(update={"segments": [core.model_copy(update={"weight": 1.0})]})
+               if model is not None and core is not None else model)
     column = competitor_feature or (model.competitor_feature if model else None)
     column = column if column is None or column in grid.columns else None
     reach = TRIP_MINUTES[model.trip] if model is not None else MAX_MINUTES
     competitors = competitor_attraction(grid, competitor_column(pack, column), spec.beta, reach)
+    if model is not None:  # see OUTSIDE_OPTION_FRACTION; healthcare packs keep the CMS-competitor model unchanged
+        competitors = competitors + (reach * OUTSIDE_OPTION_FRACTION) ** -spec.beta
     offices = [o for o in profile.existing_offices if o.lat is not None and o.lon is not None]
     office_attr = sum((_reach(grid, o.lat, o.lon, max(1, o.clinicians), spec.beta, reach) for o in offices),  # type: ignore[arg-type]
                       np.zeros(len(grid)))

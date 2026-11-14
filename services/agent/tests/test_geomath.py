@@ -103,3 +103,41 @@ def test_packs_without_competitor_data_are_flagged() -> None:
     assert geomath.competitor_column(load_pack("healthcare.orthopedics"), None) == "n_orthopedics"
     assert geomath.competitor_column(load_pack("healthcare.pediatric_dentistry"), None) is None
     assert geomath.competitor_column(load_pack("healthcare.pediatric_dentistry"), "peds_dentists") == "peds_dentists"
+
+
+def test_reach_counts_core_segment_and_decays_with_distance() -> None:
+    """General businesses: reach is in the core segment's units, and far cells mostly choose other options."""
+    from contracts.models import DemandModel, DemandSegment
+
+    grid = small_grid()
+    pack = load_pack("general.base")
+    profile = PracticeProfile(name="Tutor", business_type="tutoring center")
+    kids = DemandModel(segments=[DemandSegment(feature_id="pop_u18", label="children under 18", weight=1.0)],
+                       demand_label="children under 18", space_uses=["Retail"], trip="local")
+    mixed = kids.model_copy(update={"segments": [*kids.segments, DemandSegment(feature_id="pop_18_44", label="adults", weight=0.7)]})
+    sites = [site("a", *CENTER)]
+    only_kids = geomath.huff(grid, pack, profile, SPEC, sites, None, kids)[0].net_new_patients
+    with_adults = geomath.huff(grid, pack, profile, SPEC, sites, None, mixed)[0].net_new_patients
+    assert only_kids == with_adults  # secondary segments never inflate the headline count
+
+    in_reach = geomath.travel_minutes(grid.lat, grid.lon, *CENTER) <= geomath.TRIP_MINUTES["local"]
+    everyone = float(grid.columns["pop_u18"][in_reach].sum())
+    assert 0 < only_kids < 0.6 * everyone  # no mapped competitors, yet far fewer than everyone in reach
+
+
+def test_healthcare_huff_has_no_outside_option() -> None:
+    grid, pack = small_grid(), load_pack("healthcare.orthopedics")
+    sites = [site("a", *CENTER)]
+    net = geomath.huff(grid, pack, PROFILE, SPEC, sites, None)[0].net_new_patients
+    in_reach = geomath.travel_minutes(grid.lat, grid.lon, *CENTER) <= geomath.MAX_MINUTES
+    expected = float(geomath.demand(grid, pack, PROFILE)[in_reach].sum())
+    assert net == round(expected)  # no competitors and no outside option: every patient in reach (unchanged model)
+
+
+def test_singular_handles_qualified_labels() -> None:
+    from services.agent.critic import singular
+
+    assert singular("children under 18") == "child under 18"
+    assert singular("adults 18-44") == "adult 18-44"
+    assert singular("renter households") == "renter household"
+    assert singular("patients") == "patient"

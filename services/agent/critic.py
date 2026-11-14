@@ -74,11 +74,24 @@ def _fmt(value: float, unit: str, feature_id: str = "") -> str:
     return f"{value:,.0f}"
 
 
+IRREGULAR = {"children": "child", "people": "person", "adults": "adult", "patients": "patient"}
+
+
+def _singular_word(word: str) -> str:
+    if word in IRREGULAR:
+        return IRREGULAR[word]
+    return word[:-1] if word.endswith("s") and not word.endswith("ss") and len(word) > 3 else word
+
+
 def singular(label: str) -> str:
-    """'renter households' -> 'renter household', 'children' -> 'child' (labels are short plural nouns)."""
-    if label.endswith("children"):
-        return label[: -len("children")] + "child"
-    return label[:-1] if label.endswith("s") and not label.endswith("ss") else label
+    """'renter households' -> 'renter household', 'children under 18' -> 'child under 18', 'adults 18-44' ->
+    'adult 18-44': the plural noun is the last word before any qualifier (under, over, 18-44, aged ...)."""
+    words = label.split()
+    for i, w in enumerate(words):
+        if i + 1 == len(words) or words[i + 1] in ("under", "over", "aged", "with", "without") or words[i + 1][:1].isdigit():
+            words[i] = _singular_word(w)
+            break
+    return " ".join(words)
 
 
 def rent_per_customer(site: SiteCandidate, ranked: RankedSite) -> float | None:
