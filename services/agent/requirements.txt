@@ -1,0 +1,8 @@
+# agent-api runtime. LLM libraries (deepagents, langgraph, langchain-google-genai, langsmith) are added in P0
+# after checking the installed deepagents version.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sse-starlette>=2.1
+httpx>=0.27
+pydantic>=2.7
+pyyaml>=6.0
