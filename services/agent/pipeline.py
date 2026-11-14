@@ -42,7 +42,7 @@ from services.agent.tools.ingest import overpass_url
 from services.agent.tools.packs import pack_for
 from services.agent.tools.profile import load_profile
 from services.agent.tools.sites_client import MockSites
-from services.agent.tools.weights import weights_from_priorities
+from services.agent.tools.weights import advise_weights, scorable
 
 S = "site-strategist"
 P = "business-profiler"
@@ -51,7 +51,7 @@ STEPS = [
     "Reason about what makes a location succeed",
     "Find data for uncovered factors",
     "Approve the data plan",
-    "Approve weights and score Houston",
+    "Weigh what matters most for this business",
     "Find real spaces in the top zones",
     "Rank sites by new customers won",
     "Write and verify the report",
@@ -216,7 +216,14 @@ async def run_pipeline(run: Run) -> None:
 
     # 5. weights approval, then score
     await run.emit(S, "todo", todos(4))
-    spec = weights_from_priorities(factors)
+    await run.emit("market-modeler", "tool_call", {"tool": "advise_weights", "args": {"factors": len(scorable(factors))}})
+    spec, weight_notes = await advise_weights(profile, factors, meter)
+    labels = {f.feature_id: f.factor for f in factors if f.feature_id}
+    top = sorted(spec.weights.items(), key=lambda kv: -kv[1])[:3]
+    await run.emit("market-modeler", "tool_result", {
+        "tool": "advise_weights", "ok": not weight_notes, "usage": meter.snapshot(),
+        "summary": "Weighted for this business, most important first: " + ", ".join(labels.get(k, k) for k, _ in top)
+                   + ". " + " ".join(weight_notes)})
     answer = await run.request_approval(ApprovalRequest(approval_id=f"{run.run_id}-weights", kind="weights",
                                                         factors=factors, spec=spec))
     if answer.decision == "edit" and answer.edited_spec:

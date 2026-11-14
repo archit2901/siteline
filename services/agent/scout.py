@@ -31,8 +31,9 @@ QUERY_PROMPT = (
 CHOICE_PROMPT = (
     "Choose the single dataset that best measures the factor across " + REGION + ", or none. Reject datasets for "
     "other cities or states, aggregate-only statistics without geography, and anything unrelated. Accept nationwide "
-    "or Texas datasets that cover Houston. Among equally good results prefer the most recently updated release. "
-    "Use only the listed results."
+    "or Texas datasets that cover Houston. Results from (catalog) are curated, verified Houston datasets that we know "
+    "we can map: when one measures the factor, choose it over open-search results. Among equally good results prefer "
+    "the most recently updated release. Use only the listed results."
 )
 
 
@@ -56,7 +57,9 @@ SPEC_PROMPT = (
     "choose: for tract/county tables the numeric value_column that measures the factor (agg mean for rates or "
     "percentages, sum for counts); for point datasets value_column null and agg count_within (how many nearby) or "
     "distance_to_nearest (how far to the closest). Optionally a filter_column/filter_values to keep only relevant "
-    "rows (exact values seen in the sample). label: short plain-language name; unit: %, km, count, share, USD..."
+    "rows (exact values seen in the sample), but only on a category column shared by many rows (type, category, "
+    "grade range, status). Never filter on a name, id, address or phone column, and when unsure use no filter. "
+    "label: short plain-language name; unit: %, km, count, share, USD..."
 )
 
 
@@ -76,6 +79,18 @@ class ScoutResult:
     spec: FeatureSpec | None = None
 
 
+IDENTIFIER = re.compile(r"(name|^id$|_id$|objectid|^fid$|address|street|phone|fax|email|web|url|number|^npi$)", re.I)
+
+
+def _identifier_filter(column: str, values: list[str], sample: list[dict[str, Any]]) -> bool:
+    """True when a model-chosen filter would keep only a few named rows (e.g. one school by its name) instead of a
+    category: the column looks like an identifier, or every sampled value is distinct and the filter picks from them."""
+    if IDENTIFIER.search(column):
+        return True
+    seen = [str(r.get(column)) for r in sample if r.get(column) not in (None, "")]
+    return len(seen) >= 3 and len(set(seen)) == len(seen) and len(values) <= 2
+
+
 def build_spec(factor: Factor, candidate: DatasetCandidate, preview: DatasetPreview, draft: SpecDraft,
                run_tag: str = "") -> FeatureSpec | None:
     """A FeatureSpec only if every field the model chose exists in the previewed data."""
@@ -91,7 +106,8 @@ def build_spec(factor: Factor, candidate: DatasetCandidate, preview: DatasetPrev
         if value is None:
             return None
         agg = draft.agg if draft.agg in ("mean", "sum") else "mean"
-    keep_filter = draft.filter_column in columns and bool(draft.filter_values)
+    keep_filter = draft.filter_column in columns and bool(draft.filter_values) and \
+        not _identifier_filter(draft.filter_column or "", draft.filter_values, preview.sample_rows)
     # The run tag keeps concurrent runs from overwriting each other's ingested columns in the shared grid.
     fid = "found_" + re.sub(r"[^a-z0-9_]+", "_", factor.id.lower())[:40] + (f"_{run_tag}" if run_tag else "")
     unit = draft.unit or ("km" if agg == "distance_to_nearest" else "count" if level == "point" else "")
