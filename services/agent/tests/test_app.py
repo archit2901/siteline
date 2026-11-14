@@ -1,4 +1,6 @@
+import asyncio
 import json
+from pathlib import Path
 
 import httpx
 import pytest
@@ -68,10 +70,33 @@ async def test_late_subscriber_gets_full_history() -> None:
 
 
 @pytest.mark.asyncio
-async def test_live_mode_is_not_implemented_yet() -> None:
+async def test_live_run_streams_and_waits_for_approval(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from contracts.models import ApprovalRequest
+    from services.agent import app as app_module
+
+    monkeypatch.setenv("RUNS_DIR", str(tmp_path))
+    monkeypatch.setattr(store, "_db", None)
+
+    async def fake_pipeline(run) -> None:  # type: ignore[no-untyped-def]
+        await run.emit("site-strategist", "todo", {"todos": []})
+        answer = await run.request_approval(ApprovalRequest(approval_id="a1", kind="weights"))
+        await run.emit("site-strategist", "done", {"report": "report.json", "decision": answer.decision})
+
+    monkeypatch.setattr(app_module, "run_pipeline", fake_pipeline)
     async with client() as c:
-        resp = await c.post("/runs", json=replay_body(mode="live"))
-    assert resp.status_code == 501
+        run_id = (await c.post("/runs", json=replay_body(mode="live"))).json()["run_id"]
+        run = store.get(run_id)
+        while run.pending_approval is None:
+            await asyncio.sleep(0.01)
+        wrong = await c.post(f"/runs/{run_id}/approve", json={"approval_id": "nope", "decision": "approve"})
+        ok = await c.post(f"/runs/{run_id}/approve", json={"approval_id": "a1", "decision": "approve"})
+        events = await read_sse(c, run_id)
+        early = await c.post(f"/runs/{run_id}/rescore", json={"spec": {"weights": {"x": 1}}})
+    assert wrong.status_code == 409 and ok.status_code == 200
+    assert [e.type for e in events] == ["todo", "approval", "done"]
+    assert events[-1].payload["decision"] == "approve"
+    assert (tmp_path / run_id / "events.jsonl").read_text().count("\n") == 3
+    assert early.status_code == 409  # nothing scored yet
 
 
 @pytest.mark.asyncio

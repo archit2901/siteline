@@ -1,19 +1,23 @@
-"""Run store and replay.
+"""Run store: live runs (pipeline) and replays, SSE fan-out, approvals, artifacts, runs/runs.db.
 
-Setup milestone: runs live in memory and only replay mode exists. A replay run streams a recorded JSONL file
-(fixtures/events.jsonl or fixtures/golden/<name>.jsonl) with the original gaps capped at REPLAY_MAX_GAP_SECONDS.
+Replay streams a recorded JSONL file (fixtures/events.jsonl or fixtures/golden/<name>.jsonl) with gaps capped at
+REPLAY_MAX_GAP_SECONDS. A live run appends every event to runs/<run_id>/events.jsonl and pauses at approvals until
+POST /runs/{id}/approve (or DEMO_AUTO_APPROVE_SECONDS) answers them.
 """
 
 import asyncio
 import os
 import re
+import sqlite3
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
-from contracts.models import RunCreate, RunEvent
+from contracts.models import ApprovalRequest, ApproveRequest, EventType, RunCreate, RunEvent
+from services.agent.llm import runs_dir
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "fixtures"
@@ -24,6 +28,10 @@ ARTIFACTS = {"factors.json", "zones.json", "sites.json", "ranked.json", "report.
 
 def max_gap_seconds() -> float:
     return float(os.environ.get("REPLAY_MAX_GAP_SECONDS", "1.5"))
+
+
+def auto_approve_seconds() -> float:
+    return float(os.environ.get("DEMO_AUTO_APPROVE_SECONDS", "0") or 0)
 
 
 class RunNotFound(Exception):
@@ -38,21 +46,35 @@ class BadRequest(Exception):
 class Run:
     run_id: str
     request: RunCreate
-    source: Path  # events JSONL being replayed
     artifacts_dir: Path
+    source: Path | None = None  # replay: events JSONL being replayed
+    live: bool = False
     events: list[RunEvent] = field(default_factory=list)
     finished: bool = False
+    status: str = "running"
     changed: asyncio.Condition = field(default_factory=asyncio.Condition)
     task: asyncio.Task[None] | None = None
+    pending_approval: ApprovalRequest | None = None
+    _answer: asyncio.Future[ApproveRequest] | None = None
+    state: dict[str, Any] = field(default_factory=dict)  # pipeline results kept for /rescore
 
     async def publish(self, event: RunEvent) -> None:
         async with self.changed:
             self.events.append(event)
             self.changed.notify_all()
+        if self.live:
+            with (self.artifacts_dir / "events.jsonl").open("a") as f:
+                f.write(event.model_dump_json() + "\n")
 
-    async def finish(self) -> None:
+    async def emit(self, agent: str, type_: EventType, payload: dict[str, Any]) -> None:
+        seq = self.events[-1].seq + 1 if self.events else 0
+        await self.publish(RunEvent(run_id=self.run_id, seq=seq, ts=datetime.now(timezone.utc), agent=agent,
+                                    type=type_, payload=payload))
+
+    async def finish(self, status: str = "done") -> None:
         async with self.changed:
             self.finished = True
+            self.status = status
             self.changed.notify_all()
 
     async def subscribe(self) -> AsyncIterator[RunEvent]:
@@ -68,6 +90,37 @@ class Run:
             sent += len(pending)
             if done and sent == len(self.events):
                 return
+
+    def write_artifact(self, name: str, text: str) -> str:
+        if name not in ARTIFACTS:
+            raise ValueError(f"unknown artifact {name!r}")
+        (self.artifacts_dir / name).write_text(text)
+        return f"/{name}"
+
+    async def request_approval(self, request: ApprovalRequest) -> ApproveRequest:
+        """Emit an approval event and wait for the answer (auto-approve after DEMO_AUTO_APPROVE_SECONDS if set)."""
+        self.pending_approval = request
+        self._answer = asyncio.get_running_loop().create_future()
+        await self.emit("site-strategist", "approval", request.model_dump(mode="json"))
+        delay = auto_approve_seconds()
+        if delay > 0:
+            asyncio.get_running_loop().call_later(delay, self._auto_approve, request.approval_id)
+        try:
+            return await self._answer
+        finally:
+            self.pending_approval = None
+            self._answer = None
+
+    def _auto_approve(self, approval_id: str) -> None:
+        if self.pending_approval and self.pending_approval.approval_id == approval_id and self._answer and not self._answer.done():
+            self._answer.set_result(ApproveRequest(approval_id=approval_id, decision="approve", note="auto-approved"))
+
+    def answer(self, response: ApproveRequest) -> None:
+        if self.pending_approval is None or self._answer is None or self._answer.done():
+            raise BadRequest("this run is not waiting for an approval")
+        if response.approval_id != self.pending_approval.approval_id:
+            raise BadRequest(f"waiting for approval {self.pending_approval.approval_id!r}, got {response.approval_id!r}")
+        self._answer.set_result(response)
 
 
 def replay_source(golden: str | None) -> tuple[Path, Path]:
@@ -86,9 +139,40 @@ def load_events(path: Path) -> list[RunEvent]:
     return [RunEvent.model_validate_json(line) for line in path.read_text().splitlines() if line.strip()]
 
 
+class RunDB:
+    """runs/runs.db: one row per run (the same file holds llm_calls from llm.UsageMeter)."""
+
+    def __init__(self, path: Path | None = None) -> None:
+        self.path = path or runs_dir() / "runs.db"
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(self.path) as db:
+            db.execute("CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, created_at TEXT, mode TEXT, "
+                       "status TEXT, profile_json TEXT)")
+
+    def insert(self, run: Run) -> None:
+        with sqlite3.connect(self.path) as db:
+            db.execute("INSERT INTO runs VALUES (?, ?, ?, ?, ?)", (
+                run.run_id, datetime.now(timezone.utc).isoformat(), run.request.mode, run.status,
+                run.request.profile.model_dump_json()))
+
+    def set_status(self, run_id: str, status: str) -> None:
+        with sqlite3.connect(self.path) as db:
+            db.execute("UPDATE runs SET status = ? WHERE id = ?", (status, run_id))
+
+
+Pipeline = Callable[[Run], Awaitable[None]]
+
+
 class RunStore:
     def __init__(self) -> None:
         self._runs: dict[str, Run] = {}
+        self._db: RunDB | None = None
+
+    @property
+    def db(self) -> RunDB:
+        if self._db is None:
+            self._db = RunDB()
+        return self._db
 
     def get(self, run_id: str) -> Run:
         try:
@@ -103,9 +187,30 @@ class RunStore:
         run.task = asyncio.create_task(self._replay(run))
         return run
 
+    def start_live(self, request: RunCreate, pipeline: Pipeline) -> Run:
+        run_id = uuid.uuid4().hex[:12]
+        artifacts_dir = runs_dir() / run_id
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        run = Run(run_id=run_id, request=request, artifacts_dir=artifacts_dir, live=True)
+        self._runs[run_id] = run
+        self.db.insert(run)
+        run.task = asyncio.create_task(self._live(run, pipeline))
+        return run
+
+    async def _live(self, run: Run, pipeline: Pipeline) -> None:
+        status = "done"
+        try:
+            await pipeline(run)
+        except Exception as exc:  # the stream must end with an error event, never hang
+            status = "error"
+            await run.emit("site-strategist", "error", {"message": f"{type(exc).__name__}: {exc}", "recoverable": False})
+        finally:
+            await run.finish(status)
+            self.db.set_status(run.run_id, status)
+
     async def _replay(self, run: Run) -> None:
         try:
-            recorded = load_events(run.source)
+            recorded = load_events(run.source)  # type: ignore[arg-type]
             cap = max_gap_seconds()
             for prev, event in zip([None, *recorded], recorded):
                 if prev is not None:
@@ -113,12 +218,7 @@ class RunStore:
                     await asyncio.sleep(max(0.0, min(gap, cap)))
                 await run.publish(event.model_copy(update={"run_id": run.run_id}))
         except Exception as exc:  # surface replay failures to subscribers instead of hanging them
-            seq = run.events[-1].seq + 1 if run.events else 0
-            error = RunEvent(
-                run_id=run.run_id, seq=seq, ts=datetime.now(timezone.utc), agent="site-strategist", type="error",
-                payload={"message": f"replay failed: {exc}", "recoverable": False},
-            )
-            await run.publish(error)
+            await run.emit("site-strategist", "error", {"message": f"replay failed: {exc}", "recoverable": False})
         finally:
             await run.finish()
 

@@ -34,3 +34,13 @@ async def test_allowed_host_resolving_to_loopback_is_blocked(monkeypatch: pytest
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200))) as client:
         with pytest.raises(BlockedURL, match="non-public"):
             await safe_request(client, "HEAD", "https://data.cdc.gov/d/x")
+
+
+@pytest.mark.parametrize(("ip", "public"), [
+    ("8.8.8.8", True), ("10.0.0.1", False), ("100.64.0.1", False), ("169.254.169.254", False), ("127.0.0.1", False),
+    ("::ffff:169.254.169.254", False), ("2002:a9fe:a9fe::", False), ("64:ff9b::a9fe:a9fe", False), ("::1", False),
+])
+def test_public_ip_denies_by_default(ip: str, public: bool) -> None:
+    from services.agent.tools.allowlist import _public_ip
+
+    assert _public_ip(ip) is public

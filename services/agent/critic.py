@@ -1,0 +1,217 @@
+"""analyst-critic: top-10 report with claims built from Python templates; the model only chooses and orders them.
+
+Every number in a claim comes from a stored feature value, a model output or a site field, and verify_claims checks
+each one against its evidence_refs (2% relative or ±1 on integers; shares may be written as percents).
+"""
+
+import json
+import re
+from dataclasses import dataclass
+
+from langchain_core.messages import HumanMessage, SystemMessage
+from pydantic import BaseModel
+
+from contracts.models import (
+    Claim,
+    Factor,
+    PracticeProfile,
+    RankedSite,
+    Recommendation,
+    Report,
+    SiteCandidate,
+)
+from services.agent import llm
+from services.agent.tools import geomath
+from services.agent.tools.geo_client import GeoClient
+from services.agent.tools.packs import feature_catalog, pack_for, region_features
+
+TOP = 10
+MAX_CLAIMS = 5
+NUMBER = re.compile(r"[-+]?\$?\d[\d,]*(?:\.\d+)?%?")
+SELECT_PROMPT = (
+    "You are the analyst-critic for a healthcare practice choosing its next office. For each site, choose the 3 to 5 "
+    "claims that best explain why it fits THIS practice, most persuasive first. Choose only from the listed claim "
+    "keys; never write new text or numbers."
+)
+
+
+@dataclass(frozen=True)
+class Problem:
+    site_id: str
+    number: str
+    claim: str
+
+    def __str__(self) -> str:
+        return f"{self.site_id}: {self.number!r} in {self.claim!r}"
+
+
+@dataclass
+class ClaimOption:
+    key: str
+    text: str
+    refs: list[str]
+
+
+class SiteChoice(BaseModel):
+    site_id: str
+    keys: list[str]
+
+
+class Selection(BaseModel):
+    sites: list[SiteChoice]
+
+
+def _fmt(value: float, unit: str) -> str:
+    if unit == "share":
+        return f"{value * 100:.0f}%"
+    if unit == "USD":
+        return f"${value:,.0f}"
+    if unit == "%":
+        return f"{value:+.1f}%"
+    return f"{value:,.0f}"
+
+
+async def claim_options(site: SiteCandidate, ranked: RankedSite, factors: list[Factor], geo: GeoClient) -> list[ClaimOption]:
+    """Every claim the critic may use for one site, with text rendered from stored values."""
+    out = []
+    text = f"Estimated {ranked.net_new_patients:,.0f} net-new patients a year"
+    refs = [f"model:net_new@{site.id}"]
+    if ranked.cannibalized_patients >= 1:
+        text += f", after {ranked.cannibalized_patients:,.0f} shift over from your existing offices"
+        refs.append(f"model:cannibalized@{site.id}")
+    out.append(ClaimOption("net_new", text + ".", refs))
+
+    catalog = feature_catalog()
+    seen: set[str] = set()
+    for f in factors:
+        fid = f.feature_id
+        if not fid or fid.startswith("site:") or fid in seen or fid not in catalog or not site.h3:
+            continue
+        seen.add(fid)
+        value = (await geo.feature_value(fid, site.h3)).value
+        if value is None:
+            continue
+        meta = catalog[fid]
+        out.append(ClaimOption(f"feature:{fid}", f"{meta.label or f.factor} here: {_fmt(value, meta.unit)}.",
+                               [f"feature:{fid}@{site.h3}"]))
+
+    if site.sqft:
+        where = "on the ground floor" if site.floor == 1 else (f"on floor {site.floor}" if site.floor else "")
+        out.append(ClaimOption("size", f"{site.sqft:,} sq ft {where}".strip() + ".", [f"site:sqft@{site.id}"]))
+    if site.rent_psf:
+        out.append(ClaimOption("rent", f"Asking rent ${site.rent_psf:.2f} per sq ft per year.", [f"site:rent_psf@{site.id}"]))
+    if site.parking_spaces:
+        out.append(ClaimOption("parking", f"{site.parking_spaces:,} parking spaces at the building.",
+                               [f"site:parking_spaces@{site.id}"]))
+    if ranked.stability is not None:
+        out.append(ClaimOption("stability", f"Stays in the top 10 in {ranked.stability * 100:.0f}% of alternative weightings.",
+                               [f"model:stability@{site.id}"]))
+    return out
+
+
+async def resolve(ref: str, sites: dict[str, SiteCandidate], ranked: dict[str, RankedSite], geo: GeoClient) -> float | None:
+    """The stored value an evidence_ref points to."""
+    kind, _, rest = ref.partition(":")
+    name, _, target = rest.partition("@")
+    if kind == "feature":
+        return (await geo.feature_value(name, target)).value
+    if kind == "model" and target in ranked:
+        r = ranked[target]
+        return {"net_new": r.net_new_patients, "cannibalized": r.cannibalized_patients, "captured": r.captured_patients,
+                "stability": r.stability, "zone_score": r.zone_score, "final_score": r.final_score}.get(name)
+    if kind == "site" and target in sites:
+        value = getattr(sites[target], name, None)
+        return float(value) if isinstance(value, (int, float)) else None
+    return None
+
+
+def _matches(number: str, value: float) -> bool:
+    raw = number.replace("$", "").replace(",", "").replace("+", "")
+    percent = raw.endswith("%")
+    x = float(raw.rstrip("%"))
+    targets = [value, value * 100] if percent else [value]
+    return any(abs(x - t) <= max(1.0, 0.02 * abs(t)) for t in targets)
+
+
+async def verify_claims(report: Report, sites: dict[str, SiteCandidate], ranked: dict[str, RankedSite],
+                        geo: GeoClient) -> list[Problem]:
+    """Every number in every claim that does not match a value referenced by that claim."""
+    problems = []
+    for rec in report.recommendations:
+        for claim in rec.justification:
+            values = [v for v in [await resolve(r, sites, ranked, geo) for r in claim.evidence_refs] if v is not None]
+            for number in NUMBER.findall(claim.text):
+                if not any(_matches(number, v) for v in values):
+                    problems.append(Problem(rec.site.id, number, claim.text))
+    return problems
+
+
+async def build_report(run_id: str, profile: PracticeProfile, factors: list[Factor], sites: list[SiteCandidate],
+                       ranked: list[RankedSite], geo: GeoClient, meter: llm.UsageMeter | None,
+                       caveats: list[str], select: bool = True) -> tuple[Report, list[Problem]]:
+    """The verified top-10 report and any verification problems (claims that fail are dropped, never rewritten).
+
+    select=False skips the model and uses the default claim order (for /rescore, which must not call an LLM)."""
+    by_site = {s.id: s for s in sites}
+    by_rank = {r.site_id: r for r in ranked}
+    top = [r for r in ranked if r.excluded_reason is None][:TOP]
+    options = {r.site_id: await claim_options(by_site[r.site_id], r, factors, geo) for r in top}
+
+    listing = "\n\n".join(
+        f"SITE {sid} ({by_site[sid].address}):\n" + "\n".join(f"- {o.key}: {o.text}" for o in opts)
+        for sid, opts in options.items())
+    practice = f"{profile.name}, {profile.specialty}; factors: " + "; ".join(f.factor for f in factors)
+    chosen: dict[str, list[str]] = {}
+    try:
+        if not select:
+            raise LookupError("selection disabled")
+        selection = await llm.get_chat_model("critic", meter).with_structured_output(Selection).ainvoke(
+            [SystemMessage(SELECT_PROMPT), HumanMessage(f"PRACTICE: {practice}\n\n{listing}")])
+        if isinstance(selection, Selection):
+            chosen = {s.site_id: s.keys for s in selection.sites}
+    except Exception:  # selection is a nicety; fall back to the default order below
+        chosen = {}
+
+    no_competitors = geomath.competitor_column(pack_for(profile), None) is None
+    recs = []
+    for rank, r in enumerate(top, start=1):
+        opts = {o.key: o for o in options[r.site_id]}
+        keys = [k for k in chosen.get(r.site_id, []) if k in opts][:MAX_CLAIMS]
+        if "net_new" not in keys:
+            keys = ["net_new", *keys][:MAX_CLAIMS]
+        for k in opts:  # top up to at least 3 claims in default order
+            if len(keys) >= 3:
+                break
+            if k not in keys:
+                keys.append(k)
+        site = by_site[r.site_id]
+        site_caveats = []
+        if no_competitors:
+            site_caveats.append(geomath.NO_COMPETITOR_CAVEAT)
+        if site.available is None:
+            site_caveats.append("The listing does not say whether the space is available; treat it as a candidate building.")
+        recs.append(Recommendation(
+            rank=rank, site=site, net_new_patients=r.net_new_patients, zone_score=r.zone_score,
+            site_quality=r.site_quality, final_score=r.final_score, stability=r.stability,
+            justification=[Claim(text=opts[k].text, evidence_refs=opts[k].refs) for k in keys], caveats=site_caveats,
+        ))
+
+    provenance = {f.id: f.provenance_url for f in region_features()}
+    report = Report(
+        run_id=run_id, profile=profile, factors=factors, recommendations=recs, caveats=caveats,
+        sources={f.feature_id: provenance[f.feature_id] for f in factors if f.feature_id in provenance},
+        verified=False,
+    )
+    problems = await verify_claims(report, by_site, by_rank, geo)
+    if problems:  # drop failing claims instead of shipping an unverified number
+        bad = {p.claim for p in problems}
+        for rec in report.recommendations:
+            rec.justification = [c for c in rec.justification if c.text not in bad]
+        report.caveats.append(f"{len(problems)} claims were removed because their numbers did not match the data.")
+        problems = await verify_claims(report, by_site, by_rank, geo)
+    report.verified = not problems
+    return report, problems
+
+
+def report_json(report: Report) -> str:
+    return json.dumps(report.model_dump(mode="json"), indent=2)
