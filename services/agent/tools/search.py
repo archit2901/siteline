@@ -14,7 +14,7 @@ from itertools import zip_longest
 import httpx
 
 from services.agent import llm
-from services.agent.tools.allowlist import is_allowed
+from services.agent.tools.allowlist import BlockedURL, is_allowed, safe_request
 
 log = logging.getLogger(__name__)
 SOCRATA = "https://api.us.socrata.com/api/catalog/v1"
@@ -77,14 +77,15 @@ def parse_grounded_text(text: str) -> list[SearchHit]:
 
 
 async def reachable(url: str, client: httpx.AsyncClient) -> bool:
-    """HEAD (or a 1-byte ranged GET when HEAD is refused). Downloads nothing."""
+    """HEAD (or a 1-byte ranged GET when HEAD is refused). Downloads nothing. Every redirect hop must stay on the
+    allowlist and resolve to a public address (safe_request), so a listed site can't bounce us to an internal host."""
     try:
-        resp = await client.head(url, follow_redirects=True, timeout=10)
+        resp = await safe_request(client, "HEAD", url, timeout=10)
         if resp.status_code in (403, 405):
-            resp = await client.get(url, follow_redirects=True, timeout=10, headers={"Range": "bytes=0-0"})
+            resp = await safe_request(client, "GET", url, timeout=10, headers={"Range": "bytes=0-0"})
         log.info("HEAD %s status=%s", url, resp.status_code)
         return resp.status_code < 400
-    except httpx.HTTPError as exc:
+    except (httpx.HTTPError, BlockedURL, OSError) as exc:
         log.info("HEAD %s failed: %s", url, exc)
         return False
 
