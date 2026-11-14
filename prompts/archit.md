@@ -1,11 +1,16 @@
 # Archit — prompts to paste into Claude Code
 
+> **docs/HANDOFF.md section 7 is the current task list and overrides this file.** The blocks below are the detailed
+> specs those tasks point to, updated for Nova on Bedrock, `AGENT_BACKEND=mock|local|http` and
+> `AGENT_MODE=planned|scripted`.
+
 Start Claude Code in the repo root on branch `agent`. Paste one block at a time. After each block:
 `/milestone <name>` → commit → `/handoff` → post the note in team chat.
 Optional second session for infra/scripts: `git worktree add ../siteline-infra -b infra` and run Claude there.
 
-**Human tasks (not for Claude):** ask the organizers which Gemini model ids and rate limits come with the allotment
-and put them in `.env`; create the LangSmith project; at P3, the AWS console steps in infra/README.md.
+**Human tasks (not for Claude):** keep AWS credentials fresh in the default profile (Bedrock model access, budget
+alert at $50; check Billing → Credits for Bedrock eligibility); create the LangSmith project; at P3, the AWS console
+steps in infra/README.md.
 **Merging:** you merge to `main` in your own terminal (Claude can't push to main): geo → sites → agent → web,
 then `make e2e`, then `git tag pN && git push --tags`.
 
@@ -52,11 +57,12 @@ examples in docs/DESIGN.md, packs/ and evals/.
    orthopedics vs physical therapy).
 3. tools/profile.py (load_profile: validate; pick the pack from specialty → "healthcare.<specialty>", fall back to
    healthcare.base; geocode offices only when lat/lon are missing using the Census single-address geocoder) and
-   tools/geo.py (list_stock_features, score_grid) calling GEO_URL (geo serves fixtures until Parth's P0 lands).
-4. graph.py: build_agent(run_id) with the orchestrator and the factor-analyst subagent; Pro model for both via env.
+   tools/geo.py (list_stock_features, score_grid) calling GeoClient (AGENT_BACKEND=local on data/raw).
+4. graph.py: build_agent(run_id) with the orchestrator and the factor-analyst subagent; MODEL_SMART for both through
+   services/agent/llm.py. Support AGENT_MODE=planned and scripted.
 5. services/agent/evals/run_evals.py: for each evals/*.yaml run only the factor-analyst, validate list[Factor],
-   judge each must_include theme with GEMINI_FLASH_MODEL at temperature 0 (yes/no + matching factor id), check
-   sign_checks, print a table and an overall score.
+   judge each must_include theme with the "judge" role (MODEL_FAST, temperature 0; yes/no + matching factor id),
+   check sign_checks, print a table and an overall score.
 6. Iterate on the prompt until orthopedic_group and pediatric_dentist pass every theme and sign check.
 
 Show the eval table. Commit.
@@ -64,8 +70,8 @@ Show the eval table. Commit.
 
 ## P1 (→ Sat 2 pm): live run, stock data only
 ```
-I'm Archit. Milestone P1. Parth's geo-service /score and /rank should be live at GEO_URL; if not, keep using
-fixture mode and tell me.
+I'm Archit. Milestone P1. geo-service /score and /rank should be live at GEO_URL; if not, keep using
+AGENT_BACKEND=local (LocalGeo / LocalSites on data/raw) and tell me.
 
 1. tools/geo.py: score_grid (writes runs/{id}/zones.json), rank_sites (geo /rank; writes ranked.json);
    tools/weights.py weights_from_priorities (high 3, medium 2, low 1, normalized; directions from the factors).
@@ -90,15 +96,15 @@ Done when a live stock-data run streams end to end into Gaurav's UI. Run tests a
 ```
 I'm Archit. Milestone P2. Read catalog/houston.yaml and the ingest endpoints in services/geo/CLAUDE.md.
 
-1. tools/catalog.py catalog_search over Catalog; tools/search.py web_search (Gemini search grounding through
-   langchain-google-genai if available, otherwise Tavily) filtered to the allowlist in docs/DESIGN.md, returning
-   titles and URLs only.
+1. tools/catalog.py catalog_search over Catalog; tools/search.py web_search (Nova web grounding through
+   ChatBedrockConverse `bind_tools(["nova_grounding"])` if it works, otherwise Tavily) filtered to the allowlist in
+   docs/DESIGN.md, returning titles and URLs only.
 2. tools/geo.py preview_dataset (geo /features/profile) and register_features (geo /features/ingest per approved
    FeatureSpec; returns ValidationReports; updates each factor's status to found / proxy / dropped and emits factor events).
-3. dataset-scout subagent + prompts/dataset_scout.md (Flash): one per uncovered factor, all spawned in a single
+3. dataset-scout subagent + prompts/dataset_scout.md (MODEL_FAST): one per uncovered factor, all spawned in a single
    orchestrator step so they run in parallel; catalog first, then web search; preview before proposing; ≤3 tries,
    then a proxy, then drop with a caveat; writes /candidates/{factor_id}.json; never downloads anything itself.
-4. site-scout subagent (Flash): tools/sites.py search_sites (SITES_URL /sites/search with the top 15 zones and the
+4. site-scout subagent (MODEL_FAST): tools/sites.py search_sites (SITES_URL /sites/search with the top 15 zones and the
    profile constraints) and site_checks; replace the P1 pseudo-sites with real candidates.
 5. analyst-critic + prompts/critic.md + tools/verify.py verify_claims exactly as specified in services/agent/CLAUDE.md.
    Report.verified must be true before "done"; the critic rewrites up to 2 times, then drops unmatched claims with a caveat.
@@ -119,7 +125,9 @@ I'm Archit. Milestone P3.
 3. infra/: Caddyfile (serve the web production build at /, `handle_path /api/*` → agent:8000 with streaming-friendly
    proxying for SSE), docker-compose.prod.yml (web built statically, served by Caddy), ec2-bootstrap.sh (Ubuntu:
    install Docker + compose plugin, clone the repo, expect .env to be copied in, compose up -d), infra/README.md
-   with the manual AWS steps (t3.large, security group 22/80/443, Elastic IP, $50 budget alert) and the deploy commands.
+   with the manual AWS steps (t3.large, IAM instance role allowing Bedrock Converse and bedrock:InvokeTool for
+   nova_grounding — no AWS keys on the box, security group 22/80/443, Elastic IP, $50 budget alert) and the deploy
+   commands.
 4. scripts/cache_to_s3.sh: upload data/regions/*.duckdb and data/cache/ to an S3 bucket given as an argument.
 
 Show the deploy checklist. Commit.
