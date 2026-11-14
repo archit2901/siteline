@@ -20,6 +20,8 @@ def test_visibility_need() -> None:
     assert strategy.visibility_need(walkin)[0] == "high"
     said = PracticeProfile(name="x", business_type="bakery", free_text="[visibility] Q: Doesn't matter (referral or appointment only)")
     assert strategy.visibility_need(said)[0] == "low"
+    helps = walkin.model_copy(update={"free_text": "[visibility] How much does being seen from the road matter: Helps, not essential"})
+    assert strategy.visibility_need(helps)[0] == "medium"  # the owner's answer outranks the walk-in default
     assert strategy.visibility_fit("Office", "high") < strategy.visibility_fit("Retail", "high")
     assert strategy.visibility_fit("Industrial", "low") == 1.0
 

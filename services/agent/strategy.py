@@ -108,13 +108,13 @@ def visibility_need(profile: PracticeProfile) -> tuple[Need, str]:
         return "high", "you said walk-in customers need to see you from the road"
     if "doesn't matter" in said or "referral or appointment" in said:
         return "low", "you said customers come by referral or appointment"
+    if "helps" in said:  # the owner's own answer outranks what their service lines suggest
+        return "medium", "you said visibility helps but is not essential"
     lines = set(service_lines(profile))
     if "urgent_care" in lines:
         return "high", "walk-in care is decided in the moment, from the road"
     if lines & {"asc", "physical_therapy", "mri"} and not lines - {"asc", "physical_therapy", "mri", "xray"}:
         return "low", "surgery, therapy and imaging patients arrive by referral and appointment"
-    if "helps" in said:
-        return "medium", "you said visibility helps but is not essential"
     sector_text = _text(profile)
     if re.search(r"restaurant|cafe|coffee|retail|store|shop|laundromat|salon|barber|gym", sector_text):
         return "high", "this kind of business wins impulse and drive-by customers"
