@@ -1,4 +1,4 @@
-.PHONY: types fixtures dev test e2e run-agent run-geo run-sites run-web
+.PHONY: types fixtures dev test e2e run-agent run-geo run-sites run-web run-photon
 
 # Export JSON Schema from contracts and regenerate the web types.
 # If json2ts chokes on all.json, generate per-model files from contracts/schema/*.json instead.
@@ -22,6 +22,10 @@ run-sites:
 
 run-web:
 	cd web && npm run dev
+
+# Siteline on iMessage (Photon 2.0): needs PHOTON_API_KEY and PHOTON_PROJECT_ID in .env and run-agent running.
+run-photon:
+	PYTHONPATH=. python -m services.photon.agent
 
 dev:
 	docker compose up --build
