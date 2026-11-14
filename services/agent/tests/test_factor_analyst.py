@@ -52,10 +52,10 @@ def test_repair_enforces_real_feature_ids_status_and_limits() -> None:
         factor("made_up", "n_unicorns_within_5km"),
         factor("parking", "site:parking", priority="medium"),
         factor("competition", None, priority="low"),
-        *[factor(f"extra_{i}", None, priority="low") for i in range(12)],
+        *[factor(f"extra_{i}", None, priority="low") for i in range(factor_analyst.MAX_FACTORS)],
     ]
     fixed, notes = repair(drafts, ORTHO)
-    assert len(fixed) == 12
+    assert len(fixed) == factor_analyst.MAX_FACTORS
     by_id = {f.id: f for f in fixed}
     assert by_id["competition"].status == "covered" and by_id["competition"].direction == -1
     assert by_id["made_up"].feature_id is None and by_id["made_up"].status == "searching"
@@ -71,7 +71,7 @@ async def test_analyze_retries_once_after_a_parsing_error() -> None:
         {"parsed": None, "parsing_error": "bad json", "raw": AIMessage(content="")},
         {"parsed": good, "parsing_error": None, "raw": AIMessage(content="")},
     ])
-    factors, _ = await analyze(ORTHO, model=model)  # type: ignore[arg-type]
+    factors, _ = await analyze(ORTHO, model=model, think=False)  # type: ignore[arg-type]
     assert [f.id for f in factors] == ["aging"] and model.structured.calls == 2
 
 
@@ -79,12 +79,12 @@ async def test_analyze_retries_once_after_a_parsing_error() -> None:
 async def test_analyze_accepts_plain_json_text_and_gives_up_after_two_failures() -> None:
     text = 'Here you go: {"factors": [{"id": "a", "factor": "A", "why": "w", "proxy": "p", "direction": 1, "priority": "high"}]}'
     model = StubModel([{"parsed": None, "parsing_error": "no tool call", "raw": AIMessage(content=text)}])
-    factors, _ = await analyze(ORTHO, model=model)  # type: ignore[arg-type]
+    factors, _ = await analyze(ORTHO, model=model, think=False)  # type: ignore[arg-type]
     assert factors[0].id == "a" and factors[0].status == "searching"
 
     failing = StubModel([{"parsed": None, "parsing_error": "nope", "raw": AIMessage(content="")}] * 2)
     with pytest.raises(ValueError, match="no valid factors"):
-        await analyze(ORTHO, model=failing)  # type: ignore[arg-type]
+        await analyze(ORTHO, model=failing, think=False)  # type: ignore[arg-type]
 
 
 def test_planned_graph_builds_without_calling_aws(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -96,3 +96,23 @@ def test_planned_graph_builds_without_calling_aws(monkeypatch: pytest.MonkeyPatc
     agent = build_agent(ORTHO, tmp_path / "run")
     assert hasattr(agent, "ainvoke")
     assert factor_analyst.PROMPT.strip()
+
+
+def test_playbooks_follow_the_business() -> None:
+    from contracts.models import PracticeProfile
+    from services.agent.factor_analyst import playbooks_for
+
+    assert playbooks_for(ORTHO)[:3] == ["general", "healthcare", "orthopedics"]
+    sports = PracticeProfile(name="x", specialty="sports_medicine", services=["MRI", "Physical therapy"])
+    assert {"orthopedics", "physical_therapy"} <= set(playbooks_for(sports))
+    assert playbooks_for(PracticeProfile(name="x", business_type="food pantry")) == ["general", "food_bank"]
+    assert "urgent_care" in playbooks_for(PracticeProfile(name="x", business_type="walk-in urgent care clinic"))
+
+
+def test_playbook_must_keep_factors_are_checked():
+    from services.agent.factor_analyst import dropped, must_keep
+    keep = must_keep(ORTHO)
+    assert any("hospital" in p for p, _ in keep)
+    f = Factor(id="older_adults", factor="Older adults nearby", why="Joint replacement demand", proxy="pop 65+",
+               direction=1, priority="high")
+    assert any(d.startswith("Regional hospitals") for d in dropped([f], keep))

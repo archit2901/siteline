@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 
 from contracts.models import ChatMessage, Constraints, IntakeResponse, Office, PracticeProfile
 from services.agent import llm
-from services.agent.questions import BASE, SECTORS, Question, sector_of
+from services.agent.questions import BASE, SECTORS, Question, base_for, sector_of
 
 SPECIALTIES = {
     "orthopedics": "orthopedics", "orthopedic": "orthopedics", "orthopaedics": "orthopedics",
@@ -221,7 +221,8 @@ def missing_for(profile: PracticeProfile) -> list[str]:
     for q in SECTORS[sector][1]:
         if not q.required:
             continue
-        filled = {"services": bool(profile.services), "payers": bool(profile.payers_accepted)}.get(q.field, False)
+        filled = {"services": bool(profile.services), "payers": bool(profile.payers_accepted),
+                  "customers": bool(profile.customers)}.get(q.field, False)
         if not filled and q.id not in answers:
             missing.append(_label(q).lower())
     return missing
@@ -267,7 +268,7 @@ def _question_list(messages: list[ChatMessage], previous: PracticeProfile | None
     hint = previous.business_type or previous.specialty if previous else ""
     sector = sector_of(f"{hint} {owner}"[:4000], previous.specialty if previous else "")
     label, qs = SECTORS[sector]
-    lines = [f"- {q.id}{' (REQUIRED)' if q.required else ''}: {q.text}" for q in (*BASE, *qs)]
+    lines = [f"- {q.id}{' (REQUIRED)' if q.required else ''}: {q.text}" for q in (*base_for(sector), *qs)]
     return f"QUESTIONS (base + {label}):\n" + "\n".join(lines)
 
 

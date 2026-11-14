@@ -251,9 +251,11 @@ def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
 # ---------------------------------------------------------------------------
 # Site quality, hard constraints, final score, sensitivity
 # ---------------------------------------------------------------------------
-def site_quality(site: SiteCandidate, cons: Constraints) -> tuple[float, str | None]:
-    """Q in [0, 1] (mean of parking, ground-floor, size and rent fit; unknown parts 0.5) and the hard-constraint
-    failure, if any (only judged on known values)."""
+def site_quality(site: SiteCandidate, cons: Constraints, visibility: str | None = None) -> tuple[float, str | None]:
+    """Q in [0, 1] (mean of parking, ground-floor, size and rent fit, plus visibility fit when the business has a
+    visibility need; unknown parts 0.5) and the hard-constraint failure, if any (only judged on known values).
+    Visibility fit reads the listing's CoStar space use: retail frontage for walk-in businesses, anything for
+    referral-only ones."""
     if site.sqft is not None and not cons.min_sqft <= site.sqft <= cons.max_sqft:
         return 0.0, f"size {site.sqft} sq ft outside {cons.min_sqft}-{cons.max_sqft}"
     if cons.ground_floor and site.floor is not None and site.floor > 1:
@@ -268,7 +270,12 @@ def site_quality(site: SiteCandidate, cons: Constraints) -> tuple[float, str | N
     ground = 0.5 if site.floor is None else (1.0 if site.floor == 1 or not cons.ground_floor else 0.0)
     size = 0.5 if site.sqft is None else 1.0
     rent = 0.5 if site.rent_psf is None else 1.0
-    return (parking + ground + size + rent) / 4, None
+    if visibility is None:
+        return (parking + ground + size + rent) / 4, None
+    from services.agent.strategy import visibility_fit
+
+    seen = visibility_fit(site.checks.get("space_use"), visibility)  # type: ignore[arg-type]
+    return (parking + ground + size + rent + seen) / 5, None
 
 
 def rank(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, candidates: list[SiteCandidate],
@@ -277,11 +284,13 @@ def rank(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
     _, weights, c = contribution_matrix(grid, pack, spec)
     zone = c @ weights
     huffs = {h.site_id: h for h in huff(grid, pack, profile, spec, candidates, competitor_feature, model)}
+    from services.agent.strategy import visibility_need
 
+    need = visibility_need(profile)[0]
     rows = []
     for site in candidates:
         cell = grid.index.get(site.h3) if site.h3 else grid.cell_of(site.lat, site.lon)
-        q, excluded = site_quality(site, profile.constraints)
+        q, excluded = site_quality(site, profile.constraints, need)
         if cell is None:
             excluded = excluded or "outside the region grid"
         rows.append((site, cell, q, excluded))

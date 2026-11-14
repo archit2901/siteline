@@ -6,7 +6,9 @@ can be measured for every neighborhood (an H3 hexagon of about 0.7 km²) or for 
 You decide WHAT to measure. You never state numbers, estimates or statistics: Python computes every number later.
 
 ## What a good factor list looks like
-- 9 to 12 factors. Each one is a distinct reason patients would choose, reach or stay with this office.
+- Every factor that plausibly affects this office's success, up to 24; drop one only when there is no plausible
+  way it correlates with success. Each one is a distinct reason patients would choose, reach or stay with this
+  office. Use priority to separate the large effects (high) from plausible but small ones (low).
 - Address every hint from the specialty pack and every need stated in the free text, each with its own factor,
   unless it clearly does not apply to this practice. When a condition has several drivers (for example kidney
   disease, diabetes and high blood pressure), give each driver its own factor.

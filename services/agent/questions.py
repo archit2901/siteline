@@ -27,6 +27,7 @@ class Question(BaseModel):
     placeholder: str = ""
     required: bool = False
     field: str = "free_text"  # where the answer goes: customers | services | languages | payers | free_text
+    replaces: list[str] = Field(default_factory=list)  # base question ids this sector question stands in for
 
 
 class QuestionSet(BaseModel):
@@ -67,9 +68,16 @@ BASE = [
     Q(id="competitors", kind="text",
       text="Who do you compete with, or who else serves the same people?",
       why="We map these places so net-new customers account for them."),
-    Q(id="space", kind="text",
-      text="What space do you need? Size, rent budget, parking, ground floor, hours.",
-      why="Hard filters on real listings; anything outside them is excluded, not ranked low."),
+    Q(id="visibility", kind="choice",
+      options=["Must be seen from a busy road (walk-ins)", "Helps, not essential", "Doesn't matter (referral or appointment only)"],
+      text="How much does being seen from the road matter?",
+      why="Walk-in businesses live on traffic and frontage; referral-driven ones (surgery, PT, warehouses) don't pay for it."),
+    Q(id="tenure", kind="choice", options=["Lease only", "Open to buying a building", "Open to building new", "Not sure"],
+      text="Would you lease, buy or build?",
+      why="Big fixed buildouts (MRI, surgery suites, cold storage) can make owning or building cheaper than leasing."),
+    Q(id="space", kind="long",
+      text="Anything else the space must have? Hours, special rooms, buildout, loading, signage.",
+      why="Becomes the space program: special rooms add square feet and can rule out upper floors or shared buildings."),
 ]
 
 HEALTHCARE = [
@@ -80,15 +88,18 @@ HEALTHCARE = [
     Q(id="referrals", kind="text",
       text="Where do referrals come from? (primary care, hospitals, schools, word of mouth)",
       why="Referral sources become a 'referral base' factor near each site."),
-    Q(id="services_hc", kind="text", field="services",
-      text="Which services or procedures matter most? Any equipment rooms (x-ray, MRI, chairs, dialysis stations)?",
-      why="Shapes the specialty pack and the space a site must fit."),
+    Q(id="service_lines", kind="multi", field="services",
+      options=["Clinic visits", "X-ray", "MRI", "Physical therapy", "Surgery center (ASC)", "Urgent care / walk-in",
+               "Sports medicine", "Injections / procedures", "Telehealth"],
+      text="Which service lines will this site have?",
+      why="Each adds space, equipment and rules: MRI needs shielding and a ground floor, an ASC needs certification "
+          "and its own entrance, walk-ins need visibility. It also changes who competes with you."),
     Q(id="clinicians", kind="text",
       text="How many clinicians per location, and how many patients does a location see in a week?",
       why="Lets us size a new site's capacity against the demand it can win."),
-    Q(id="patient_age", kind="text",
-      text="What age groups are most of your patients?",
-      why="Weights demand by the ages that actually use the specialty."),
+    Q(id="hospital", kind="text",
+      text="Which hospitals do your physicians operate or round at?",
+      why="Surgeons lose hours driving between clinic and hospital; distance to their hospitals is a real cost."),
 ]
 
 FOOD_BANK = [
@@ -98,7 +109,7 @@ FOOD_BANK = [
       text="What does this site do?",
       why="A mobile distribution needs a parking lot near the need; a warehouse needs a dock; a choice pantry needs "
           "walk-in clients nearby."),
-    Q(id="who_served", kind="long", required=True,
+    Q(id="who_served", kind="long", required=True, field="customers", replaces=["customers"],
       text="Who do you serve most? (families with kids, seniors, working poor, unhoused, students, veterans, immigrants)",
       why="Chooses which need counts as demand: poverty, children or seniors in poverty, SNAP households."),
     Q(id="eligibility", kind="choice", options=["No requirements", "Below 185% of poverty (TEFAP)", "Below 200%",
@@ -107,7 +118,7 @@ FOOD_BANK = [
     Q(id="volume", kind="text",
       text="How many households do you serve per week now, and how many could the new site serve?",
       why="Sizes the catchment and lets us flag sites that would be overwhelmed or underused."),
-    Q(id="client_travel", kind="choice", options=["Mostly walk or bus", "Mostly drive", "Mix", "We deliver"],
+    Q(id="client_travel", kind="choice", options=["Mostly walk or bus", "Mostly drive", "Mix", "We deliver"], replaces=["access"],
       text="How do clients reach you?",
       why="Clients without a car weigh bus stops and short distances heavily; USDA low-vehicle tracts come in here."),
     Q(id="network", kind="text",
@@ -128,7 +139,7 @@ NONPROFIT = [
     Q(id="mission", kind="long", required=True, field="services",
       text="What services will this site offer? (case management, shelter, job training, health, legal, youth programs)",
       why="Chooses which kind of need counts as demand."),
-    Q(id="who_served", kind="long", required=True,
+    Q(id="who_served", kind="long", required=True, field="customers", replaces=["customers"],
       text="Who do you serve? (age, income, housing status, language, immigration status)",
       why="Picks the population we count: poverty, children or seniors in poverty, limited English."),
     Q(id="funding", kind="text",
@@ -137,7 +148,7 @@ NONPROFIT = [
     Q(id="volume", kind="text",
       text="How many people do you serve per week now, and how many at the new site?",
       why="Sizes the catchment and capacity."),
-    Q(id="client_travel", kind="choice", options=["Mostly walk or bus", "Mostly drive", "Mix", "We go to them"],
+    Q(id="client_travel", kind="choice", options=["Mostly walk or bus", "Mostly drive", "Mix", "We go to them"], replaces=["access"],
       text="How do clients reach you?", why="Weighs transit, distance and households without a car."),
     Q(id="partners", kind="text",
       text="Which partners refer clients to you or share space? (schools, clinics, churches, shelters)",
@@ -160,8 +171,6 @@ RETAIL = [
     Q(id="anchors", kind="text",
       text="What neighbors help you? (grocery anchor, discount store, schools, laundromat next to a taqueria...)",
       why="Co-tenancy becomes a factor the scouts look for."),
-    Q(id="visibility", kind="choice", options=["Need a busy street", "Strip center is fine", "Destination, visibility doesn't matter"],
-      text="How much does visibility from the road matter?", why="Weighs traffic and frontage on real listings."),
     Q(id="services_retail", kind="text", field="services",
       text="What do you sell or offer? (wash-and-fold, self-serve, repairs, cuts and color...)",
       why="Sharpens who competes with you."),
@@ -177,7 +186,7 @@ RESTAURANT = [
       text="Which meals drive sales?", why="Daytime jobs vs. residents vs. nightlife."),
     Q(id="cuisine", kind="text", field="services", text="What cuisine, and who craves it most?",
       why="Same-cuisine competition and the communities most likely to come."),
-    Q(id="drive_thru", kind="choice", options=["Need a drive-thru", "Nice to have", "No"],
+    Q(id="drive_thru", kind="choice", options=["Need a drive-thru", "Patio", "Delivery-heavy", "None of these"],
       text="Drive-thru, patio or delivery-heavy?", why="Filters sites by pad, parking and frontage."),
 ]
 
@@ -203,7 +212,8 @@ FITNESS = [
       text="What format?", why="Big-box needs a large catchment; boutique studios need dense, higher-income areas."),
     Q(id="membership", kind="text", text="What does a membership cost, and how often do members come?",
       why="Matches income and sets the trip distance."),
-    Q(id="members", kind="text", text="Who are your members? (age, gender, students, office workers, families)",
+    Q(id="members", kind="text", field="customers", replaces=["customers"],
+      text="Who are your members? (age, gender, students, office workers, families)",
       why="Weights adults 18-44 vs. 45-64 and daytime workers."),
     Q(id="class_times", kind="text", text="When are classes busiest? (before work, lunch, evenings)",
       why="Commute routes and jobs density for morning and lunch classes."),
@@ -245,10 +255,16 @@ def sector_of(text: str, specialty: str = "") -> str:
     return sector or "general.base"
 
 
+def base_for(sector: str) -> list[Question]:
+    """The base questions minus those a sector question replaces (no question is asked twice)."""
+    replaced = {r for q in SECTORS[sector][1] for r in q.replaces}
+    return [q for q in BASE if q.id not in replaced]
+
+
 def questions_for(text: str, specialty: str = "") -> QuestionSet:
     sector = sector_of(text, specialty)
     label, qs = SECTORS[sector]
-    return QuestionSet(sector=sector, label=label, base=BASE, sector_questions=qs)
+    return QuestionSet(sector=sector, label=label, base=base_for(sector), sector_questions=qs)
 
 
 def profile_sector(profile: PracticeProfile) -> str:

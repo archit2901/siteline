@@ -69,12 +69,17 @@ def _check_peer(resp: httpx.Response, url: str) -> None:
 
 
 async def safe_request(client: httpx.AsyncClient, method: str, url: str, *, max_redirects: int = 5,
-                       max_bytes: int = 2_000_000, **kwargs: object) -> httpx.Response:
+                       max_bytes: int = 2_000_000, any_public_host: bool = False, **kwargs: object) -> httpx.Response:
     """An HTTP request for untrusted URLs: allowlist + public-DNS check on every redirect hop, peer-address check
-    before any body is read, and at most max_bytes of body. Redirects are followed by hand."""
+    before any body is read, and at most max_bytes of body. Redirects are followed by hand.
+
+    any_public_host=True drops the domain allowlist (the owner's own website) but keeps every other check: http(s)
+    only, public DNS on every hop, public peer address, body cap."""
     for _ in range(max_redirects + 1):
         parsed = urlparse(url)
-        if not is_allowed(url) or not parsed.hostname:
+        if parsed.scheme not in ("http", "https") or not parsed.hostname:
+            raise BlockedURL(f"{url} is not an http(s) URL")
+        if not any_public_host and not is_allowed(url):
             raise BlockedURL(f"{url} is not on the allowlist")
         await _check_dns(parsed.hostname)
         async with client.stream(method, url, follow_redirects=False, **kwargs) as resp:  # type: ignore[arg-type]

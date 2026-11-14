@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { intakeChat, intakeQuestions, type IntakeQuestion, type QuestionSet } from '../api/client'
+import { intakeChat, intakeQuestions, intakeWebsite, type IntakeQuestion, type QuestionSet } from '../api/client'
 import { FIRST_LOCATION, PAYER_IDS, PAYER_LABELS, composeFreeText, missingFor, parseAnswers } from '../lib/intake'
 import presets from '../presets/presets.json'
 import type { ChatMessage, Office, PracticeProfile } from '../types/contracts'
@@ -39,7 +39,7 @@ const OFFLINE: QuestionSet = {
 }
 const STEP_OF: Record<string, 'locations' | 'customers' | 'edge' | 'space'> = {
   locations: 'locations', best_location: 'locations', customers: 'customers', customer_origin: 'customers', access: 'customers',
-  unique: 'edge', pull: 'edge', competitors: 'edge', space: 'space',
+  unique: 'edge', pull: 'edge', competitors: 'edge', space: 'space', visibility: 'space', tenure: 'space',
 }
 
 const isHealthcare = (p: PracticeProfile) => Boolean(p.specialty) && !p.business_type
@@ -59,6 +59,20 @@ export default function Start({ live, hasRecording, onRun }: Props) {
   const [qs, setQs] = useState<QuestionSet>(OFFLINE)
   const [mode, setMode] = useState<'form' | 'chat'>('form')
   const [tried, setTried] = useState(false)
+  const [site, setSite] = useState('')
+  const [siteMsg, setSiteMsg] = useState<string | null>(null)
+  const [reading, setReading] = useState(false)
+  const readSite = async () => {
+    if (!site.trim() || reading) return
+    setReading(true); setSiteMsg('Reading your website…')
+    try {
+      const res = await intakeWebsite(site.trim(), kindOf(p) ? p : { ...p, business_type: '', specialty: '', name: '' })
+      const parsed = parseAnswers(res.profile.free_text)
+      setP(res.profile); setAnswers(parsed.answers); setNotes(parsed.notes); setPicked(null); setSiteMsg(res.reply)
+    } catch {
+      setSiteMsg('Couldn’t reach the agent to read the site. Fill in the questions below instead.')
+    } finally { setReading(false) }
+  }
 
   const healthcare = isHealthcare(p)
   const kind = kindOf(p)
@@ -134,7 +148,12 @@ export default function Start({ live, hasRecording, onRun }: Props) {
       </label>
     )
   }
-  const inStep = (step: string) => qs.base.filter((q) => STEP_OF[q.id] === step && q.kind !== 'locations').map(field)
+  const pullHints = (
+    <div className="hints" key="pull-hints">{AREA_HINTS.map((h) => (
+      <button type="button" key={h} onClick={() => setA('pull', answers.pull?.trim() ? `${answers.pull.trim().replace(/[.]?$/, '.')} ${h}.` : `${h}.`)}>+ {h}</button>))}</div>
+  )
+  const inStep = (step: string) => qs.base.filter((q) => STEP_OF[q.id] === step && q.kind !== 'locations')
+    .flatMap((q) => (q.id === 'pull' ? [field(q), pullHints] : [field(q)]))
   const sectorQs = qs.sector_questions
 
   return (
@@ -171,6 +190,16 @@ export default function Start({ live, hasRecording, onRun }: Props) {
               <span className="sn">1/6</span>
               <div className="sb">
                 <h3>Your business</h3>
+                {live && (
+                  <div className="fl siteread"><span>Start from your website</span>
+                    <div className="siterow">
+                      <input type="url" value={site} placeholder="https://yourbusiness.com" onChange={(e) => setSite(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); readSite() } }} />
+                      <button type="button" className="pillbtn dark" disabled={reading || !site.trim()} onClick={readSite}>{reading ? 'Reading…' : 'Fill from website'}</button>
+                    </div>
+                    <small className="why">{siteMsg ?? 'The agent reads your site (locations, services, insurance, who you serve) and fills in what it states. You check every answer.'}</small>
+                  </div>
+                )}
                 <div className="grid2">
                   <label className="fl"><span>Name</span>
                     <input value={p.name} required onChange={(e) => set({ name: e.target.value })} placeholder="Eastside Community Pantry" /></label>
@@ -244,8 +273,6 @@ export default function Start({ live, hasRecording, onRun }: Props) {
                 <h3>What makes you different</h3>
                 <p className="lead">This turns a generic search into yours. The agent turns each detail into a factor, then goes looking for public data to measure it in every Houston neighborhood.</p>
                 {inStep('edge')}
-                <div className="hints">{AREA_HINTS.map((h) => (
-                  <button type="button" key={h} onClick={() => setA('pull', answers.pull?.trim() ? `${answers.pull.trim().replace(/[.]?$/, '.')} ${h}.` : `${h}.`)}>+ {h}</button>))}</div>
                 <label className="fl"><span>Anything else?</span>
                   <textarea rows={2} value={notes} onChange={(e) => { setNotes(e.target.value); setPicked(null) }} placeholder="Grant service areas, a site you already tried, a landlord you trust…" /></label>
               </div>

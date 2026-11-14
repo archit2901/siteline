@@ -273,8 +273,14 @@ def _to_float(value: Any) -> float | None:
 def _apply_filter(rows: list[dict[str, Any]], spec: FeatureSpec) -> list[dict[str, Any]]:
     if not spec.filter_column or not spec.filter_values:
         return rows
-    wanted = {v.lower() for v in spec.filter_values}
-    return [r for r in rows if str(r.get(spec.filter_column, "")).lower() in wanted]
+    wanted = {v.strip().lower() for v in spec.filter_values if v.strip()}
+    col = spec.filter_column
+    exact = [r for r in rows if str(r.get(col, "")).strip().lower() in wanted]
+    if exact or not wanted:
+        return exact
+    # Model-written values often differ in format from the data ("9-12" vs "09-12", "High" vs "High School"):
+    # fall back to containment, still only within the chosen category column.
+    return [r for r in rows if any(w in str(r.get(col, "")).lower() for w in wanted)]
 
 
 def ring_k(spec: FeatureSpec) -> int:

@@ -117,9 +117,13 @@ entries:
   - school athletics
   - children and teens
   - students
+  - youth sports
+  - school enrollment
   coverage: City of Houston and nearby (clipped to Harris, Fort Bend, Montgomery)
   connector: null
-  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations.
+  notes: Official City of Houston open data layer (cohgis_ago), updated Aug 2025. Point locations from TEA school
+    directory fields. High schools only - filter Grade_Range in 09-12, 06-12, 07-12, 08-12, 10-12, 11-12, KG-12,
+    PK-12, EE-12. School_Enroll_as_of_Oct_2022 is enrollment (a size weight for athletics).
 - id: coh_after_school_programs
   title: After-school programs
   publisher: City of Houston (Houston Information Technology Services GIS)
@@ -468,3 +472,21 @@ entries:
   coverage: Harris, Fort Bend, Montgomery (Houston bounding box); 246 places when added
   connector: null
   notes: Community centres, including non-city ones the COH layer does not list.
+- id: osm_clinics
+  title: 'OpenStreetMap: clinics and urgent cares'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22amenity%22%3D%22clinic%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22healthcare%22%3D%22clinic%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22healthcare%22%3D%22urgent_care%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - clinics
+  - urgent care centers
+  - walk-in clinics
+  - outpatient sites
+  - fracture referrals
+  - hospital outpatient sites
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box); about 480 places when added
+  connector: null
+  notes: Clinics and the few tagged urgent cares (filter on 'name' is not allowed; use 'healthcare' or 'healthcare:speciality'
+    tags). Volunteer-mapped; a lower bound.

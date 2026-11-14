@@ -9,10 +9,15 @@ demand_age_bands: ["45-64", "65+"]
 visit_rates: {"0-17": 0.05, "18-44": 0.07, "45-64": 0.12, "65+": 0.18}
 features:
   - {id: pop_45plus_within_5km, source: acs, value: "pop_45_64_within_5km+pop_65p_within_5km", label: "People 45+ within 5 km", agg: sum, direction: 1, unit: "people"}
+  - {id: n_physical_therapy_within_5km, source: cms.doctors, value: n_physical_therapy_within_5km, label: "Physical therapists within 5 km (referral partners or PT competition)", agg: sum, direction: 1, unit: "clinicians"}
   - {id: n_orthopedics_within_10km, source: cms.doctors, value: n_orthopedics_within_10km, label: "Orthopedic clinicians within 10 km (competition)", agg: sum, direction: -1, unit: "clinicians"}
 site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray"], competitor_feature: n_orthopedics}
 factor_hints:
-  - "musculoskeletal or arthritis burden"
-  - "sports participation and youth sports injuries"
-  - "primary care referral base"
-  - "parking and step-free access for patients on crutches"
+  - "degenerative joint demand: adults 45+, arthritis and obesity burden, Medicare share"
+  - "youth and high school sports injuries: high schools with athletic programs (City of Houston schools, Grade_Range 09-12), sports fields"
+  - "work injuries: industrial, construction and warehouse jobs nearby (workers' comp)"
+  - "referral sources: primary care, urgent care centers, ER and trauma centers, physical therapists"
+  - "regional hospitals, two ways: drive time to the hospitals where the surgeons operate and round, and hospital-employed orthopedists who pull patients into their system"
+  - "competition beyond orthopedists: orthopedic urgent care walk-ins, imaging centers (if MRI), PT chains (if PT), surgery centers (if ASC)"
+  - "parking near the door and step-free access for patients on crutches"
+  - "flood risk for ground-floor imaging equipment"

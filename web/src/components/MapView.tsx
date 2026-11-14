@@ -3,7 +3,7 @@ import { H3HexagonLayer } from '@deck.gl/geo-layers'
 import { ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import type { PickingInfo } from '@deck.gl/core'
 import * as maplibregl from 'maplibre-gl'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { esc } from '../lib/safe'
 import type { Office, Recommendation, ScoreResponse } from '../types/contracts'
 
@@ -81,6 +81,16 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
     return new Map(zones.zones.map((z, i) => [z.h3, pct[i] ?? 0]))
   }, [zones])
   const zoneByCell = useMemo(() => new Map((zones?.zones ?? []).map((z) => [z.h3, z])), [zones])
+  // One map layer per dataset: each zone's contribution for that feature is its oriented percentile × weight, so
+  // ranking it again gives "better for you" from 0 to 1 for that dataset alone.
+  const layerIds = useMemo(() => Object.keys(zones?.zones[0]?.contributions ?? {}), [zones])
+  const [layer, setLayer] = useState<string>('fit')
+  useEffect(() => { if (layer !== 'fit' && !layerIds.includes(layer)) setLayer('fit') }, [layerIds, layer])
+  const layerPct = useMemo(() => {
+    if (!zones || layer === 'fit') return null
+    const pct = percentiles(zones.zones.map((z) => z.contributions?.[layer] ?? null))
+    return new Map(zones.zones.map((z, i) => [z.h3, pct[i] ?? 0]))
+  }, [zones, layer])
 
   useEffect(() => {
     const o = overlay.current
@@ -90,10 +100,12 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
     const layers = [
       new H3HexagonLayer<GridCell>({
         id: 'cells', data: grid, getHexagon: (d) => d.h3, stroked: false, extruded: false, pickable: true, highPrecision: false,
-        getFillColor: (d) => (scorePct
+        getFillColor: (d) => (layerPct
+          ? ramp(layerPct.get(d.h3) ?? 0, 0.3, 70, 190)
+          : scorePct
           ? ramp(scorePct.get(d.h3) ?? 0, CUT, 95, 190)
           : ramp(densityPct[cellIndex.get(d.h3) ?? 0] ?? 0, 0.5, 25, 110)),
-        updateTriggers: { getFillColor: [scorePct, densityPct] },
+        updateTriggers: { getFillColor: [scorePct, densityPct, layerPct] },
       }),
       new H3HexagonLayer<string>({
         id: 'highlight', data: highlight, getHexagon: (d) => d, filled: true, stroked: true,
@@ -132,7 +144,7 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
         return { html: `<b>${esc(cell.county)} County</b><br/>${esc(fmt(cell.pop_density_km2))} people per km²<br/>${esc(fmt(cell.pop_total_within_5km))} people within 5 km`, style }
       },
     })
-  }, [grid, densityPct, scorePct, zoneByCell, highlight, offices, sites, selectedSiteId, featureLabels, onSelectSite])
+  }, [grid, densityPct, scorePct, layerPct, zoneByCell, highlight, offices, sites, selectedSiteId, featureLabels, onSelectSite])
 
   useEffect(() => {
     if (!map.current || grid.length === 0) return
@@ -155,9 +167,18 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
   return (
     <>
       <div ref={container} className="map" aria-label="Map of Houston scored by H3 hexagon" />
+      {layerIds.length > 0 && (
+        <label className="layerpick">
+          <span>Map layer</span>
+          <select value={layer} onChange={(e) => setLayer(e.target.value)}>
+            <option value="fit">Overall fit (all datasets, weighted)</option>
+            {layerIds.map((id) => <option key={id} value={id}>{featureLabels[id] ?? id}</option>)}
+          </select>
+        </label>
+      )}
       <div className="legend">
-        <span>{zones ? 'Fit for this business' : 'People per km²'}</span><span className="ramp" />
-        <span className="mono">{zones ? 'top 30% → 1%' : 'lower → higher'}</span>
+        <span>{layerPct ? featureLabels[layer] ?? layer : zones ? 'Fit for this business' : 'People per km²'}</span><span className="ramp" />
+        <span className="mono">{layerPct ? 'worse → better for you' : zones ? 'top 30% → 1%' : 'lower → higher'}</span>
         {sites.length > 0 && <span><i style={{ background: '#000' }} />site</span>}
         {offices.some((x) => x.lat != null) && <span><i style={{ background: 'var(--sky)', border: '1.5px solid #000' }} />your office</span>}
         {highlight.length > 0 && <span><i style={{ background: 'rgba(250,142,102,.5)', border: '1.5px solid #000', borderRadius: 2 }} />zone</span>}

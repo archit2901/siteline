@@ -55,8 +55,10 @@ export function Factors({ factors, scouts }: { factors: Factor[]; scouts: Record
   )
 }
 
-export function Approval({ approval, featureLabels, readOnly, step, businessName, onApprove, onReject }: {
+export function Approval({ approval, featureLabels, readOnly, step, businessName, onApprove, onReject, preset }: {
   approval: ApprovalRequest; featureLabels: Record<string, string>; readOnly: boolean; step: string; businessName: string
+  /** weights tuned on a previous run (keys without the run suffix), pre-set on the sliders */
+  preset?: Record<string, number> | null
   onApprove: (decision: ApproveRequest) => void; onReject?: () => void
 }) {
   const ref = useRef<HTMLButtonElement>(null)
@@ -66,8 +68,13 @@ export function Approval({ approval, featureLabels, readOnly, step, businessName
   const proposed = approval.spec?.weights ?? {}
   const rationale = (approval.spec?.rationale ?? {}) as Record<string, string>
   const order = Object.entries(proposed).sort((a, b) => b[1] - a[1]).map(([fid]) => fid)
-  const [w, setW] = useState<Record<string, number>>(proposed)
-  useEffect(() => setW(approval.spec?.weights ?? {}), [approval.approval_id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const initial = () => {
+    const base = approval.spec?.weights ?? {}
+    if (!preset) return base
+    return Object.fromEntries(Object.entries(base).map(([fid, v]) => [fid, preset[fid.replace(/_[0-9a-f]{6}$/, '')] ?? v]))
+  }
+  const [w, setW] = useState<Record<string, number>>(initial)
+  useEffect(() => setW(initial()), [approval.approval_id]) // eslint-disable-line react-hooks/exhaustive-deps
   const total = Object.values(w).reduce((a, b) => a + b, 0)
   const edited = !isPlan && order.some((fid) => Math.abs((w[fid] ?? 0) / (total || 1) - proposed[fid]) > 0.005)
   const share = (fid: string) => (total > 0 ? (w[fid] ?? 0) / total : 0)

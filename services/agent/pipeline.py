@@ -39,10 +39,13 @@ from services.agent.scout import ScoutResult, run_scout
 from services.agent.tools import geomath
 from services.agent.tools.backends import get_geo, get_sites
 from services.agent.tools.ingest import overpass_url
+from services.agent import strategy
 from services.agent.tools.packs import pack_for
 from services.agent.tools.profile import load_profile
 from services.agent.tools.sites_client import MockSites
 from services.agent.tools.weights import advise_weights, scorable
+
+MAX_SCOUTS = int(os.environ.get("MAX_SCOUTS_PER_RUN", "10"))  # each scout costs ~2-3 model calls
 
 S = "site-strategist"
 P = "business-profiler"
@@ -162,7 +165,10 @@ async def run_pipeline(run: Run) -> None:
             "tool": "choose_dataset", "factor_id": competitor.factor_id, "ok": True,
             "summary": f"OpenStreetMap places tagged {', '.join(competitor_tags)} across Houston."})
     uncovered = [f for f in factors if f.feature_id is None and (competitor is None or f.id != competitor.factor_id)]
-    results = list(await asyncio.gather(*(run_scout(f, meter, run.emit, run.run_id[:6]) for f in uncovered)))
+    uncovered.sort(key=lambda f: {"high": 0, "medium": 1, "low": 2}[f.priority])
+    results = list(await asyncio.gather(*(run_scout(f, meter, run.emit, run.run_id[:6]) for f in uncovered[:MAX_SCOUTS])))
+    results += [ScoutResult(f.id, None, 0, caveat=f"Not searched this run: only the {MAX_SCOUTS} highest-priority "
+                            "factors without data get a dataset scout.") for f in uncovered[MAX_SCOUTS:]]
     if competitor is not None:
         results.append(competitor)
     candidates: list[DatasetCandidate] = [r.candidate for r in results if r.candidate]
@@ -194,7 +200,8 @@ async def run_pipeline(run: Run) -> None:
         f = by_id[c.factor_id]
         if report.ok:
             ingested += 1
-            by_id[c.factor_id] = f.model_copy(update={"status": "found", "feature_id": spec.id, "caveat": None})
+            by_id[c.factor_id] = f.model_copy(update={"status": "found", "feature_id": spec.id, "caveat": None,
+                                                       "direction": spec.direction})
             if competitor is not None and c.factor_id == competitor.factor_id and demand is not None:
                 demand = demand.model_copy(update={"competitor_feature": f"{spec.id}_count"})
                 run.state["demand"] = demand
@@ -236,8 +243,20 @@ async def run_pipeline(run: Run) -> None:
                                       "summary": f"Scored {len(zones.zones):,} cells; top {len(zones.top)} zones written."})
     await run.emit(S, "file", {"name": "zones.json", "path": "/zones.json"})
 
-    # 6. real spaces near the best zones
+    # 6. real spaces near the best zones, sized for the service lines (MRI, PT, ASC, dock ... add space and rules)
     await run.emit(S, "todo", todos(5))
+    program = strategy.space_program(profile)
+    if program.service_lines:
+        c = profile.constraints
+        widened = c.model_copy(update={
+            "max_sqft": max(c.max_sqft, program.recommended_sqft[1]),
+            "ground_floor": c.ground_floor or any("ground floor" in r for r in program.requirements)})
+        profile = profile.model_copy(update={"constraints": widened})
+        run.state["profile"] = profile
+        await run.emit(S, "tool_result", {"tool": "space_program", "ok": True, "summary": (
+            f"Service lines {', '.join(x.replace('_', ' ') for x in program.service_lines)} add space and rules: "
+            f"searching up to {widened.max_sqft:,} sq ft" + (", ground floor only" if widened.ground_floor else "")
+            + (f"; needs {', '.join(program.requirements[:4])}" if program.requirements else "") + ".")})
     constraints = profile.constraints
     if not constraints.space_uses and demand is not None:
         constraints = constraints.model_copy(update={"space_uses": demand.space_uses})
@@ -259,6 +278,10 @@ async def run_pipeline(run: Run) -> None:
     await run.emit(S, "tool_call", {"tool": "rank_sites", "args": {"candidates": len(sites)}})
     ranked = await geo.rank(RankRequest(profile=profile, spec=spec, candidates=sites, with_stability=True, demand=demand))
     run.write_artifact("ranked.json", TypeAdapter(list[RankedSite]).dump_json(ranked, indent=2).decode())
+    plan = strategy.plan(profile, ranked, {s.id: s for s in sites})
+    run.write_artifact("strategy.json", plan.model_dump_json(indent=2))
+    caveats.append(strategy.caveat(plan))
+    await run.emit(S, "file", {"name": "strategy.json", "path": "/strategy.json"})
     excluded = sum(r.excluded_reason is not None for r in ranked)
     await run.emit(S, "tool_result", {"tool": "rank_sites", "ok": True,
                                       "summary": f"Ranked {len(ranked) - excluded} sites; {excluded} failed a hard constraint."})

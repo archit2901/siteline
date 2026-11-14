@@ -109,64 +109,65 @@
     }
   },
   {
-    "id": "orthopedic_group",
-    "label": "Orthopedic group",
+    "id": "baylor_orthopedics",
+    "label": "Baylor orthopedics",
     "healthcare": true,
     "profile": {
-      "name": "Example Orthopedic Group",
+      "name": "Baylor College of Medicine",
       "specialty": "orthopedics",
       "business_type": "",
-      "customers": "",
+      "customers": "Adults 18-44, 45-64 and 65+",
       "services": [
-        "sports medicine",
-        "joint replacement",
-        "fracture care",
-        "x-ray"
+        "preventive examinations",
+        "vaccinations",
+        "acute visits",
+        "diabetes and hypertension management",
+        "medication follow-up",
+        "geriatric care",
+        "behavioral-health consultations",
+        "nutrition/weight-management support"
       ],
-      "payers_accepted": [
-        "medicare",
-        "commercial"
-      ],
+      "payers_accepted": [],
       "patient_mix": {},
       "languages": [
         "English"
       ],
       "existing_offices": [
         {
-          "name": "Office A (Medical Center area)",
-          "address": null,
-          "lat": 29.707,
-          "lon": -95.401,
-          "clinicians": 4
+          "name": "Upper Kirby",
+          "address": "3701 Kirby Drive, Suite 100, Houston, TX 77098",
+          "lat": null,
+          "lon": null,
+          "clinicians": 6
         },
         {
-          "name": "Office B (Katy area)",
-          "address": null,
-          "lat": 29.786,
-          "lon": -95.824,
-          "clinicians": 3
+          "name": "River Oaks",
+          "address": "3743 Westheimer Road, Houston, TX 77027",
+          "lat": null,
+          "lon": null,
+          "clinicians": 6
         },
         {
-          "name": "Office C (The Woodlands area)",
-          "address": null,
-          "lat": 30.166,
-          "lon": -95.461,
-          "clinicians": 3
+          "name": "Texas Medical Center",
+          "address": "6624 Fannin Street, Suite 2000, Houston, TX 77030",
+          "lat": null,
+          "lon": null,
+          "clinicians": 6
         }
       ],
       "constraints": {
-        "min_sqft": 4000,
-        "max_sqft": 9000,
-        "max_rent_psf": null,
-        "min_parking_per_1000sf": 5.0,
-        "ground_floor": true,
+        "min_sqft": 6000,
+        "max_sqft": 10000,
+        "max_rent_psf": 35.0,
+        "min_parking_per_1000sf": 4.0,
+        "ground_floor": false,
         "special_rooms": [
-          "x-ray"
+          "procedure room"
         ],
         "space_uses": []
       },
-      "free_text": "Many patients are older adults and weekend athletes. Most drive; some arrive on crutches.",
-      "stock_pack": "healthcare.orthopedics",
+      "free_text": "[customer_origin] Where do your customers come from today: Our offices are in Upper Kirby (77098), River Oaks (77027), and the Texas Medical Center (77030). These are office ZIP codes, not verified patient-origin ZIP codes. Patient origins and travel times are unknown. Proposed planning catchment: approximately 15–20 minutes for routine primary care, with a separate transit-access analysis. Search Harris, Fort Bend, and Montgomery counties and account for overlap with our existing practices.\n[referrals] Where do referrals come from: Actual referral shares are unknown. Proposed acquisition channels to evaluate: patients scheduling directly, recommendations from existing patients, Baylor specialty practices referring patients for ongoing primary care, and hospital-discharge follow-up. Map Baylor affiliates as potential care-coordination relationships, while verifying actual referral arrangements\n[clinicians] How many clinicians per location: 6\n[competitors] Who do you compete with, or who else serves the same people: Evaluate nearby Kelsey-Seybold primary-care clinics, Houston Methodist Primary Care Group, and independent family-medicine/internal-medicine practices. Compare their services and accepted plans before treating them as interchangeable alternatives. Kelsey-Seybold offers family medicine, internal medicine, and pediatrics; Houston Methodist operates a primary-care network. Also map community health centers as existing access points and potential coordination partners. Identify Baylor’s own relevant clinics separately when estimating overlap.\n[space] Anything else the space must have: Proposed neighborhood outpatient clinic of 6,000–10,000 square feet, preferably an existing medical buildout with approximately 12 exam rooms, phlebotomy/specimen space, a small procedure room, private counseling space, reception, and staff support areas. Require accessible entrances and restrooms, convenient drop-off, and patient parking. Use $35/sf/year as a provisional base-rent screening ceiling; show operating expenses, tenant improvements, and other occupancy costs separately. Proposed operating hours: Monday–Friday, 7:30 a.m.–6:30 p.m., with staggered staffing. Confirm medical use and buildout feasibility before treating any listing as suitable.",
+      "stock_pack": null,
       "region_id": "hou"
     }
   },

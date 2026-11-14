@@ -1,7 +1,7 @@
 import { cellToLatLng, gridDistance } from 'h3-js'
 import { aerialUrl } from '../lib/media'
 import { safeHref } from '../lib/safe'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Recommendation, Report, ScoreResponse, ScoringSpec } from '../types/contracts'
 import type { GridCell } from './MapView'
 import SourceLink from './SourceLink'
@@ -144,33 +144,38 @@ export function Proof({ report, spec }: { report: Report; spec: ScoringSpec | nu
 }
 
 /** Re-weight after the run (live runs only): POST /runs/{id}/rescore re-ranks with no model call. */
-export function Tune({ spec, featureLabels, busy, onChange }: {
-  spec: ScoringSpec; featureLabels: Record<string, string>; busy: boolean; onChange: (w: Record<string, number>) => void
+/** Feature ids of agent-found datasets end in the run id ("found_bus_access_2002c1"); strip it to match runs. */
+export const stableId = (fid: string) => fid.replace(/_[0-9a-f]{6}$/, '')
+
+export function Tune({ spec, featureLabels, busy, onRerank, onRerun }: {
+  spec: ScoringSpec; featureLabels: Record<string, string>; busy: boolean
+  onRerank: (w: Record<string, number>) => void; onRerun: (w: Record<string, number>) => void
 }) {
   const [open, setOpen] = useState(false)
   const [w, setW] = useState<Record<string, number>>(spec.weights)
   useEffect(() => setW(spec.weights), [spec])
-  const t = useRef<number | null>(null)
   const total = Object.values(w).reduce((a, b) => a + b, 0) || 1
   const top = Math.max(0.5, ...Object.values(spec.weights).map((x) => Math.min(1, x * 2.5)))
+  const changed = Object.keys(spec.weights).some((k) => Math.abs((w[k] ?? 0) / total - spec.weights[k]) > 0.005)
   if (!open) return <button className="pillbtn" style={{ marginTop: 10 }} onClick={() => setOpen(true)}>Tune weights{busy ? ' …' : ''}</button>
   return (
     <div className="callout" style={{ padding: '12px 18px' }}>
-      <div className="kicker" style={{ margin: '0 0 6px' }}><span>Tune weights · re-ranks instantly</span>
+      <div className="kicker" style={{ margin: '0 0 6px' }}><span>Tune weights</span>
         <button className="linkbtn" style={{ margin: 0 }} onClick={() => setOpen(false)}>close</button></div>
       {Object.keys(spec.weights).map((fid) => (
         <div className="wrow edit" key={fid}>
           <span title={featureLabels[fid] ?? fid}>{featureLabels[fid] ?? fid}</span>
           <input type="range" min={0} max={top} step={0.005} value={w[fid] ?? 0} aria-label={`Weight for ${featureLabels[fid] ?? fid}`}
-            onChange={(e) => {
-              const next = { ...w, [fid]: Number(e.target.value) }
-              setW(next)
-              if (t.current) clearTimeout(t.current)
-              t.current = window.setTimeout(() => onChange(next), 300)
-            }} />
+            onChange={(e) => setW({ ...w, [fid]: Number(e.target.value) })} />
           <span className="pct">{Math.round(((w[fid] ?? 0) / total) * 100)}%</span>
         </div>
       ))}
+      <div className="tune-actions">
+        <button className="pillbtn dark" disabled={busy || !changed} onClick={() => onRerank(w)}>{busy ? 'Re-ranking…' : 'Re-rank these spaces'}</button>
+        <button className="pillbtn" disabled={busy} onClick={() => onRerun(w)} title="Starts a new agent run with the same intake; these weights are pre-set at the weights step">Re-run the whole search</button>
+        {changed && <button className="linkbtn" style={{ margin: 0 }} onClick={() => setW(spec.weights)}>reset</button>}
+      </div>
+      <p className="why" style={{ margin: '8px 0 0' }}>Re-rank re-scores every Houston zone and listing instantly, without the model. Re-run starts the agent again (new datasets, new approvals) with these weights pre-set.</p>
     </div>
   )
 }

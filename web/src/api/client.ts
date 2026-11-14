@@ -91,3 +91,24 @@ export function intakeQuestions(business: string, specialty = ''): Promise<Quest
   const q = new URLSearchParams({ business, specialty })
   return request(`/intake/questions?${q}`)
 }
+
+/** Intake step one: read the owner's website and pre-fill what it states. */
+export function intakeWebsite(url: string, draft: PracticeProfile | null): Promise<IntakeResponse> {
+  return request('/intake/website', { method: 'POST', body: JSON.stringify({ url, draft }) })
+}
+
+/** strategy.json (services/agent/strategy.py): not a contract type. */
+export interface TenureOption { option: 'lease' | 'buy' | 'build'; annual_cost_usd: number; upfront_usd: number; notes: string }
+export interface Strategy {
+  program: { service_lines: string[]; base_sqft: [number, number]; recommended_sqft: [number, number]; requirements: string[]; special_buildout_usd: number }
+  visibility: 'high' | 'medium' | 'low'
+  visibility_reason: string
+  preferred_space_uses: string[]
+  tenure_preference: string
+  recommendation: string
+  sites: { site_id: string; address: string; sqft?: number | null; options: TenureOption[]; cheapest: string }[]
+  assumptions: Record<string, number>
+}
+export function loadStrategy(runId: string): Promise<Strategy> {
+  return request(`/runs/${runId}/artifacts/strategy.json`)
+}

@@ -117,8 +117,18 @@ def build_spec(factor: Factor, candidate: DatasetCandidate, preview: DatasetPrev
         filter_column=draft.filter_column if keep_filter else None,
         filter_values=[str(v) for v in draft.filter_values][:20] if keep_filter else [],
         agg=agg, radius_min=7.0 if agg == "count_within" else None,  # ≈5 km straight line
-        direction=factor.direction, unit=unit, layer="agent_found", provenance_url=candidate.url,
+        direction=distance_direction(factor) if agg == "distance_to_nearest" else factor.direction, unit=unit, layer="agent_found", provenance_url=candidate.url,
     )
+
+
+NEAR_IS_BAD = re.compile(r"\bfew\b|compet|rival|saturat|flood|hazard|crime|landfill|pollut|far from|away from", re.I)
+
+
+def distance_direction(factor: Factor) -> int:
+    """Direction for a distance_to_nearest measure (bigger = farther away). The factor's own direction is often
+    written about the thing ("proximity to hospitals is good" = +1), which on a distance would reward being far.
+    Near the thing helps unless it competes or harms."""
+    return 1 if NEAR_IS_BAD.search(f"{factor.factor} {factor.proxy}") else -1
 
 
 def _hit_lines(hits: list[SearchHit]) -> str:

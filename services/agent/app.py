@@ -14,7 +14,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from contracts.models import (ApproveRequest, PracticeProfile, AskRequest, AskResponse, Health, IntakeRequest, IntakeResponse,
                              RescoreRequest, RescoreResponse, RunCreate, RunCreated)
-from services.agent import concierge, intake, questions
+from services.agent import concierge, intake, questions, website
 from services.agent.critic import build_report
 from services.agent.pipeline import normalize, run_pipeline, score_and_rank
 from services.agent.runs import BadRequest, Run, RunNotFound, RunStore, TooBusy, list_golden
@@ -115,6 +115,19 @@ async def intake_chat(request: IntakeRequest) -> IntakeResponse:
 async def intake_questions(business: str = "", specialty: str = "") -> questions.QuestionSet:
     """The base questions plus the sector set for a business type (no model call; the web form pops it up)."""
     return questions.questions_for(business[:200], specialty[:60])
+
+
+class WebsiteRequest(BaseModel):
+    url: str
+    draft: PracticeProfile | None = None
+
+
+@app.post("/intake/website")
+async def intake_website(request: WebsiteRequest) -> IntakeResponse:
+    """Intake step one: read the owner's website and pre-fill what it states (public hosts only, body-capped)."""
+    chat_limiter.admit()
+    async with chat_limiter.slots:
+        return await website.prefill(request.url[:300], request.draft)
 
 
 class MissingRequest(BaseModel):

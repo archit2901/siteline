@@ -57,3 +57,21 @@ def test_scout_drops_filters_on_identifier_columns() -> None:
     assert by_name is not None and by_name.filter_column is None and by_name.filter_values == []
     by_level = build_spec(factor, cand, preview, SpecDraft(agg="count_within", filter_column="Level", filter_values=["Elementary"]))
     assert by_level is not None and by_level.filter_column == "Level"
+
+
+def test_filter_falls_back_to_containment_when_exact_values_miss():
+    from types import SimpleNamespace
+    rows = [{"Grade_Range": "09-12"}, {"Grade_Range": "PK 09-12"}, {"Grade_Range": "EE-05"}]
+    spec = SimpleNamespace(filter_column="Grade_Range", filter_values=["9-12"])
+    assert [r["Grade_Range"] for r in ingest._apply_filter(rows, spec)] == ["09-12", "PK 09-12"]
+    exact = SimpleNamespace(filter_column="Grade_Range", filter_values=["09-12"])
+    assert len(ingest._apply_filter(rows, exact)) == 1
+
+
+def test_distance_direction_follows_whether_near_helps():
+    from contracts.models import Factor
+    from services.agent.scout import distance_direction
+    mk = lambda name, proxy, d: Factor(id="x", factor=name, why="", proxy=proxy, direction=d, priority="high")
+    assert distance_direction(mk("Regional hospitals for surgeries and rounding", "Drive time to hospital campuses", 1)) == -1
+    assert distance_direction(mk("Few competing orthopedic clinics", "Distance to nearest orthopedic clinic", -1)) == 1
+    assert distance_direction(mk("Flood hazard vulnerability", "Distance to the 100-year floodplain", -1)) == 1

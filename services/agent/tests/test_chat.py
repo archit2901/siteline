@@ -45,12 +45,12 @@ def test_missing_and_ready_need_locations_and_sector_answers() -> None:
     assert missing == ["who the customers are", "your current locations"]
     assert not is_ready(profile, missing, [*USER, ChatMessage(role="user", content="just run it")])  # no escape
     pantry, missing = merge(IntakeDraft(business_type="food pantry", customers="families", first_location=True), None)
-    assert missing == ["what does this site do", "who do you serve most"]
+    assert missing == ["what does this site do"]  # who_served is answered by the customers field it replaces
     pantry, missing = merge(IntakeDraft(services=["Choice pantry"], answers=[
         IntakeAnswer(question_id="who_served", answer="Seniors and families with kids"),
         IntakeAnswer(question_id="nope", answer="ignored")]), pantry)
     assert missing == [] and is_ready(pantry, missing, USER)
-    assert "[who_served]" in pantry.free_text and "[locations]" in pantry.free_text and "nope" not in pantry.free_text
+    assert "[locations]" in pantry.free_text and "nope" not in pantry.free_text
     again, _ = merge(IntakeDraft(), pantry)  # earlier answers survive a turn where the model returns none
     assert missing_for(again) == [] and again.free_text == pantry.free_text
 
@@ -64,6 +64,12 @@ def test_sector_question_sets() -> None:
     qs = questions_for("food bank")
     assert qs.base[0].id == "locations" and qs.base[0].required
     assert {q.id for q in qs.sector_questions} >= {"program_type", "client_travel", "logistics"}
+    asked = [q.id for q in (*qs.base, *qs.sector_questions)]
+    assert "customers" not in asked and "access" not in asked and len(asked) == len(set(asked))  # nothing twice
+    for text in ("food pantry", "laundromat", "daycare", "gym", "cafe", "nonprofit", "orthopedic clinic", "bookkeeping"):
+        q = questions_for(text)
+        words = [x.text.split("?")[0].lower() for x in (*q.base, *q.sector_questions)]
+        assert len(words) == len(set(words))
 
 
 def test_reply_guard_blocks_invented_numbers() -> None:
