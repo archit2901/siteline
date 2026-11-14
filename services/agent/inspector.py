@@ -29,6 +29,9 @@ MATTERPORT_GRAPH = "https://api.matterport.com/api/models/graph"
 DETECT_METERS = 120  # square around the building searched for parked cars
 INSPECT_TOP = 5
 TIGHT = 0.85  # parked cars / listed spaces at capture time above this: parking may be tight at peak
+# A 120 m square holds roughly 300 surface spaces (about 30 m² each with aisles, minus the building). Larger listed
+# counts are campus lots or garages the square cannot see, so no occupancy is computed for them.
+MAX_COMPARABLE_SPACES = 150
 TIMEOUT = httpx.Timeout(25.0, connect=10.0)
 
 PROMPT = """You are the site-inspector for Siteline. A business owner is choosing between real commercial spaces in
@@ -90,13 +93,13 @@ def findings(insp: SiteInspection, site: SiteCandidate) -> list[str]:
     """Plain sentences rendered from the inspection's stored values (the critic verifies their numbers)."""
     out = []
     if insp.parked_cars is not None:
-        text = f"Aerial imagery shows {insp.parked_cars} parked cars within {insp.radius_m} m of the building (Vexcel)"
-        if insp.listed_parking:
-            text += f", against {insp.listed_parking} listed spaces"
-            if insp.occupancy is not None and insp.occupancy >= TIGHT:
-                text += f": {insp.occupancy * 100:.0f}% full when the image was taken, so parking may be tight at peak"
-            elif insp.occupancy is not None:
-                text += f": {insp.occupancy * 100:.0f}% full when the image was taken"
+        text = f"Aerial imagery shows {insp.parked_cars:,} parked cars within {insp.radius_m} m of the building (Vexcel)"
+        if insp.listed_parking and insp.occupancy is not None:
+            text += f", against {insp.listed_parking:,} listed spaces: {insp.occupancy * 100:.0f}% full when the image was taken"
+            if insp.occupancy >= TIGHT:
+                text += ", so parking may be tight at peak"
+        elif insp.listed_parking:
+            text += f"; the property lists {insp.listed_parking:,} spaces across a larger lot or garage"
         out.append(text + ".")
     # A building's scan usually covers one part of it (a lobby, a suite, a shell floor), not the listed space, so the
     # findings describe the scan and never claim it measures the listing. Scan names stay out of claim text (they
@@ -175,7 +178,8 @@ class Inspector:
             await self._log("count_parked_cars", site_id, "Vexcel request failed", ok=False)
             return "Aerial check failed."
         insp.parked_cars, insp.radius_m, insp.listed_parking = cars, DETECT_METERS // 2, site.parking_spaces
-        insp.occupancy = round(cars / site.parking_spaces, 3) if site.parking_spaces else None
+        comparable = site.parking_spaces is not None and 0 < site.parking_spaces <= MAX_COMPARABLE_SPACES
+        insp.occupancy = round(cars / site.parking_spaces, 3) if comparable and site.parking_spaces else None
         if "aerial" not in insp.checked:
             insp.checked.append("aerial")
         await self._log("count_parked_cars", site_id, f"{cars} parked cars detected")

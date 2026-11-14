@@ -88,3 +88,13 @@ def test_community_need_shares() -> None:
     need = geomath.community_need(small_grid_with_households(), *CENTER, 10)
     assert need.no_car_share == 0.12 and need.renter_share == 0.6 and need.medicaid_share == 0.2
     assert 0.15 < (need.lower_income_share or 0) < 0.35  # about a quarter of cells are under 80% of the median
+
+
+def test_large_lots_get_no_occupancy(apis: None) -> None:
+    big = {"c": SITES["a"].model_copy(update={"id": "c", "parking_spaces": 1598, "matterport_id": None})}
+    ranked = [RANKED[0].model_copy(update={"site_id": "c"})]
+    results, _ = asyncio.run(inspector.inspect(PROFILE, ranked, big, use_agent=False))
+    c = results["c"]
+    assert c.parked_cars == 28 and c.occupancy is None  # a 120 m square cannot see a 1,598-space lot
+    assert c.findings == ["Aerial imagery shows 28 parked cars within 60 m of the building (Vexcel); "
+                          "the property lists 1,598 spaces across a larger lot or garage."]
