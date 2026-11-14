@@ -15,6 +15,7 @@ PROFILE = json.loads((FIXTURES / "report.json").read_text())["profile"]
 @pytest.fixture(autouse=True)
 def no_replay_gaps(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("REPLAY_MAX_GAP_SECONDS", "0")
+    monkeypatch.setenv("DEMO_AUTO_APPROVE_SECONDS", "0.01")  # replays pause at approvals like live runs
 
 
 def client() -> httpx.AsyncClient:
@@ -75,6 +76,7 @@ async def test_live_run_streams_and_waits_for_approval(monkeypatch: pytest.Monke
     from services.agent import app as app_module
 
     monkeypatch.setenv("RUNS_DIR", str(tmp_path))
+    monkeypatch.setenv("DEMO_AUTO_APPROVE_SECONDS", "0")
     monkeypatch.setattr(store, "_db", None)
 
     async def fake_pipeline(run) -> None:  # type: ignore[no-untyped-def]
@@ -97,6 +99,44 @@ async def test_live_run_streams_and_waits_for_approval(monkeypatch: pytest.Monke
     assert events[-1].payload["decision"] == "approve"
     assert (tmp_path / run_id / "events.jsonl").read_text().count("\n") == 3
     assert early.status_code == 409  # nothing scored yet
+
+
+@pytest.mark.asyncio
+async def test_replay_waits_for_approval(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DEMO_AUTO_APPROVE_SECONDS", "0")
+    first = next(e for e in load_events(FIXTURES / "events.jsonl") if e.type == "approval")
+    async with client() as c:
+        run_id = (await c.post("/runs", json=replay_body())).json()["run_id"]
+        run = store.get(run_id)
+        while run.pending_approval is None:
+            await asyncio.sleep(0.01)
+        await asyncio.sleep(0.05)
+        assert run.events[-1].seq == first.seq and not run.finished  # paused at the recorded approval
+        while not run.finished:
+            if run.pending_approval:
+                approval_id = run.pending_approval.approval_id
+                assert (await c.post(f"/runs/{run_id}/approve", json={"approval_id": approval_id, "decision": "approve"})).status_code == 200
+            await asyncio.sleep(0.01)
+    assert run.events[-1].type == "done"
+
+
+@pytest.mark.asyncio
+async def test_golden_runs_are_listed_and_replayed(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from services.agent import runs
+
+    (tmp_path / "demo").mkdir()
+    (tmp_path / "demo.jsonl").write_text((FIXTURES / "events.jsonl").read_text())
+    (tmp_path / "demo" / "report.json").write_text((FIXTURES / "report.json").read_text())
+    (tmp_path / "bad name.jsonl").write_text("")
+    monkeypatch.setattr(runs, "GOLDEN", tmp_path)
+    async with client() as c:
+        listed = (await c.get("/golden")).json()
+        run_id = (await c.post("/runs", json=replay_body(golden="demo"))).json()["run_id"]
+        events = await read_sse(c, run_id)
+        report = await c.get(f"/runs/{run_id}/artifacts/report.json")
+    assert listed == {"golden": ["demo"]}
+    assert events[-1].type == "done"
+    assert Report.model_validate(report.json()).verified
 
 
 @pytest.mark.asyncio

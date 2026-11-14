@@ -1,7 +1,8 @@
 """Run store: live runs (pipeline) and replays, SSE fan-out, approvals, artifacts, runs/runs.db.
 
-Replay streams a recorded JSONL file (fixtures/events.jsonl or fixtures/golden/<name>.jsonl) with gaps capped at
-REPLAY_MAX_GAP_SECONDS. A live run appends every event to runs/<run_id>/events.jsonl and pauses at approvals until
+Replay streams a recorded JSONL file (fixtures/events.jsonl or a golden run, data/golden/<name>.jsonl) with gaps capped
+at REPLAY_MAX_GAP_SECONDS and pauses at approvals like a live run. Golden runs hold real CoStar spaces, so they live
+under data/ (never committed; copied to the server with the CoStar files). A live run appends every event to runs/<run_id>/events.jsonl and pauses at approvals until
 POST /runs/{id}/approve (or DEMO_AUTO_APPROVE_SECONDS) answers them.
 """
 
@@ -23,7 +24,7 @@ from services.agent.llm import runs_dir
 log = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "fixtures"
-GOLDEN = FIXTURES / "golden"
+GOLDEN = Path(os.environ.get("GOLDEN_DIR", ROOT / "data" / "golden"))
 GOLDEN_NAME = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 ARTIFACTS = {"factors.json", "zones.json", "sites.json", "ranked.json", "report.json"}
 
@@ -99,11 +100,15 @@ class Run:
         (self.artifacts_dir / name).write_text(text)
         return f"/{name}"
 
-    async def request_approval(self, request: ApprovalRequest) -> ApproveRequest:
-        """Emit an approval event and wait for the answer (auto-approve after DEMO_AUTO_APPROVE_SECONDS if set)."""
+    async def request_approval(self, request: ApprovalRequest, event: RunEvent | None = None) -> ApproveRequest:
+        """Emit an approval event (or a recorded one) and wait for the answer (auto-approve after
+        DEMO_AUTO_APPROVE_SECONDS if set)."""
         self.pending_approval = request
         self._answer = asyncio.get_running_loop().create_future()
-        await self.emit("site-strategist", "approval", request.model_dump(mode="json"))
+        if event is None:
+            await self.emit("site-strategist", "approval", request.model_dump(mode="json"))
+        else:
+            await self.publish(event)
         delay = auto_approve_seconds()
         if delay > 0:
             asyncio.get_running_loop().call_later(delay, self._auto_approve, request.approval_id)
@@ -135,6 +140,11 @@ def replay_source(golden: str | None) -> tuple[Path, Path]:
     if source.parent != GOLDEN.resolve() or not source.is_file():
         raise RunNotFound(f"no golden run named {golden!r}")
     return source, GOLDEN / golden
+
+
+def list_golden() -> list[str]:
+    """Names of the recorded runs that can be replayed (data/golden/<name>.jsonl)."""
+    return sorted(p.stem for p in GOLDEN.glob("*.jsonl") if GOLDEN_NAME.match(p.stem)) if GOLDEN.is_dir() else []
 
 
 def load_events(path: Path) -> list[RunEvent]:
@@ -221,7 +231,11 @@ class RunStore:
                 if prev is not None:
                     gap = (event.ts - prev.ts).total_seconds()
                     await asyncio.sleep(max(0.0, min(gap, cap)))
-                await run.publish(event.model_copy(update={"run_id": run.run_id}))
+                event = event.model_copy(update={"run_id": run.run_id})
+                if event.type == "approval":  # wait for the presenter; the recording continues as approved
+                    await run.request_approval(ApprovalRequest.model_validate(event.payload), event)
+                else:
+                    await run.publish(event)
         except Exception:  # surface replay failures to subscribers instead of hanging them
             log.exception("replay %s failed", run.run_id)
             await run.emit("site-strategist", "error", {"message": "The replay could not be played.", "recoverable": False})

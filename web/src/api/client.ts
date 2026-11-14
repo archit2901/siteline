@@ -1,5 +1,5 @@
 // agent-api client (live mode). Base URL from VITE_AGENT_URL.
-import type { ApproveRequest, PracticeProfile, RescoreResponse, RunCreated, ScoringSpec } from '../types/contracts'
+import type { ApproveRequest, PracticeProfile, RescoreResponse, RunCreate, RunCreated, ScoringSpec } from '../types/contracts'
 import type { RunAction } from '../state/runReducer'
 
 export const AGENT_URL = (import.meta.env.VITE_AGENT_URL ?? 'http://localhost:8000').replace(/\/$/, '')
@@ -16,8 +16,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await resp.json()) as T
 }
 
-export function createRun(profile: PracticeProfile): Promise<RunCreated> {
-  return request('/runs', { method: 'POST', body: JSON.stringify({ profile, region_id: profile.region_id ?? 'hou', mode: 'live' }) })
+/** A live run, or with `golden` a replay of that recorded run (paused at approvals like a live one). */
+export function createRun(profile: PracticeProfile, golden?: string): Promise<RunCreated> {
+  const body: RunCreate = { profile, region_id: profile.region_id ?? 'hou', mode: golden ? 'replay' : 'live', golden }
+  return request('/runs', { method: 'POST', body: JSON.stringify(body) })
+}
+
+/** Names of the recorded runs agent-api can replay (empty if it has none or is unreachable). */
+export async function listGolden(): Promise<string[]> {
+  try {
+    return (await request<{ golden: string[] }>('/golden')).golden
+  } catch {
+    return []
+  }
 }
 
 export function approve(runId: string, body: ApproveRequest): Promise<unknown> {

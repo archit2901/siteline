@@ -373,7 +373,7 @@ class RunCreate(BaseModel):
     profile: PracticeProfile
     region_id: str = "hou"
     mode: RunMode = "live"
-    golden: str | None = None  # replay: name of a recorded run in fixtures/golden/
+    golden: str | None = None  # replay: name of a recorded run in data/golden/
 
 
 class RunCreated(BaseModel):

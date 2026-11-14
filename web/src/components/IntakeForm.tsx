@@ -30,9 +30,11 @@ interface Props {
   onPreset: (preset: Preset) => void
   onChange: (profile: PracticeProfile) => void
   onSubmit: () => void
+  /** Set when agent-api has a recorded run of the selected example. */
+  onReplay?: () => void
 }
 
-export default function IntakeForm({ profile, presetId, fixtureMode, onPreset, onChange, onSubmit }: Props) {
+export default function IntakeForm({ profile, presetId, fixtureMode, onPreset, onChange, onSubmit, onReplay }: Props) {
   const cons = profile.constraints ?? { min_sqft: 2000, max_sqft: 8000 }
   const set = (patch: Partial<PracticeProfile>) => onChange({ ...profile, ...patch })
   const setCons = (patch: Record<string, unknown>) => set({ constraints: { ...cons, ...patch } })
@@ -174,6 +176,12 @@ export default function IntakeForm({ profile, presetId, fixtureMode, onPreset, o
         <button className="button primary" type="submit">
           {fixtureMode ? 'Replay a recorded run' : 'Find sites'}
         </button>
+        {onReplay && (
+          <button className="button" type="button" onClick={onReplay}>
+            Play the recorded run
+          </button>
+        )}
+        {onReplay && <p className="hint">The recorded run replays a saved live search of this example, without calling the models.</p>}
         {fixtureMode && (
           <p className="hint">Recorded run replays a saved search. Switch to Live agent to run this form for any business.</p>
         )}

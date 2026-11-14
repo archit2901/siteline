@@ -8,7 +8,7 @@
 | zones.json | Archit | `ScoreResponse` over all 11,720 real cells | agent artifacts, web map |
 | report.json | Archit | `Report` with 10 recommendations (invented sites; real stock values; real math) | agent artifacts, web cards |
 | sites.json | Archit | list of `SiteCandidate` (fake values, CoStar-like fields) | sites fixture mode, web cards |
-| golden/<name>.jsonl (+ golden/<name>/) | Archit | recorded real runs for offline replay (P3) | demo safety net |
+| (moved) data/golden/<name>.jsonl (+ <name>/) | Archit | recorded real runs for offline replay: `scripts/record_golden.py`; under data/ because they hold CoStar spaces | demo safety net |
 | validate.py | Archit | validates every file above against the contracts | `make fixtures` |
 
 Never put CoStar data or anything derived from it in this folder (the repo is public). Fixture sites are invented.

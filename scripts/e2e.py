@@ -1,8 +1,9 @@
 """End to end against a running agent-api: one replay run and one live orthopedic-group run.
 
-  PYTHONPATH=. python scripts/e2e.py [--live-only | --replay-only] [--agent-url http://localhost:8000]
+  PYTHONPATH=. python scripts/e2e.py [--live-only | --replay-only] [--case <eval id>] [--golden <name>]
+                                     [--agent-url http://localhost:8000]
 
-Approvals are answered by this script (approve). Checks the event order todo -> factor -> approval -> file
+Approvals are answered by this script (approve); replays pause at approvals like live runs. Checks the event order todo -> factor -> approval -> file
 zones.json -> done, that every artifact validates against the contracts, and that the report is verified.
 """
 
@@ -50,7 +51,7 @@ async def run_once(client: httpx.AsyncClient, body: RunCreate) -> tuple[str, lis
             label = p.get("tool") or p.get("name") or p.get("factor") or p.get("kind") or ""
             summary = p.get("summary") or ""
             print(f"  {event.seq:>3} {event.agent:38s} {event.type:11s} {label} {summary}"[:180])
-            if event.type == "approval" and body.mode == "live":
+            if event.type == "approval":
                 await client.post(f"/runs/{run_id}/approve", json={"approval_id": p["approval_id"], "decision": "approve"})
     return run_id, events, time.monotonic() - started
 
@@ -98,13 +99,15 @@ async def main() -> int:
     parser.add_argument("--live-only", action="store_true")
     parser.add_argument("--replay-only", action="store_true")
     parser.add_argument("--case", default="orthopedic_group", help="eval case id for the live run (evals/<id>.yaml)")
+    parser.add_argument("--golden", default=None, help="replay this golden run (data/golden/<name>.jsonl)")
     args = parser.parse_args()
     case = EvalCase.model_validate(yaml.safe_load((ROOT / "evals" / f"{args.case}.yaml").read_text()))
     ok = True
     async with httpx.AsyncClient(base_url=args.agent_url, timeout=60) as client:
         (await client.get("/health")).raise_for_status()
         if not args.live_only:
-            ok &= await check(client, "replay (fixtures/events.jsonl)", RunCreate(profile=case.profile, mode="replay"))
+            source = f"data/golden/{args.golden}.jsonl" if args.golden else "fixtures/events.jsonl"
+            ok &= await check(client, f"replay ({source})", RunCreate(profile=case.profile, mode="replay", golden=args.golden))
         if not args.replay_only:
             ok &= await check(client, f"live {case.id}", RunCreate(profile=case.profile, mode="live"))
     return 0 if ok else 1

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { AGENT_URL, approve, createRun, loadRunArtifact } from './api/client'
+import { AGENT_URL, approve, createRun, listGolden, loadRunArtifact } from './api/client'
 import { FIXTURE_BASE, loadFixtureEvents, startReplay, type Replay } from './api/replay'
 import { subscribeToRun, type Subscription } from './api/sse'
 import ApprovalModal from './components/ApprovalModal'
@@ -30,6 +30,8 @@ export default function App() {
   const [profile, setProfile] = useState<PracticeProfile>(PRESETS[0].profile)
   const [selectedSite, setSelectedSite] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>(DEFAULT_MODE)
+  const [golden, setGolden] = useState<string[]>([])
+  const [replaying, setReplaying] = useState(false)
   const replay = useRef<Replay | null>(null)
   const live = useRef<Subscription | null>(null)
   const fixtureMode = mode === 'fixture'
@@ -48,18 +50,23 @@ export default function App() {
     }
   }, [])
 
-  const start = useCallback(async () => {
+  useEffect(() => {
+    if (!fixtureMode) listGolden().then(setGolden)
+  }, [fixtureMode])
+
+  const start = useCallback(async (recorded?: string) => {
     replay.current?.stop()
     live.current?.close()
     setSelectedSite(null)
     setLoadError(null)
+    setReplaying(Boolean(recorded))
     try {
       if (fixtureMode) {
         const events = await loadFixtureEvents()
         replay.current = startReplay(events, dispatch, { runId: 'fixture-replay' })
         return
       }
-      const { run_id: runId } = await createRun(profile)
+      const { run_id: runId } = await createRun(profile, recorded)
       dispatch({ type: 'start', runId })
       live.current = subscribeToRun(
         runId,
@@ -139,7 +146,7 @@ export default function App() {
             </button>
           </div>
         ) : (
-          <span className="mode">{fixtureMode ? 'Recorded run' : 'Live agent'}</span>
+          <span className="mode">{fixtureMode || replaying ? 'Recorded run' : 'Live agent'}</span>
         )}
         <span className="status" data-state={state.status} role="status">
           <span className="dot" />
@@ -164,7 +171,8 @@ export default function App() {
                 setProfile(p.profile)
               }}
               onChange={setProfile}
-              onSubmit={start}
+              onSubmit={() => start()}
+              onReplay={!fixtureMode && golden.includes(preset.id) ? () => start(preset.id) : undefined}
             />
           ) : (
             <Plan todos={state.todos} scouts={scouts} factors={state.factors} trace={state.trace} />

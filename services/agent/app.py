@@ -11,7 +11,7 @@ from sse_starlette.sse import EventSourceResponse
 from contracts.models import ApproveRequest, Health, RescoreRequest, RescoreResponse, RunCreate, RunCreated
 from services.agent.critic import build_report
 from services.agent.pipeline import normalize, run_pipeline, score_and_rank
-from services.agent.runs import BadRequest, Run, RunNotFound, RunStore
+from services.agent.runs import BadRequest, Run, RunNotFound, RunStore, list_golden
 from services.agent.tools.backends import get_geo
 
 FIXTURE_MODE = os.environ.get("FIXTURE_MODE", "1") == "1"
@@ -32,6 +32,12 @@ def get_run(run_id: str) -> Run:
 @app.get("/health")
 async def health() -> Health:
     return Health(service="agent", fixture_mode=FIXTURE_MODE)
+
+
+@app.get("/golden")
+async def golden() -> dict[str, list[str]]:
+    """Recorded runs available for replay (POST /runs with mode=replay, golden=<name>)."""
+    return {"golden": list_golden()}
 
 
 @app.post("/runs")
