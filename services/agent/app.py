@@ -8,7 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sse_starlette.sse import EventSourceResponse
 
-from contracts.models import ApproveRequest, Health, RescoreRequest, RescoreResponse, RunCreate, RunCreated
+from contracts.models import (ApproveRequest, AskRequest, AskResponse, Health, IntakeRequest, IntakeResponse,
+                             RescoreRequest, RescoreResponse, RunCreate, RunCreated)
+from services.agent import concierge, intake
 from services.agent.critic import build_report
 from services.agent.pipeline import normalize, run_pipeline, score_and_rank
 from services.agent.runs import BadRequest, Run, RunNotFound, RunStore, TooBusy, list_golden
@@ -32,6 +34,18 @@ def get_run(run_id: str) -> Run:
 @app.get("/health")
 async def health() -> Health:
     return Health(service="agent", fixture_mode=FIXTURE_MODE)
+
+
+@app.post("/intake")
+async def intake_chat(request: IntakeRequest) -> IntakeResponse:
+    """One chat turn: the owner's words so far -> the profile understood, what is missing, and the next reply."""
+    return await intake.chat(request.messages, request.draft)
+
+
+@app.post("/ask")
+async def ask(request: AskRequest) -> AskResponse:
+    """A question about a finished run, answered only from facts rendered from its verified report."""
+    return await concierge.ask(request.question, request.report)
 
 
 @app.get("/golden")

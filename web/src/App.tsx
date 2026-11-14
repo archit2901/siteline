@@ -3,6 +3,8 @@ import { AGENT_URL, approve, createRun, listGolden, loadRunArtifact, rescore } f
 import { FIXTURE_BASE, loadFixtureEvents, startReplay, type Replay } from './api/replay'
 import { subscribeToRun, type Subscription } from './api/sse'
 import ApprovalPanel from './components/ApprovalModal'
+import Ask from './components/Ask'
+import ChatIntake from './components/ChatIntake'
 import FactorList from './components/FactorList'
 import Icon, { Mark } from './components/Icon'
 import IntakeForm, { PRESETS, type Preset, type Source } from './components/IntakeForm'
@@ -25,7 +27,7 @@ const STATUS_TEXT: Record<RunStatus, string> = {
 }
 const SOURCE_TEXT: Record<Source, string> = { live: 'Live agent', recorded: 'Recorded run', offline: 'Offline demo' }
 
-type Tab = 'site' | 'factors' | 'sources'
+type Tab = 'site' | 'ask' | 'factors' | 'sources'
 
 export default function App() {
   const [state, dispatch] = useReducer(runReducer, initialRunState)
@@ -69,7 +71,9 @@ export default function App() {
     [source, golden],
   )
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (chosen?: PracticeProfile) => {
+    const runProfile = chosen ?? profile
+    if (chosen) setProfile(chosen)
     replay.current?.stop()
     live.current?.close()
     setSelectedSite(null)
@@ -82,7 +86,7 @@ export default function App() {
         replay.current = startReplay(events, dispatch, { runId: 'offline-demo' })
         return
       }
-      const { run_id: runId } = await createRun(profile, source === 'recorded' ? preset.id : undefined)
+      const { run_id: runId } = await createRun(runProfile, source === 'recorded' ? preset.id : undefined)
       dispatch({ type: 'start', runId })
       live.current = subscribeToRun(
         runId,
@@ -255,7 +259,9 @@ export default function App() {
 
       <main className={`main${report ? ' done' : ''}`}>
         <aside className="panel left" aria-label={idle ? 'Describe the business' : 'The run'}>
-          {idle ? (
+          {idle && source === 'live' ? (
+            <ChatIntake onSubmit={(p) => start(p)} />
+          ) : idle ? (
             <IntakeForm
               profile={profile}
               presetId={preset.id}
@@ -263,7 +269,7 @@ export default function App() {
               recordedIds={golden}
               onPreset={choosePreset}
               onChange={setProfile}
-              onSubmit={start}
+              onSubmit={() => start()}
             />
           ) : (
             <RunLine
@@ -324,8 +330,9 @@ export default function App() {
                 {(
                   [
                     ['site', 'Space'],
+                    ['ask', 'Ask'],
                     ['factors', 'Factors'],
-                    ['sources', 'Sources and caveats'],
+                    ['sources', 'Sources'],
                   ] as [Tab, string][]
                 ).map(([id, label]) => (
                   <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
@@ -342,6 +349,7 @@ export default function App() {
                     <FactorList factors={factors.length ? factors : report.factors} report={report} scoutColors={scoutColors} />
                   </>
                 )}
+                {tab === 'ask' && <Ask report={report} onSelect={(id) => { setSelectedSite(id); setUserPicked(true); setTab('site') }} />}
                 {tab === 'sources' && <ReportNotes report={report} featureLabels={featureLabels} />}
               </div>
             </>

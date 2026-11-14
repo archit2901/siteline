@@ -1,5 +1,16 @@
 // agent-api client (live mode). Base URL from VITE_AGENT_URL.
-import type { ApproveRequest, PracticeProfile, RescoreResponse, RunCreate, RunCreated, ScoringSpec } from '../types/contracts'
+import type {
+  ApproveRequest,
+  AskResponse,
+  ChatMessage,
+  IntakeResponse,
+  PracticeProfile,
+  Report,
+  RescoreResponse,
+  RunCreate,
+  RunCreated,
+  ScoringSpec,
+} from '../types/contracts'
 import type { RunAction } from '../state/runReducer'
 
 export const AGENT_URL = (import.meta.env.VITE_AGENT_URL ?? 'http://localhost:8000').replace(/\/$/, '')
@@ -45,4 +56,14 @@ export async function loadRunArtifact(runId: string, name: string): Promise<RunA
   return name === 'zones.json'
     ? { type: 'artifact', name, data: data as never }
     : { type: 'artifact', name, data: data as never }
+}
+
+/** One chat turn: the conversation so far and the draft profile -> the next reply and the updated profile. */
+export function intakeChat(messages: ChatMessage[], draft: PracticeProfile | null): Promise<IntakeResponse> {
+  return request('/intake', { method: 'POST', body: JSON.stringify({ messages, draft }) })
+}
+
+/** A question about a finished run, answered from facts rendered from its verified report. */
+export function ask(question: string, report: Report): Promise<AskResponse> {
+  return request('/ask', { method: 'POST', body: JSON.stringify({ question, report }) })
 }

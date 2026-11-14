@@ -28,10 +28,10 @@ from langchain_core.outputs import LLMResult
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_core._api import LangChainBetaWarning
 
-Role = Literal["orchestrator", "factor_analyst", "dataset_scout", "site_scout", "critic", "judge"]
+Role = Literal["orchestrator", "factor_analyst", "dataset_scout", "site_scout", "critic", "judge", "intake"]
 Provider = Literal["bedrock", "gemini", "openrouter"]
 
-SMART_ROLES: frozenset[str] = frozenset({"orchestrator", "factor_analyst", "critic"})
+SMART_ROLES: frozenset[str] = frozenset({"orchestrator", "factor_analyst", "critic", "intake"})
 ZERO_TEMPERATURE_ROLES: frozenset[str] = frozenset({"factor_analyst", "critic", "judge"})
 # Strongest Nova model the team account can call (scripts/check_bedrock.py, Nov 14 2026: Nova 2 Pro unavailable,
 # Nova Premier end of life).

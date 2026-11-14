@@ -20,3 +20,5 @@ web/public/fixtures/
 # claude code personal settings
 .claude/settings.local.json
 .DS_Store
+# impeccable review captures show real CoStar listings
+.impeccable/review/

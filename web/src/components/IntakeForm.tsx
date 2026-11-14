@@ -47,9 +47,11 @@ interface Props {
   onPreset: (preset: Preset) => void
   onChange: (profile: PracticeProfile) => void
   onSubmit: () => void
+  /** Inside the chat's "Edit details": fields only, no heading, examples or run button. */
+  embedded?: boolean
 }
 
-export default function IntakeForm({ profile, presetId, source, recordedIds, onPreset, onChange, onSubmit }: Props) {
+export default function IntakeForm({ profile, presetId, source, recordedIds, onPreset, onChange, onSubmit, embedded = false }: Props) {
   const cons = profile.constraints ?? { min_sqft: 2000, max_sqft: 8000 }
   const set = (patch: Partial<PracticeProfile>) => onChange({ ...profile, ...patch })
   const setCons = (patch: Record<string, unknown>) => set({ constraints: { ...cons, ...patch } })
@@ -66,6 +68,7 @@ export default function IntakeForm({ profile, presetId, source, recordedIds, onP
         onSubmit()
       }}
     >
+      {!embedded && (
       <section className="section">
         <h1>Where in Houston should this business open next?</h1>
         <p className="lede">Start from an example or describe any business. The agent works out who your customers are, finds the data, and ranks real spaces for lease.</p>
@@ -79,6 +82,7 @@ export default function IntakeForm({ profile, presetId, source, recordedIds, onP
           ))}
         </div>
       </section>
+      )}
 
       <fieldset className="section form" disabled={!editable}>
         {!editable && <p className="hint">{source === 'recorded' ? 'Recorded runs replay a saved search, so the form is read-only. Switch to Live agent to edit it.' : 'The offline demo replays a sample run. Switch to Live agent to run this form.'}</p>}
@@ -200,6 +204,7 @@ export default function IntakeForm({ profile, presetId, source, recordedIds, onP
         </fieldset>
       </fieldset>
 
+      {!embedded && (
       <div className="go">
         <button className="button primary big block" type="submit">
           {source !== 'live' && <Icon name="play" />}
@@ -207,6 +212,7 @@ export default function IntakeForm({ profile, presetId, source, recordedIds, onP
         </button>
         <p className="hint">{SUBMIT_HINT[source]}</p>
       </div>
+      )}
     </form>
   )
 }
