@@ -1,0 +1,19 @@
+# EvalCase (contracts/models.py). Draft from the design doc; refine with Dr. Deshmukh's answers. Owner: Jayan.
+id: orthopedic_group
+profile:
+  name: "Example Orthopedic Group"
+  specialty: orthopedics
+  services: ["sports medicine", "joint replacement", "fracture care", "x-ray"]
+  payers_accepted: [medicare, commercial]
+  languages: [English]
+  existing_offices:
+    - {name: "Office A (Medical Center area)", lat: 29.707, lon: -95.401, clinicians: 4}
+    - {name: "Office B (Katy area)", lat: 29.786, lon: -95.824, clinicians: 3}
+    - {name: "Office C (The Woodlands area)", lat: 30.166, lon: -95.461, clinicians: 3}
+  constraints: {min_sqft: 4000, max_sqft: 9000, min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray"]}
+  free_text: "Many patients are older adults and weekend athletes. Most drive; some arrive on crutches."
+  stock_pack: healthcare.orthopedics
+must_include: ["aging population", "arthritis", "sports injuries", "primary care referrals", "orthopedic surgeon competition", "parking"]
+must_not_include: []
+sign_checks: {"orthopedic surgeon competition": -1}
+notes: "Office locations are approximate test points, not real SOS offices."

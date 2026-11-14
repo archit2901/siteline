@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "FeatureSpec": {
+      "description": "Declarative recipe that geo-service runs to turn a dataset into one value per H3 cell.\n\nNever contains code. Filtering uses filter_column/filter_values only.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "enum": [
+                "csv",
+                "json",
+                "geojson",
+                "socrata",
+                "arcgis",
+                "census_api",
+                "gtfs"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Format"
+        },
+        "geo_level": {
+          "enum": [
+            "tract",
+            "zip",
+            "county",
+            "point"
+          ],
+          "title": "Geo Level",
+          "type": "string"
+        },
+        "geo_key": {
+          "title": "Geo Key",
+          "type": "string"
+        },
+        "value_column": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value Column"
+        },
+        "filter_column": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filter Column"
+        },
+        "filter_values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Filter Values",
+          "type": "array"
+        },
+        "agg": {
+          "enum": [
+            "sum",
+            "mean",
+            "density",
+            "count_within",
+            "distance_to_nearest"
+          ],
+          "title": "Agg",
+          "type": "string"
+        },
+        "radius_min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radius Min"
+        },
+        "direction": {
+          "enum": [
+            1,
+            -1
+          ],
+          "title": "Direction",
+          "type": "integer"
+        },
+        "unit": {
+          "default": "",
+          "title": "Unit",
+          "type": "string"
+        },
+        "layer": {
+          "default": "agent_found",
+          "enum": [
+            "stock_base",
+            "stock_pack",
+            "agent_found"
+          ],
+          "title": "Layer",
+          "type": "string"
+        },
+        "provenance_url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Provenance Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "source_id",
+        "geo_level",
+        "geo_key",
+        "agg",
+        "direction",
+        "provenance_url"
+      ],
+      "title": "FeatureSpec",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "region_id": {
+      "default": "hou",
+      "title": "Region Id",
+      "type": "string"
+    },
+    "spec": {
+      "$ref": "#/$defs/FeatureSpec"
+    }
+  },
+  "required": [
+    "spec"
+  ],
+  "title": "IngestRequest",
+  "type": "object"
+}

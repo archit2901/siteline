@@ -1,0 +1,346 @@
+{
+  "$defs": {
+    "DatasetCandidate": {
+      "description": "Proposed by a dataset-scout for one factor.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "factor_id": {
+          "title": "Factor Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "publisher": {
+          "title": "Publisher",
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "csv",
+            "json",
+            "geojson",
+            "socrata",
+            "arcgis",
+            "census_api",
+            "gtfs"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "geo_level": {
+          "enum": [
+            "tract",
+            "zip",
+            "county",
+            "point"
+          ],
+          "title": "Geo Level",
+          "type": "string"
+        },
+        "why": {
+          "title": "Why",
+          "type": "string"
+        },
+        "status": {
+          "default": "proposed",
+          "enum": [
+            "proposed",
+            "valid",
+            "invalid",
+            "approved",
+            "found_not_ingested"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "factor_id",
+        "title",
+        "url",
+        "publisher",
+        "format",
+        "geo_level",
+        "why"
+      ],
+      "title": "DatasetCandidate",
+      "type": "object"
+    },
+    "Factor": {
+      "description": "Written by the factor-analyst. One thing that makes a new office succeed for this practice.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "factor": {
+          "title": "Factor",
+          "type": "string"
+        },
+        "why": {
+          "title": "Why",
+          "type": "string"
+        },
+        "proxy": {
+          "title": "Proxy",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            1,
+            -1
+          ],
+          "title": "Direction",
+          "type": "integer"
+        },
+        "priority": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Priority",
+          "type": "string"
+        },
+        "stock_covered": {
+          "default": false,
+          "title": "Stock Covered",
+          "type": "boolean"
+        },
+        "feature_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Feature Id"
+        },
+        "status": {
+          "default": "searching",
+          "enum": [
+            "covered",
+            "searching",
+            "found",
+            "proxy",
+            "dropped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "caveat": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caveat"
+        }
+      },
+      "required": [
+        "id",
+        "factor",
+        "why",
+        "proxy",
+        "direction",
+        "priority"
+      ],
+      "title": "Factor",
+      "type": "object"
+    },
+    "ScoringSpec": {
+      "properties": {
+        "weights": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Weights",
+          "type": "object"
+        },
+        "directions": {
+          "additionalProperties": {
+            "enum": [
+              1,
+              -1
+            ],
+            "type": "integer"
+          },
+          "title": "Directions",
+          "type": "object"
+        },
+        "beta": {
+          "default": 2.0,
+          "title": "Beta",
+          "type": "number"
+        },
+        "alpha": {
+          "default": 0.7,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "rationale": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Rationale",
+          "type": "object"
+        }
+      },
+      "required": [
+        "weights"
+      ],
+      "title": "ScoringSpec",
+      "type": "object"
+    },
+    "ValidationReport": {
+      "description": "geo POST /features/ingest response.",
+      "properties": {
+        "feature_id": {
+          "title": "Feature Id",
+          "type": "string"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "coverage_pct": {
+          "title": "Coverage Pct",
+          "type": "number"
+        },
+        "null_pct": {
+          "title": "Null Pct",
+          "type": "number"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        },
+        "mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean"
+        },
+        "rows_read": {
+          "default": 0,
+          "title": "Rows Read",
+          "type": "integer"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "feature_id",
+        "ok",
+        "coverage_pct",
+        "null_pct"
+      ],
+      "title": "ValidationReport",
+      "type": "object"
+    }
+  },
+  "description": "Payload of an \"approval\" RunEvent.",
+  "properties": {
+    "approval_id": {
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "data_plan",
+        "weights"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "factors": {
+      "items": {
+        "$ref": "#/$defs/Factor"
+      },
+      "title": "Factors",
+      "type": "array"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/DatasetCandidate"
+      },
+      "title": "Candidates",
+      "type": "array"
+    },
+    "reports": {
+      "items": {
+        "$ref": "#/$defs/ValidationReport"
+      },
+      "title": "Reports",
+      "type": "array"
+    },
+    "spec": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ScoringSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "approval_id",
+    "kind"
+  ],
+  "title": "ApprovalRequest",
+  "type": "object"
+}

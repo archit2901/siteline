@@ -1,0 +1,25 @@
+# StockPack (contracts/models.py). Owner: Jayan. Write pediatric_dentistry, dialysis and physical_therapy the same way.
+id: healthcare.orthopedics
+extends: healthcare.base
+specialty: orthopedics
+demand_age_bands: ["45-64", "65+"]
+# Annual orthopedic visits per person by age band. Fill from NCHS ambulatory care survey tables; 1.0 is used if empty.
+visit_rates: {}
+features:
+  - {id: pop_45plus_density, source: acs.B01001, value: "pop_45_64+pop_65plus", label: "Population 45+ density", agg: density, direction: 1, unit: "people/km2"}
+  - id: ortho_supply_20m
+    source: cms.doctors
+    label: "Orthopedic surgeons within 20 minutes"
+    filter_column: pri_spec
+    # verify the exact specialty string in the CMS file
+    filter_values: ["ORTHOPEDIC SURGERY"]
+    agg: count_within
+    radius_min: 20
+    direction: -1
+    unit: "surgeons"
+site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray"]}
+factor_hints:
+  - "musculoskeletal or arthritis burden"
+  - "sports participation and youth sports injuries"
+  - "primary care referral base"
+  - "parking and step-free access for patients on crutches"

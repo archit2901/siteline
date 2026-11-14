@@ -1,0 +1,20 @@
+# Catalog (contracts/models.py: Catalog, CatalogEntry). Owner: Jayan.
+# Every url must be the real official URL you opened. Never guess an endpoint.
+# Validate:  PYTHONPATH=. python -c "import yaml; from contracts.models import Catalog; Catalog(**yaml.safe_load(open('catalog/houston.yaml'))); print('ok')"
+region_id: hou
+entries: []
+# Shape of one entry (fill in real values, then move it into entries):
+# - id: cdc_places_tract
+#   title: "CDC PLACES census tract data"
+#   publisher: "Centers for Disease Control and Prevention"
+#   url: "https://<the real dataset page>"
+#   format: socrata
+#   geo_level: tract
+#   geo_key: "<tract id column>"
+#   measures: ["arthritis prevalence", "chronic kidney disease prevalence", "diabetes prevalence", "high blood pressure prevalence"]
+#   coverage: "national, tract level"
+#   connector: places.cdc
+#   notes: ""
+# Sources to cover: City of Houston open data, Harris / Fort Bend / Montgomery county portals, Houston METRO GTFS,
+# CDC PLACES, CMS (clinicians, dialysis), NPPES, OpenStreetMap, ACS language spoken at home (B16001 / C16001),
+# school directories, large employers.

@@ -1,0 +1,77 @@
+{
+  "$defs": {
+    "Constraints": {
+      "properties": {
+        "min_sqft": {
+          "default": 2000,
+          "title": "Min Sqft",
+          "type": "integer"
+        },
+        "max_sqft": {
+          "default": 8000,
+          "title": "Max Sqft",
+          "type": "integer"
+        },
+        "max_rent_psf": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Rent Psf"
+        },
+        "min_parking_per_1000sf": {
+          "default": 4.0,
+          "title": "Min Parking Per 1000Sf",
+          "type": "number"
+        },
+        "ground_floor": {
+          "default": true,
+          "title": "Ground Floor",
+          "type": "boolean"
+        },
+        "special_rooms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Special Rooms",
+          "type": "array"
+        }
+      },
+      "title": "Constraints",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "region_id": {
+      "default": "hou",
+      "title": "Region Id",
+      "type": "string"
+    },
+    "zones": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Zones",
+      "type": "array"
+    },
+    "constraints": {
+      "$ref": "#/$defs/Constraints"
+    },
+    "limit": {
+      "default": 40,
+      "title": "Limit",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "zones",
+    "constraints"
+  ],
+  "title": "SiteSearchRequest",
+  "type": "object"
+}

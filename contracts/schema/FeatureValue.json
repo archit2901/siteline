@@ -1,0 +1,31 @@
+{
+  "description": "geo GET /features/{feature_id}/value?h3=... (used by verify_claims).",
+  "properties": {
+    "feature_id": {
+      "title": "Feature Id",
+      "type": "string"
+    },
+    "h3": {
+      "title": "H3",
+      "type": "string"
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Value"
+    }
+  },
+  "required": [
+    "feature_id",
+    "h3",
+    "value"
+  ],
+  "title": "FeatureValue",
+  "type": "object"
+}

@@ -1,0 +1,20 @@
+# secrets
+.env
+.env.local
+# data and run output (never commit raw or licensed data)
+data/
+runs/
+*.duckdb
+*.parquet
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+# node
+node_modules/
+web/dist/
+web/public/fixtures/
+# claude code personal settings
+.claude/settings.local.json
+.DS_Store

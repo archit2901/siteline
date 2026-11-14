@@ -1,0 +1,28 @@
+{
+  "properties": {
+    "site_id": {
+      "title": "Site Id",
+      "type": "string"
+    },
+    "net_new_patients": {
+      "title": "Net New Patients",
+      "type": "number"
+    },
+    "captured_patients": {
+      "title": "Captured Patients",
+      "type": "number"
+    },
+    "cannibalized_patients": {
+      "title": "Cannibalized Patients",
+      "type": "number"
+    }
+  },
+  "required": [
+    "site_id",
+    "net_new_patients",
+    "captured_patients",
+    "cannibalized_patients"
+  ],
+  "title": "HuffResult",
+  "type": "object"
+}

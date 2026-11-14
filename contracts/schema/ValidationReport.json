@@ -1,0 +1,77 @@
+{
+  "description": "geo POST /features/ingest response.",
+  "properties": {
+    "feature_id": {
+      "title": "Feature Id",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "coverage_pct": {
+      "title": "Coverage Pct",
+      "type": "number"
+    },
+    "null_pct": {
+      "title": "Null Pct",
+      "type": "number"
+    },
+    "min": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Min"
+    },
+    "max": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max"
+    },
+    "mean": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mean"
+    },
+    "rows_read": {
+      "default": 0,
+      "title": "Rows Read",
+      "type": "integer"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "feature_id",
+    "ok",
+    "coverage_pct",
+    "null_pct"
+  ],
+  "title": "ValidationReport",
+  "type": "object"
+}

@@ -1,0 +1,21 @@
+{
+  "properties": {
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "text",
+    "evidence_refs"
+  ],
+  "title": "Claim",
+  "type": "object"
+}

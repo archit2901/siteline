@@ -1,0 +1,24 @@
+# StockPack (contracts/models.py). Loaded for every practice; specialty packs extend it. Owner: Jayan.
+# Feature ids must match the stock feature ids built by services/geo (see services/geo/CLAUDE.md).
+id: healthcare.base
+demand_age_bands: ["0-17", "18-44", "45-64", "65+"]
+visit_rates: {}
+features:
+  - {id: pop_total_density, source: acs.B01001, value: pop_total, label: "Population density", agg: density, direction: 1, unit: "people/km2"}
+  - {id: pop_growth, source: acs.B01001, value: pop_growth, label: "Population growth", agg: mean, direction: 1, unit: "%"}
+  - {id: income_median, source: acs.B19013, value: income_median, label: "Median household income", agg: mean, direction: 1, unit: "USD"}
+  - {id: ins_medicare_share, source: acs.B27010, value: ins_medicare_share, label: "Share with Medicare", agg: mean, direction: 1, unit: "share"}
+  - {id: ins_medicaid_share, source: acs.B27010, value: ins_medicaid_share, label: "Share with Medicaid", agg: mean, direction: 1, unit: "share"}
+  - {id: ins_private_share, source: acs.B27010, value: ins_private_share, label: "Share with private insurance", agg: mean, direction: 1, unit: "share"}
+  - id: primary_care_15m
+    source: cms.doctors
+    label: "Primary care clinicians within 15 minutes (referral base)"
+    filter_column: pri_spec
+    # verify the exact specialty strings in the CMS file
+    filter_values: ["FAMILY PRACTICE", "INTERNAL MEDICINE", "GENERAL PRACTICE"]
+    agg: count_within
+    radius_min: 15
+    direction: 1
+    unit: "clinicians"
+site_rules: {}
+factor_hints: []

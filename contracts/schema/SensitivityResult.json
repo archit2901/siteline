@@ -1,0 +1,18 @@
+{
+  "properties": {
+    "site_id": {
+      "title": "Site Id",
+      "type": "string"
+    },
+    "stability": {
+      "title": "Stability",
+      "type": "number"
+    }
+  },
+  "required": [
+    "site_id",
+    "stability"
+  ],
+  "title": "SensitivityResult",
+  "type": "object"
+}

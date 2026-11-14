@@ -1,0 +1,49 @@
+{
+  "properties": {
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "seq": {
+      "title": "Seq",
+      "type": "integer"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "agent": {
+      "title": "Agent",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "todo",
+        "factor",
+        "tool_call",
+        "tool_result",
+        "file",
+        "approval",
+        "done",
+        "error"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "title": "Payload",
+      "type": "object"
+    }
+  },
+  "required": [
+    "run_id",
+    "seq",
+    "ts",
+    "agent",
+    "type"
+  ],
+  "title": "RunEvent",
+  "type": "object"
+}

@@ -1,0 +1,92 @@
+{
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "source": {
+      "title": "Source",
+      "type": "string"
+    },
+    "label": {
+      "default": "",
+      "title": "Label",
+      "type": "string"
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Value"
+    },
+    "filter_column": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Filter Column"
+    },
+    "filter_values": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Filter Values",
+      "type": "array"
+    },
+    "agg": {
+      "enum": [
+        "sum",
+        "mean",
+        "density",
+        "count_within",
+        "distance_to_nearest"
+      ],
+      "title": "Agg",
+      "type": "string"
+    },
+    "radius_min": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Radius Min"
+    },
+    "direction": {
+      "enum": [
+        1,
+        -1
+      ],
+      "title": "Direction",
+      "type": "integer"
+    },
+    "unit": {
+      "default": "",
+      "title": "Unit",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "source",
+    "agg",
+    "direction"
+  ],
+  "title": "PackFeature",
+  "type": "object"
+}

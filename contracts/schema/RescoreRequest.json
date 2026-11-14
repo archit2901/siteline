@@ -1,0 +1,58 @@
+{
+  "$defs": {
+    "ScoringSpec": {
+      "properties": {
+        "weights": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Weights",
+          "type": "object"
+        },
+        "directions": {
+          "additionalProperties": {
+            "enum": [
+              1,
+              -1
+            ],
+            "type": "integer"
+          },
+          "title": "Directions",
+          "type": "object"
+        },
+        "beta": {
+          "default": 2.0,
+          "title": "Beta",
+          "type": "number"
+        },
+        "alpha": {
+          "default": 0.7,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "rationale": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Rationale",
+          "type": "object"
+        }
+      },
+      "required": [
+        "weights"
+      ],
+      "title": "ScoringSpec",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "spec": {
+      "$ref": "#/$defs/ScoringSpec"
+    }
+  },
+  "required": [
+    "spec"
+  ],
+  "title": "RescoreRequest",
+  "type": "object"
+}

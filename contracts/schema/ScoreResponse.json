@@ -1,0 +1,61 @@
+{
+  "$defs": {
+    "ZoneScore": {
+      "properties": {
+        "h3": {
+          "title": "H3",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "demand": {
+          "title": "Demand",
+          "type": "number"
+        },
+        "contributions": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Contributions",
+          "type": "object"
+        }
+      },
+      "required": [
+        "h3",
+        "score",
+        "demand"
+      ],
+      "title": "ZoneScore",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "region_id": {
+      "title": "Region Id",
+      "type": "string"
+    },
+    "zones": {
+      "items": {
+        "$ref": "#/$defs/ZoneScore"
+      },
+      "title": "Zones",
+      "type": "array"
+    },
+    "top": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Top",
+      "type": "array"
+    }
+  },
+  "required": [
+    "region_id",
+    "zones",
+    "top"
+  ],
+  "title": "ScoreResponse",
+  "type": "object"
+}

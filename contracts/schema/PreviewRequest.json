@@ -1,0 +1,42 @@
+{
+  "properties": {
+    "url": {
+      "format": "uri",
+      "maxLength": 2083,
+      "minLength": 1,
+      "title": "Url",
+      "type": "string"
+    },
+    "format": {
+      "anyOf": [
+        {
+          "enum": [
+            "csv",
+            "json",
+            "geojson",
+            "socrata",
+            "arcgis",
+            "census_api",
+            "gtfs"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Format"
+    },
+    "region_id": {
+      "default": "hou",
+      "title": "Region Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "url"
+  ],
+  "title": "PreviewRequest",
+  "type": "object"
+}

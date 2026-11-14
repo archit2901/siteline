@@ -1,0 +1,16 @@
+# EvalCase (contracts/models.py). Draft from the design doc. Owner: Jayan.
+id: physical_therapy
+profile:
+  name: "Example Physical Therapy Clinic"
+  specialty: physical_therapy
+  services: ["post-surgical rehab", "sports rehab", "work injury rehab"]
+  payers_accepted: [commercial, workers_comp]
+  languages: [English]
+  existing_offices: []
+  constraints: {min_sqft: 2500, max_sqft: 5000, min_parking_per_1000sf: 4, ground_floor: true}
+  free_text: "Most referrals come from orthopedic surgeons; many patients are working adults."
+  stock_pack: healthcare.physical_therapy
+must_include: ["orthopedic surgeons nearby as referral source", "active adults", "gyms or sports facilities", "large employers"]
+must_not_include: []
+sign_checks: {"orthopedic surgeons nearby as referral source": 1}
+notes: "Same data as the orthopedic group's competitor feature, opposite sign."

@@ -1,0 +1,30 @@
+{
+  "properties": {
+    "h3": {
+      "title": "H3",
+      "type": "string"
+    },
+    "score": {
+      "title": "Score",
+      "type": "number"
+    },
+    "demand": {
+      "title": "Demand",
+      "type": "number"
+    },
+    "contributions": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Contributions",
+      "type": "object"
+    }
+  },
+  "required": [
+    "h3",
+    "score",
+    "demand"
+  ],
+  "title": "ZoneScore",
+  "type": "object"
+}

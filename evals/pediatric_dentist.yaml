@@ -1,0 +1,16 @@
+# EvalCase (contracts/models.py). Draft from the design doc. Owner: Jayan.
+id: pediatric_dentist
+profile:
+  name: "Example Pediatric Dental Practice"
+  specialty: pediatric_dentistry
+  services: ["pediatric dental exams", "cleanings", "sealants", "fillings"]
+  payers_accepted: [medicaid, chip, commercial]
+  languages: [English, Spanish]
+  existing_offices:
+    - {name: "Office A (Gulfton area)", lat: 29.721, lon: -95.476, clinicians: 2}
+  constraints: {min_sqft: 2000, max_sqft: 4500, min_parking_per_1000sf: 3, ground_floor: true}
+  free_text: "Most families are on Medicaid or CHIP; many parents prefer Spanish and some don't have a car."
+  stock_pack: healthcare.pediatric_dentistry
+must_include: ["children", "Medicaid or CHIP families", "Spanish-speaking households", "schools", "bus or transit access", "pediatric dentist competition"]
+must_not_include: []
+sign_checks: {"pediatric dentist competition": -1}

@@ -1,0 +1,575 @@
+{
+  "$defs": {
+    "Claim": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "evidence_refs"
+      ],
+      "title": "Claim",
+      "type": "object"
+    },
+    "Constraints": {
+      "properties": {
+        "min_sqft": {
+          "default": 2000,
+          "title": "Min Sqft",
+          "type": "integer"
+        },
+        "max_sqft": {
+          "default": 8000,
+          "title": "Max Sqft",
+          "type": "integer"
+        },
+        "max_rent_psf": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Rent Psf"
+        },
+        "min_parking_per_1000sf": {
+          "default": 4.0,
+          "title": "Min Parking Per 1000Sf",
+          "type": "number"
+        },
+        "ground_floor": {
+          "default": true,
+          "title": "Ground Floor",
+          "type": "boolean"
+        },
+        "special_rooms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Special Rooms",
+          "type": "array"
+        }
+      },
+      "title": "Constraints",
+      "type": "object"
+    },
+    "Factor": {
+      "description": "Written by the factor-analyst. One thing that makes a new office succeed for this practice.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "factor": {
+          "title": "Factor",
+          "type": "string"
+        },
+        "why": {
+          "title": "Why",
+          "type": "string"
+        },
+        "proxy": {
+          "title": "Proxy",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            1,
+            -1
+          ],
+          "title": "Direction",
+          "type": "integer"
+        },
+        "priority": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Priority",
+          "type": "string"
+        },
+        "stock_covered": {
+          "default": false,
+          "title": "Stock Covered",
+          "type": "boolean"
+        },
+        "feature_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Feature Id"
+        },
+        "status": {
+          "default": "searching",
+          "enum": [
+            "covered",
+            "searching",
+            "found",
+            "proxy",
+            "dropped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "caveat": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caveat"
+        }
+      },
+      "required": [
+        "id",
+        "factor",
+        "why",
+        "proxy",
+        "direction",
+        "priority"
+      ],
+      "title": "Factor",
+      "type": "object"
+    },
+    "Office": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Address"
+        },
+        "lat": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lat"
+        },
+        "lon": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lon"
+        },
+        "clinicians": {
+          "default": 1,
+          "title": "Clinicians",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Office",
+      "type": "object"
+    },
+    "PracticeProfile": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "specialty": {
+          "title": "Specialty",
+          "type": "string"
+        },
+        "services": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Services",
+          "type": "array"
+        },
+        "payers_accepted": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Payers Accepted",
+          "type": "array"
+        },
+        "patient_mix": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Patient Mix",
+          "type": "object"
+        },
+        "languages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array"
+        },
+        "existing_offices": {
+          "items": {
+            "$ref": "#/$defs/Office"
+          },
+          "title": "Existing Offices",
+          "type": "array"
+        },
+        "constraints": {
+          "$ref": "#/$defs/Constraints"
+        },
+        "free_text": {
+          "default": "",
+          "title": "Free Text",
+          "type": "string"
+        },
+        "stock_pack": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stock Pack"
+        },
+        "region_id": {
+          "default": "hou",
+          "title": "Region Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "specialty"
+      ],
+      "title": "PracticeProfile",
+      "type": "object"
+    },
+    "Recommendation": {
+      "properties": {
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "site": {
+          "$ref": "#/$defs/SiteCandidate"
+        },
+        "net_new_patients": {
+          "title": "Net New Patients",
+          "type": "number"
+        },
+        "zone_score": {
+          "title": "Zone Score",
+          "type": "number"
+        },
+        "site_quality": {
+          "title": "Site Quality",
+          "type": "number"
+        },
+        "final_score": {
+          "title": "Final Score",
+          "type": "number"
+        },
+        "stability": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stability"
+        },
+        "justification": {
+          "items": {
+            "$ref": "#/$defs/Claim"
+          },
+          "title": "Justification",
+          "type": "array"
+        },
+        "caveats": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Caveats",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rank",
+        "site",
+        "net_new_patients",
+        "zone_score",
+        "site_quality",
+        "final_score",
+        "justification"
+      ],
+      "title": "Recommendation",
+      "type": "object"
+    },
+    "SiteCandidate": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "address": {
+          "title": "Address",
+          "type": "string"
+        },
+        "lat": {
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "title": "Lon",
+          "type": "number"
+        },
+        "h3": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "H3"
+        },
+        "submarket": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Submarket"
+        },
+        "sqft": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sqft"
+        },
+        "rent_psf": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rent Psf"
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Floor"
+        },
+        "building_class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Building Class"
+        },
+        "available": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Available"
+        },
+        "parking_spaces": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parking Spaces"
+        },
+        "parking_estimated": {
+          "default": false,
+          "title": "Parking Estimated",
+          "type": "boolean"
+        },
+        "matterport_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Matterport Id"
+        },
+        "vexcel_image_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vexcel Image Ref"
+        },
+        "source": {
+          "default": "costar",
+          "enum": [
+            "costar",
+            "fixture"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "checks": {
+          "additionalProperties": true,
+          "title": "Checks",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "address",
+        "lat",
+        "lon"
+      ],
+      "title": "SiteCandidate",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "profile": {
+      "$ref": "#/$defs/PracticeProfile"
+    },
+    "factors": {
+      "items": {
+        "$ref": "#/$defs/Factor"
+      },
+      "title": "Factors",
+      "type": "array"
+    },
+    "recommendations": {
+      "items": {
+        "$ref": "#/$defs/Recommendation"
+      },
+      "title": "Recommendations",
+      "type": "array"
+    },
+    "caveats": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Caveats",
+      "type": "array"
+    },
+    "sources": {
+      "additionalProperties": {
+        "format": "uri",
+        "maxLength": 2083,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Sources",
+      "type": "object"
+    },
+    "verified": {
+      "default": false,
+      "title": "Verified",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "run_id",
+    "profile",
+    "factors",
+    "recommendations"
+  ],
+  "title": "Report",
+  "type": "object"
+}

@@ -1,0 +1,15 @@
+# EvalCase (contracts/models.py). Draft from the design doc. Owner: Jayan.
+id: dialysis_clinic
+profile:
+  name: "Example Dialysis Clinic"
+  specialty: dialysis
+  services: ["in-center hemodialysis"]
+  payers_accepted: [medicare, medicaid, commercial]
+  languages: [English, Spanish]
+  existing_offices: []
+  constraints: {min_sqft: 6000, max_sqft: 12000, min_parking_per_1000sf: 4, ground_floor: true, special_rooms: ["dialysis stations"]}
+  free_text: "Patients come three times a week; many are older and some rely on buses or rides."
+  stock_pack: healthcare.dialysis
+must_include: ["kidney disease", "diabetes", "high blood pressure", "short travel time or transit", "existing dialysis facilities"]
+must_not_include: []
+sign_checks: {"existing dialysis facilities": -1}

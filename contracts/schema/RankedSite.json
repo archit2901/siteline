@@ -1,0 +1,67 @@
+{
+  "properties": {
+    "site_id": {
+      "title": "Site Id",
+      "type": "string"
+    },
+    "net_new_patients": {
+      "title": "Net New Patients",
+      "type": "number"
+    },
+    "captured_patients": {
+      "title": "Captured Patients",
+      "type": "number"
+    },
+    "cannibalized_patients": {
+      "title": "Cannibalized Patients",
+      "type": "number"
+    },
+    "zone_score": {
+      "title": "Zone Score",
+      "type": "number"
+    },
+    "site_quality": {
+      "title": "Site Quality",
+      "type": "number"
+    },
+    "final_score": {
+      "title": "Final Score",
+      "type": "number"
+    },
+    "excluded_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Excluded Reason"
+    },
+    "stability": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Stability"
+    }
+  },
+  "required": [
+    "site_id",
+    "net_new_patients",
+    "captured_patients",
+    "cannibalized_patients",
+    "zone_score",
+    "site_quality",
+    "final_score"
+  ],
+  "title": "RankedSite",
+  "type": "object"
+}

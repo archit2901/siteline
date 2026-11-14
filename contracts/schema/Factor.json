@@ -1,0 +1,89 @@
+{
+  "description": "Written by the factor-analyst. One thing that makes a new office succeed for this practice.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "factor": {
+      "title": "Factor",
+      "type": "string"
+    },
+    "why": {
+      "title": "Why",
+      "type": "string"
+    },
+    "proxy": {
+      "title": "Proxy",
+      "type": "string"
+    },
+    "direction": {
+      "enum": [
+        1,
+        -1
+      ],
+      "title": "Direction",
+      "type": "integer"
+    },
+    "priority": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Priority",
+      "type": "string"
+    },
+    "stock_covered": {
+      "default": false,
+      "title": "Stock Covered",
+      "type": "boolean"
+    },
+    "feature_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Feature Id"
+    },
+    "status": {
+      "default": "searching",
+      "enum": [
+        "covered",
+        "searching",
+        "found",
+        "proxy",
+        "dropped"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "caveat": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Caveat"
+    }
+  },
+  "required": [
+    "id",
+    "factor",
+    "why",
+    "proxy",
+    "direction",
+    "priority"
+  ],
+  "title": "Factor",
+  "type": "object"
+}

@@ -1,0 +1,28 @@
+{
+  "properties": {
+    "ok": {
+      "default": true,
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "service": {
+      "title": "Service",
+      "type": "string"
+    },
+    "fixture_mode": {
+      "title": "Fixture Mode",
+      "type": "boolean"
+    },
+    "contract_version": {
+      "default": "1.0.0",
+      "title": "Contract Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "service",
+    "fixture_mode"
+  ],
+  "title": "Health",
+  "type": "object"
+}

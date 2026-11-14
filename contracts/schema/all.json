@@ -1,0 +1,2228 @@
+{
+  "$defs": {
+    "ApprovalRequest": {
+      "description": "Payload of an \"approval\" RunEvent.",
+      "properties": {
+        "approval_id": {
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "data_plan",
+            "weights"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "factors": {
+          "items": {
+            "$ref": "#/$defs/Factor"
+          },
+          "title": "Factors",
+          "type": "array"
+        },
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/DatasetCandidate"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "reports": {
+          "items": {
+            "$ref": "#/$defs/ValidationReport"
+          },
+          "title": "Reports",
+          "type": "array"
+        },
+        "spec": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoringSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "approval_id",
+        "kind"
+      ],
+      "title": "ApprovalRequest",
+      "type": "object"
+    },
+    "ApproveRequest": {
+      "properties": {
+        "approval_id": {
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "approve",
+            "edit",
+            "reject"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "edited_spec": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoringSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kept_factor_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kept Factor Ids"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "approval_id",
+        "decision"
+      ],
+      "title": "ApproveRequest",
+      "type": "object"
+    },
+    "Catalog": {
+      "properties": {
+        "region_id": {
+          "title": "Region Id",
+          "type": "string"
+        },
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/CatalogEntry"
+          },
+          "title": "Entries",
+          "type": "array"
+        }
+      },
+      "required": [
+        "region_id"
+      ],
+      "title": "Catalog",
+      "type": "object"
+    },
+    "CatalogEntry": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "publisher": {
+          "title": "Publisher",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "csv",
+            "json",
+            "geojson",
+            "socrata",
+            "arcgis",
+            "census_api",
+            "gtfs"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "geo_level": {
+          "enum": [
+            "tract",
+            "zip",
+            "county",
+            "point"
+          ],
+          "title": "Geo Level",
+          "type": "string"
+        },
+        "geo_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geo Key"
+        },
+        "measures": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Measures",
+          "type": "array"
+        },
+        "coverage": {
+          "title": "Coverage",
+          "type": "string"
+        },
+        "connector": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Connector"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "publisher",
+        "url",
+        "format",
+        "geo_level",
+        "measures",
+        "coverage"
+      ],
+      "title": "CatalogEntry",
+      "type": "object"
+    },
+    "Claim": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "evidence_refs"
+      ],
+      "title": "Claim",
+      "type": "object"
+    },
+    "Constraints": {
+      "properties": {
+        "min_sqft": {
+          "default": 2000,
+          "title": "Min Sqft",
+          "type": "integer"
+        },
+        "max_sqft": {
+          "default": 8000,
+          "title": "Max Sqft",
+          "type": "integer"
+        },
+        "max_rent_psf": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Rent Psf"
+        },
+        "min_parking_per_1000sf": {
+          "default": 4.0,
+          "title": "Min Parking Per 1000Sf",
+          "type": "number"
+        },
+        "ground_floor": {
+          "default": true,
+          "title": "Ground Floor",
+          "type": "boolean"
+        },
+        "special_rooms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Special Rooms",
+          "type": "array"
+        }
+      },
+      "title": "Constraints",
+      "type": "object"
+    },
+    "DatasetCandidate": {
+      "description": "Proposed by a dataset-scout for one factor.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "factor_id": {
+          "title": "Factor Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "publisher": {
+          "title": "Publisher",
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "csv",
+            "json",
+            "geojson",
+            "socrata",
+            "arcgis",
+            "census_api",
+            "gtfs"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "geo_level": {
+          "enum": [
+            "tract",
+            "zip",
+            "county",
+            "point"
+          ],
+          "title": "Geo Level",
+          "type": "string"
+        },
+        "why": {
+          "title": "Why",
+          "type": "string"
+        },
+        "status": {
+          "default": "proposed",
+          "enum": [
+            "proposed",
+            "valid",
+            "invalid",
+            "approved",
+            "found_not_ingested"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "factor_id",
+        "title",
+        "url",
+        "publisher",
+        "format",
+        "geo_level",
+        "why"
+      ],
+      "title": "DatasetCandidate",
+      "type": "object"
+    },
+    "DatasetPreview": {
+      "description": "geo POST /features/profile response.",
+      "properties": {
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "csv",
+            "json",
+            "geojson",
+            "socrata",
+            "arcgis",
+            "census_api",
+            "gtfs"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Columns",
+          "type": "array"
+        },
+        "sample_rows": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Sample Rows",
+          "type": "array"
+        },
+        "row_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Row Count"
+        },
+        "geo_key_guess": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geo Key Guess"
+        },
+        "geo_level_guess": {
+          "anyOf": [
+            {
+              "enum": [
+                "tract",
+                "zip",
+                "county",
+                "point"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geo Level Guess"
+        },
+        "ingestible": {
+          "title": "Ingestible",
+          "type": "boolean"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "url",
+        "format",
+        "columns",
+        "ingestible"
+      ],
+      "title": "DatasetPreview",
+      "type": "object"
+    },
+    "EvalCase": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/$defs/PracticeProfile"
+        },
+        "must_include": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Must Include",
+          "type": "array"
+        },
+        "must_not_include": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Must Not Include",
+          "type": "array"
+        },
+        "sign_checks": {
+          "additionalProperties": {
+            "enum": [
+              1,
+              -1
+            ],
+            "type": "integer"
+          },
+          "title": "Sign Checks",
+          "type": "object"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "profile",
+        "must_include"
+      ],
+      "title": "EvalCase",
+      "type": "object"
+    },
+    "Factor": {
+      "description": "Written by the factor-analyst. One thing that makes a new office succeed for this practice.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "factor": {
+          "title": "Factor",
+          "type": "string"
+        },
+        "why": {
+          "title": "Why",
+          "type": "string"
+        },
+        "proxy": {
+          "title": "Proxy",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            1,
+            -1
+          ],
+          "title": "Direction",
+          "type": "integer"
+        },
+        "priority": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Priority",
+          "type": "string"
+        },
+        "stock_covered": {
+          "default": false,
+          "title": "Stock Covered",
+          "type": "boolean"
+        },
+        "feature_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Feature Id"
+        },
+        "status": {
+          "default": "searching",
+          "enum": [
+            "covered",
+            "searching",
+            "found",
+            "proxy",
+            "dropped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "caveat": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caveat"
+        }
+      },
+      "required": [
+        "id",
+        "factor",
+        "why",
+        "proxy",
+        "direction",
+        "priority"
+      ],
+      "title": "Factor",
+      "type": "object"
+    },
+    "FeatureSpec": {
+      "description": "Declarative recipe that geo-service runs to turn a dataset into one value per H3 cell.\n\nNever contains code. Filtering uses filter_column/filter_values only.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "enum": [
+                "csv",
+                "json",
+                "geojson",
+                "socrata",
+                "arcgis",
+                "census_api",
+                "gtfs"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Format"
+        },
+        "geo_level": {
+          "enum": [
+            "tract",
+            "zip",
+            "county",
+            "point"
+          ],
+          "title": "Geo Level",
+          "type": "string"
+        },
+        "geo_key": {
+          "title": "Geo Key",
+          "type": "string"
+        },
+        "value_column": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value Column"
+        },
+        "filter_column": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filter Column"
+        },
+        "filter_values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Filter Values",
+          "type": "array"
+        },
+        "agg": {
+          "enum": [
+            "sum",
+            "mean",
+            "density",
+            "count_within",
+            "distance_to_nearest"
+          ],
+          "title": "Agg",
+          "type": "string"
+        },
+        "radius_min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radius Min"
+        },
+        "direction": {
+          "enum": [
+            1,
+            -1
+          ],
+          "title": "Direction",
+          "type": "integer"
+        },
+        "unit": {
+          "default": "",
+          "title": "Unit",
+          "type": "string"
+        },
+        "layer": {
+          "default": "agent_found",
+          "enum": [
+            "stock_base",
+            "stock_pack",
+            "agent_found"
+          ],
+          "title": "Layer",
+          "type": "string"
+        },
+        "provenance_url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Provenance Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "source_id",
+        "geo_level",
+        "geo_key",
+        "agg",
+        "direction",
+        "provenance_url"
+      ],
+      "title": "FeatureSpec",
+      "type": "object"
+    },
+    "FeatureValue": {
+      "description": "geo GET /features/{feature_id}/value?h3=... (used by verify_claims).",
+      "properties": {
+        "feature_id": {
+          "title": "Feature Id",
+          "type": "string"
+        },
+        "h3": {
+          "title": "H3",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "feature_id",
+        "h3",
+        "value"
+      ],
+      "title": "FeatureValue",
+      "type": "object"
+    },
+    "Health": {
+      "properties": {
+        "ok": {
+          "default": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "service": {
+          "title": "Service",
+          "type": "string"
+        },
+        "fixture_mode": {
+          "title": "Fixture Mode",
+          "type": "boolean"
+        },
+        "contract_version": {
+          "default": "1.0.0",
+          "title": "Contract Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "service",
+        "fixture_mode"
+      ],
+      "title": "Health",
+      "type": "object"
+    },
+    "HuffRequest": {
+      "properties": {
+        "region_id": {
+          "default": "hou",
+          "title": "Region Id",
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/$defs/PracticeProfile"
+        },
+        "spec": {
+          "$ref": "#/$defs/ScoringSpec"
+        },
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/SiteCandidate"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "competitor_feature": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Competitor Feature"
+        }
+      },
+      "required": [
+        "profile",
+        "spec",
+        "candidates"
+      ],
+      "title": "HuffRequest",
+      "type": "object"
+    },
+    "HuffResult": {
+      "properties": {
+        "site_id": {
+          "title": "Site Id",
+          "type": "string"
+        },
+        "net_new_patients": {
+          "title": "Net New Patients",
+          "type": "number"
+        },
+        "captured_patients": {
+          "title": "Captured Patients",
+          "type": "number"
+        },
+        "cannibalized_patients": {
+          "title": "Cannibalized Patients",
+          "type": "number"
+        }
+      },
+      "required": [
+        "site_id",
+        "net_new_patients",
+        "captured_patients",
+        "cannibalized_patients"
+      ],
+      "title": "HuffResult",
+      "type": "object"
+    },
+    "IngestRequest": {
+      "properties": {
+        "region_id": {
+          "default": "hou",
+          "title": "Region Id",
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/$defs/FeatureSpec"
+        }
+      },
+      "required": [
+        "spec"
+      ],
+      "title": "IngestRequest",
+      "type": "object"
+    },
+    "Office": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Address"
+        },
+        "lat": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lat"
+        },
+        "lon": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lon"
+        },
+        "clinicians": {
+          "default": 1,
+          "title": "Clinicians",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Office",
+      "type": "object"
+    },
+    "PackFeature": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "title": "Label",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "filter_column": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filter Column"
+        },
+        "filter_values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Filter Values",
+          "type": "array"
+        },
+        "agg": {
+          "enum": [
+            "sum",
+            "mean",
+            "density",
+            "count_within",
+            "distance_to_nearest"
+          ],
+          "title": "Agg",
+          "type": "string"
+        },
+        "radius_min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radius Min"
+        },
+        "direction": {
+          "enum": [
+            1,
+            -1
+          ],
+          "title": "Direction",
+          "type": "integer"
+        },
+        "unit": {
+          "default": "",
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "agg",
+        "direction"
+      ],
+      "title": "PackFeature",
+      "type": "object"
+    },
+    "PracticeProfile": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "specialty": {
+          "title": "Specialty",
+          "type": "string"
+        },
+        "services": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Services",
+          "type": "array"
+        },
+        "payers_accepted": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Payers Accepted",
+          "type": "array"
+        },
+        "patient_mix": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Patient Mix",
+          "type": "object"
+        },
+        "languages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array"
+        },
+        "existing_offices": {
+          "items": {
+            "$ref": "#/$defs/Office"
+          },
+          "title": "Existing Offices",
+          "type": "array"
+        },
+        "constraints": {
+          "$ref": "#/$defs/Constraints"
+        },
+        "free_text": {
+          "default": "",
+          "title": "Free Text",
+          "type": "string"
+        },
+        "stock_pack": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stock Pack"
+        },
+        "region_id": {
+          "default": "hou",
+          "title": "Region Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "specialty"
+      ],
+      "title": "PracticeProfile",
+      "type": "object"
+    },
+    "PreviewRequest": {
+      "properties": {
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "enum": [
+                "csv",
+                "json",
+                "geojson",
+                "socrata",
+                "arcgis",
+                "census_api",
+                "gtfs"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Format"
+        },
+        "region_id": {
+          "default": "hou",
+          "title": "Region Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "PreviewRequest",
+      "type": "object"
+    },
+    "RankRequest": {
+      "description": "geo POST /rank: net-new, site quality, final score and (optionally) stability in one call.",
+      "properties": {
+        "region_id": {
+          "default": "hou",
+          "title": "Region Id",
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/$defs/PracticeProfile"
+        },
+        "spec": {
+          "$ref": "#/$defs/ScoringSpec"
+        },
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/SiteCandidate"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "competitor_feature": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Competitor Feature"
+        },
+        "with_stability": {
+          "default": true,
+          "title": "With Stability",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "profile",
+        "spec",
+        "candidates"
+      ],
+      "title": "RankRequest",
+      "type": "object"
+    },
+    "RankedSite": {
+      "properties": {
+        "site_id": {
+          "title": "Site Id",
+          "type": "string"
+        },
+        "net_new_patients": {
+          "title": "Net New Patients",
+          "type": "number"
+        },
+        "captured_patients": {
+          "title": "Captured Patients",
+          "type": "number"
+        },
+        "cannibalized_patients": {
+          "title": "Cannibalized Patients",
+          "type": "number"
+        },
+        "zone_score": {
+          "title": "Zone Score",
+          "type": "number"
+        },
+        "site_quality": {
+          "title": "Site Quality",
+          "type": "number"
+        },
+        "final_score": {
+          "title": "Final Score",
+          "type": "number"
+        },
+        "excluded_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Excluded Reason"
+        },
+        "stability": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stability"
+        }
+      },
+      "required": [
+        "site_id",
+        "net_new_patients",
+        "captured_patients",
+        "cannibalized_patients",
+        "zone_score",
+        "site_quality",
+        "final_score"
+      ],
+      "title": "RankedSite",
+      "type": "object"
+    },
+    "Recommendation": {
+      "properties": {
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "site": {
+          "$ref": "#/$defs/SiteCandidate"
+        },
+        "net_new_patients": {
+          "title": "Net New Patients",
+          "type": "number"
+        },
+        "zone_score": {
+          "title": "Zone Score",
+          "type": "number"
+        },
+        "site_quality": {
+          "title": "Site Quality",
+          "type": "number"
+        },
+        "final_score": {
+          "title": "Final Score",
+          "type": "number"
+        },
+        "stability": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stability"
+        },
+        "justification": {
+          "items": {
+            "$ref": "#/$defs/Claim"
+          },
+          "title": "Justification",
+          "type": "array"
+        },
+        "caveats": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Caveats",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rank",
+        "site",
+        "net_new_patients",
+        "zone_score",
+        "site_quality",
+        "final_score",
+        "justification"
+      ],
+      "title": "Recommendation",
+      "type": "object"
+    },
+    "RegionFeature": {
+      "description": "A feature already available in a region's feature store.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "unit": {
+          "default": "",
+          "title": "Unit",
+          "type": "string"
+        },
+        "layer": {
+          "enum": [
+            "stock_base",
+            "stock_pack",
+            "agent_found"
+          ],
+          "title": "Layer",
+          "type": "string"
+        },
+        "provenance_url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Provenance Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "source",
+        "layer",
+        "provenance_url"
+      ],
+      "title": "RegionFeature",
+      "type": "object"
+    },
+    "Report": {
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/$defs/PracticeProfile"
+        },
+        "factors": {
+          "items": {
+            "$ref": "#/$defs/Factor"
+          },
+          "title": "Factors",
+          "type": "array"
+        },
+        "recommendations": {
+          "items": {
+            "$ref": "#/$defs/Recommendation"
+          },
+          "title": "Recommendations",
+          "type": "array"
+        },
+        "caveats": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Caveats",
+          "type": "array"
+        },
+        "sources": {
+          "additionalProperties": {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "object"
+        },
+        "verified": {
+          "default": false,
+          "title": "Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "run_id",
+        "profile",
+        "factors",
+        "recommendations"
+      ],
+      "title": "Report",
+      "type": "object"
+    },
+    "RescoreRequest": {
+      "properties": {
+        "spec": {
+          "$ref": "#/$defs/ScoringSpec"
+        }
+      },
+      "required": [
+        "spec"
+      ],
+      "title": "RescoreRequest",
+      "type": "object"
+    },
+    "RescoreResponse": {
+      "properties": {
+        "zones": {
+          "$ref": "#/$defs/ScoreResponse"
+        },
+        "recommendations": {
+          "items": {
+            "$ref": "#/$defs/Recommendation"
+          },
+          "title": "Recommendations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "zones",
+        "recommendations"
+      ],
+      "title": "RescoreResponse",
+      "type": "object"
+    },
+    "RunCreate": {
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/PracticeProfile"
+        },
+        "region_id": {
+          "default": "hou",
+          "title": "Region Id",
+          "type": "string"
+        },
+        "mode": {
+          "default": "live",
+          "enum": [
+            "live",
+            "replay"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "golden": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Golden"
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "title": "RunCreate",
+      "type": "object"
+    },
+    "RunCreated": {
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "title": "RunCreated",
+      "type": "object"
+    },
+    "RunEvent": {
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "agent": {
+          "title": "Agent",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "todo",
+            "factor",
+            "tool_call",
+            "tool_result",
+            "file",
+            "approval",
+            "done",
+            "error"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "additionalProperties": true,
+          "title": "Payload",
+          "type": "object"
+        }
+      },
+      "required": [
+        "run_id",
+        "seq",
+        "ts",
+        "agent",
+        "type"
+      ],
+      "title": "RunEvent",
+      "type": "object"
+    },
+    "ScoreRequest": {
+      "properties": {
+        "region_id": {
+          "default": "hou",
+          "title": "Region Id",
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/$defs/PracticeProfile"
+        },
+        "spec": {
+          "$ref": "#/$defs/ScoringSpec"
+        },
+        "top_n": {
+          "default": 15,
+          "title": "Top N",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "profile",
+        "spec"
+      ],
+      "title": "ScoreRequest",
+      "type": "object"
+    },
+    "ScoreResponse": {
+      "properties": {
+        "region_id": {
+          "title": "Region Id",
+          "type": "string"
+        },
+        "zones": {
+          "items": {
+            "$ref": "#/$defs/ZoneScore"
+          },
+          "title": "Zones",
+          "type": "array"
+        },
+        "top": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Top",
+          "type": "array"
+        }
+      },
+      "required": [
+        "region_id",
+        "zones",
+        "top"
+      ],
+      "title": "ScoreResponse",
+      "type": "object"
+    },
+    "ScoringSpec": {
+      "properties": {
+        "weights": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Weights",
+          "type": "object"
+        },
+        "directions": {
+          "additionalProperties": {
+            "enum": [
+              1,
+              -1
+            ],
+            "type": "integer"
+          },
+          "title": "Directions",
+          "type": "object"
+        },
+        "beta": {
+          "default": 2.0,
+          "title": "Beta",
+          "type": "number"
+        },
+        "alpha": {
+          "default": 0.7,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "rationale": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Rationale",
+          "type": "object"
+        }
+      },
+      "required": [
+        "weights"
+      ],
+      "title": "ScoringSpec",
+      "type": "object"
+    },
+    "SensitivityRequest": {
+      "properties": {
+        "region_id": {
+          "default": "hou",
+          "title": "Region Id",
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/$defs/PracticeProfile"
+        },
+        "spec": {
+          "$ref": "#/$defs/ScoringSpec"
+        },
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/SiteCandidate"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "draws": {
+          "default": 200,
+          "title": "Draws",
+          "type": "integer"
+        },
+        "kappa": {
+          "default": 50.0,
+          "title": "Kappa",
+          "type": "number"
+        }
+      },
+      "required": [
+        "profile",
+        "spec",
+        "candidates"
+      ],
+      "title": "SensitivityRequest",
+      "type": "object"
+    },
+    "SensitivityResult": {
+      "properties": {
+        "site_id": {
+          "title": "Site Id",
+          "type": "string"
+        },
+        "stability": {
+          "title": "Stability",
+          "type": "number"
+        }
+      },
+      "required": [
+        "site_id",
+        "stability"
+      ],
+      "title": "SensitivityResult",
+      "type": "object"
+    },
+    "SiteCandidate": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "address": {
+          "title": "Address",
+          "type": "string"
+        },
+        "lat": {
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "title": "Lon",
+          "type": "number"
+        },
+        "h3": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "H3"
+        },
+        "submarket": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Submarket"
+        },
+        "sqft": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sqft"
+        },
+        "rent_psf": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rent Psf"
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Floor"
+        },
+        "building_class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Building Class"
+        },
+        "available": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Available"
+        },
+        "parking_spaces": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parking Spaces"
+        },
+        "parking_estimated": {
+          "default": false,
+          "title": "Parking Estimated",
+          "type": "boolean"
+        },
+        "matterport_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Matterport Id"
+        },
+        "vexcel_image_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vexcel Image Ref"
+        },
+        "source": {
+          "default": "costar",
+          "enum": [
+            "costar",
+            "fixture"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "checks": {
+          "additionalProperties": true,
+          "title": "Checks",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "address",
+        "lat",
+        "lon"
+      ],
+      "title": "SiteCandidate",
+      "type": "object"
+    },
+    "SiteCheckResult": {
+      "properties": {
+        "site_id": {
+          "title": "Site Id",
+          "type": "string"
+        },
+        "vexcel_image_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vexcel Image Ref"
+        },
+        "parking_estimate": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parking Estimate"
+        },
+        "parking_note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parking Note"
+        },
+        "ground_floor": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ground Floor"
+        },
+        "step_free_entry": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Step Free Entry"
+        },
+        "matterport_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Matterport Id"
+        }
+      },
+      "required": [
+        "site_id"
+      ],
+      "title": "SiteCheckResult",
+      "type": "object"
+    },
+    "SiteSearchRequest": {
+      "properties": {
+        "region_id": {
+          "default": "hou",
+          "title": "Region Id",
+          "type": "string"
+        },
+        "zones": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Zones",
+          "type": "array"
+        },
+        "constraints": {
+          "$ref": "#/$defs/Constraints"
+        },
+        "limit": {
+          "default": 40,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "zones",
+        "constraints"
+      ],
+      "title": "SiteSearchRequest",
+      "type": "object"
+    },
+    "StockPack": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "extends": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extends"
+        },
+        "specialty": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Specialty"
+        },
+        "demand_age_bands": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Demand Age Bands",
+          "type": "array"
+        },
+        "visit_rates": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Visit Rates",
+          "type": "object"
+        },
+        "features": {
+          "items": {
+            "$ref": "#/$defs/PackFeature"
+          },
+          "title": "Features",
+          "type": "array"
+        },
+        "site_rules": {
+          "additionalProperties": true,
+          "title": "Site Rules",
+          "type": "object"
+        },
+        "factor_hints": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Factor Hints",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "StockPack",
+      "type": "object"
+    },
+    "ValidationReport": {
+      "description": "geo POST /features/ingest response.",
+      "properties": {
+        "feature_id": {
+          "title": "Feature Id",
+          "type": "string"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "coverage_pct": {
+          "title": "Coverage Pct",
+          "type": "number"
+        },
+        "null_pct": {
+          "title": "Null Pct",
+          "type": "number"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        },
+        "mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean"
+        },
+        "rows_read": {
+          "default": 0,
+          "title": "Rows Read",
+          "type": "integer"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "feature_id",
+        "ok",
+        "coverage_pct",
+        "null_pct"
+      ],
+      "title": "ValidationReport",
+      "type": "object"
+    },
+    "ZoneScore": {
+      "properties": {
+        "h3": {
+          "title": "H3",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "demand": {
+          "title": "Demand",
+          "type": "number"
+        },
+        "contributions": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Contributions",
+          "type": "object"
+        }
+      },
+      "required": [
+        "h3",
+        "score",
+        "demand"
+      ],
+      "title": "ZoneScore",
+      "type": "object"
+    }
+  },
+  "title": "SitelineContracts"
+}

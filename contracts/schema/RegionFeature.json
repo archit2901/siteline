@@ -1,0 +1,47 @@
+{
+  "description": "A feature already available in a region's feature store.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "label": {
+      "title": "Label",
+      "type": "string"
+    },
+    "source": {
+      "title": "Source",
+      "type": "string"
+    },
+    "unit": {
+      "default": "",
+      "title": "Unit",
+      "type": "string"
+    },
+    "layer": {
+      "enum": [
+        "stock_base",
+        "stock_pack",
+        "agent_found"
+      ],
+      "title": "Layer",
+      "type": "string"
+    },
+    "provenance_url": {
+      "format": "uri",
+      "maxLength": 2083,
+      "minLength": 1,
+      "title": "Provenance Url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "label",
+    "source",
+    "layer",
+    "provenance_url"
+  ],
+  "title": "RegionFeature",
+  "type": "object"
+}

@@ -1,0 +1,79 @@
+{
+  "description": "Proposed by a dataset-scout for one factor.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "factor_id": {
+      "title": "Factor Id",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "url": {
+      "format": "uri",
+      "maxLength": 2083,
+      "minLength": 1,
+      "title": "Url",
+      "type": "string"
+    },
+    "publisher": {
+      "title": "Publisher",
+      "type": "string"
+    },
+    "format": {
+      "enum": [
+        "csv",
+        "json",
+        "geojson",
+        "socrata",
+        "arcgis",
+        "census_api",
+        "gtfs"
+      ],
+      "title": "Format",
+      "type": "string"
+    },
+    "geo_level": {
+      "enum": [
+        "tract",
+        "zip",
+        "county",
+        "point"
+      ],
+      "title": "Geo Level",
+      "type": "string"
+    },
+    "why": {
+      "title": "Why",
+      "type": "string"
+    },
+    "status": {
+      "default": "proposed",
+      "enum": [
+        "proposed",
+        "valid",
+        "invalid",
+        "approved",
+        "found_not_ingested"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "factor_id",
+    "title",
+    "url",
+    "publisher",
+    "format",
+    "geo_level",
+    "why"
+  ],
+  "title": "DatasetCandidate",
+  "type": "object"
+}

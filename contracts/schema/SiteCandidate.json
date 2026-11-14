@@ -1,0 +1,167 @@
+{
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "address": {
+      "title": "Address",
+      "type": "string"
+    },
+    "lat": {
+      "title": "Lat",
+      "type": "number"
+    },
+    "lon": {
+      "title": "Lon",
+      "type": "number"
+    },
+    "h3": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "H3"
+    },
+    "submarket": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Submarket"
+    },
+    "sqft": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sqft"
+    },
+    "rent_psf": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rent Psf"
+    },
+    "floor": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Floor"
+    },
+    "building_class": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Building Class"
+    },
+    "available": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Available"
+    },
+    "parking_spaces": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parking Spaces"
+    },
+    "parking_estimated": {
+      "default": false,
+      "title": "Parking Estimated",
+      "type": "boolean"
+    },
+    "matterport_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Matterport Id"
+    },
+    "vexcel_image_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Vexcel Image Ref"
+    },
+    "source": {
+      "default": "costar",
+      "enum": [
+        "costar",
+        "fixture"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "checks": {
+      "additionalProperties": true,
+      "title": "Checks",
+      "type": "object"
+    }
+  },
+  "required": [
+    "id",
+    "address",
+    "lat",
+    "lon"
+  ],
+  "title": "SiteCandidate",
+  "type": "object"
+}
