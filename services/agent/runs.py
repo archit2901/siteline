@@ -33,6 +33,11 @@ def max_gap_seconds() -> float:
     return float(os.environ.get("REPLAY_MAX_GAP_SECONDS", "1.5"))
 
 
+def max_live_runs() -> int:
+    """Live runs allowed at once (each spends LLM calls); 0 = no limit."""
+    return int(os.environ.get("MAX_LIVE_RUNS", "0") or 0)
+
+
 def auto_approve_seconds() -> float:
     return float(os.environ.get("DEMO_AUTO_APPROVE_SECONDS", "0") or 0)
 
@@ -42,6 +47,10 @@ class RunNotFound(Exception):
 
 
 class BadRequest(Exception):
+    pass
+
+
+class TooBusy(Exception):
     pass
 
 
@@ -200,6 +209,9 @@ class RunStore:
         return run
 
     def start_live(self, request: RunCreate, pipeline: Pipeline) -> Run:
+        limit = max_live_runs()
+        if limit and sum(r.live and not r.finished for r in self._runs.values()) >= limit:
+            raise TooBusy(f"{limit} live runs are already in progress; try again when one finishes")
         run_id = uuid.uuid4().hex[:12]
         artifacts_dir = runs_dir() / run_id
         artifacts_dir.mkdir(parents=True, exist_ok=True)

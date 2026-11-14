@@ -1,6 +1,8 @@
 # secrets
 .env
 .env.local
+.env.caddy
+.env.prod
 # data and run output (never commit raw or licensed data)
 data/
 runs/

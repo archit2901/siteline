@@ -168,3 +168,26 @@ async def test_cors_allows_the_web_app() -> None:
             "/runs", headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "POST"}
         )
     assert resp.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+@pytest.mark.asyncio
+async def test_live_runs_are_capped(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from services.agent import app as app_module
+
+    monkeypatch.setenv("RUNS_DIR", str(tmp_path))
+    monkeypatch.setenv("MAX_LIVE_RUNS", "1")
+    monkeypatch.setattr(store, "_db", None)
+    gate = asyncio.Event()
+
+    async def slow_pipeline(run) -> None:  # type: ignore[no-untyped-def]
+        await gate.wait()
+
+    monkeypatch.setattr(app_module, "run_pipeline", slow_pipeline)
+    async with client() as c:
+        first = await c.post("/runs", json=replay_body(mode="live"))
+        second = await c.post("/runs", json=replay_body(mode="live"))
+        gate.set()
+        await store.get(first.json()["run_id"]).task  # type: ignore[misc]
+        third = await c.post("/runs", json=replay_body(mode="live"))
+        gate.set()
+    assert (first.status_code, second.status_code, third.status_code) == (200, 429, 200)

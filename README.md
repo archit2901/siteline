@@ -74,7 +74,7 @@ PYTHONPATH=. .venv/bin/python scripts/e2e.py --live-only --case laundromat      
 PYTHONPATH=. .venv/bin/python scripts/e2e.py --replay-only --golden laundromat      # replay a recorded run
 ```
 
-Deploy: [infra/README.md](infra/README.md). It runs one EC2 box with Caddy for HTTPS in front of agent-api, an IAM instance role for Bedrock, and IMDSv2 required.
+Deploy: [infra/README.md](infra/README.md). It runs one EC2 box with Caddy for HTTPS and a site password in front of agent-api, an IAM instance role for Bedrock, and IMDSv2 required.
 
 ## Data sources
 

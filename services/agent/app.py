@@ -11,7 +11,7 @@ from sse_starlette.sse import EventSourceResponse
 from contracts.models import ApproveRequest, Health, RescoreRequest, RescoreResponse, RunCreate, RunCreated
 from services.agent.critic import build_report
 from services.agent.pipeline import normalize, run_pipeline, score_and_rank
-from services.agent.runs import BadRequest, Run, RunNotFound, RunStore, list_golden
+from services.agent.runs import BadRequest, Run, RunNotFound, RunStore, TooBusy, list_golden
 from services.agent.tools.backends import get_geo
 
 FIXTURE_MODE = os.environ.get("FIXTURE_MODE", "1") == "1"
@@ -48,6 +48,8 @@ async def create_run(request: RunCreate) -> RunCreated:
         raise HTTPException(400, str(exc)) from exc
     except RunNotFound as exc:
         raise HTTPException(404, str(exc)) from exc
+    except TooBusy as exc:
+        raise HTTPException(429, str(exc)) from exc
     return RunCreated(run_id=run.run_id)
 
 

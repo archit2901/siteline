@@ -2,6 +2,7 @@
 #   docker compose -f docker-compose.prod.yml up -d --build
 # AWS credentials come from the EC2 instance role (IMDSv2, hop limit 2 so containers reach it). Never put keys in .env.
 # data/ (CoStar files, derived stock, golden runs) is copied to the box by hand and never committed.
+# The site is password-protected (infra/Caddyfile): .env.caddy holds SITE_USER and SITE_PASSWORD_HASH.
 services:
   agent:
     build:
@@ -12,6 +13,7 @@ services:
       - AGENT_BACKEND=local
       - AGENT_MODE=scripted
       - FIXTURE_MODE=0
+      - MAX_LIVE_RUNS=2
     volumes:
       - ./runs:/app/runs
       - ./data:/app/data
@@ -23,6 +25,7 @@ services:
     build:
       context: .
       dockerfile: infra/web.Dockerfile
+    env_file: .env.caddy
     environment:
       - SITE_ADDRESS=${SITE_ADDRESS:-:80}
     ports:
