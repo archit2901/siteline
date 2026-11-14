@@ -60,7 +60,7 @@ def targets() -> list[tuple[Path, Callable[[Path], str]]]:
         (FIXTURES / "zones.json", check_model(ScoreResponse)),
         (FIXTURES / "report.json", check_model(Report)),
         (FIXTURES / "sites.json", check_sites),
-        (FIXTURES / "fake_grid.json", check_grid),
+        (FIXTURES / "grid.json", check_grid),
         (ROOT / "catalog" / "houston.yaml", check_model(Catalog)),
     ]
     items += [(p, check_model(StockPack)) for p in sorted((ROOT / "packs").glob("*.yaml"))]

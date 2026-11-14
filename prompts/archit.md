@@ -25,14 +25,14 @@ Goal: Setup milestone — a runnable agent-api in fixture mode plus the shared f
 2. services/agent/requirements.txt and Dockerfile (python:3.11-slim; build context = repo root; copy contracts/,
    connectors/, services/agent/, catalog/, packs/, evals/, fixtures/; CMD uvicorn services.agent.app:app --host 0.0.0.0 --port 8000).
 3. fixtures/validate.py: validate every fixture against contracts (events.jsonl → RunEvent per line, zones.json →
-   ScoreResponse, report.json → Report, sites.json → list[SiteCandidate], fake_grid.json → list of objects with an
+   ScoreResponse, report.json → Report, sites.json → list[SiteCandidate], grid.json → list of objects with an
    "h3" key, packs/*.yaml → StockPack, catalog/houston.yaml → Catalog, evals/*.yaml → EvalCase). Skip missing files
    with a warning. Exit non-zero on any validation error.
 4. fixtures/events.jsonl: a realistic fake run (~40 events) for evals/pediatric_dentist.yaml following the payload
    table in services/agent/CLAUDE.md: todos; 9 factors (5 stock-covered); 4 scouts in parallel (agent names
    "dataset-scout:<factor_id>") with one retry; a data_plan approval; a weights approval; file events for
    zones.json and report.json; done. Timestamps 1–3 s apart.
-5. fixtures/zones.json (valid ScoreResponse; use h3 ids from fixtures/fake_grid.json if present, otherwise generate
+5. fixtures/zones.json (valid ScoreResponse; use h3 ids from fixtures/grid.json if present, otherwise generate
    valid res-8 cells near Houston with the h3 library) and fixtures/report.json (valid Report, 10 recommendations,
    fake but plausible values, every claim has evidence_refs, verified=true).
 6. services/agent/app.py: GET /health (Health); POST /runs (RunCreate → RunCreated; replay streams

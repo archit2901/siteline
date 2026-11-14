@@ -20,8 +20,9 @@ for the shapes.
 3. From the repo root run `make types` to generate src/types/contracts.ts. If it fails, show me the error and use
    a stopgap generated from contracts/schema/*.json — never hand-write contract types.
 4. MapView: MapLibre basemap with a free style that needs no key, centered on Houston (29.76, -95.37, zoom 9),
-   deck.gl H3HexagonLayer via MapboxOverlay drawing public/fixtures/fake_grid.json colored by one numeric field
-   (sequential scale), tooltip with the cell's values. If fake_grid.json isn't pushed yet, render a few hard-coded
+   deck.gl H3HexagonLayer via MapboxOverlay drawing public/fixtures/grid.json (real Houston cells; keys h3, cell_lat,
+   cell_lon, county + grid columns) colored by one numeric field (sequential scale, e.g. pop_density_km2), tooltip
+   with the cell's values. If grid.json isn't on main yet, render a few hard-coded
    valid res-8 cells and pull again in 15 minutes.
 5. App shell: header, left panel (trace placeholder), center map, right panel (factor list placeholder).
 

@@ -7,7 +7,7 @@ types:
 	cd web && npx -p json-schema-to-typescript json2ts -i ../contracts/schema/all.json -o src/types/contracts.ts --unreachableDefinitions
 
 fixtures:
-	PYTHONPATH=. python fixtures/make_fake_grid.py
+	PYTHONPATH=. python fixtures/make_grid_fixture.py
 	PYTHONPATH=. python fixtures/make_agent_fixtures.py
 	PYTHONPATH=. python fixtures/validate.py
 

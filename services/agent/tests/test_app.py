@@ -88,7 +88,7 @@ async def test_artifacts_come_from_fixtures() -> None:
         run_id = (await c.post("/runs", json=replay_body())).json()["run_id"]
         zones = await c.get(f"/runs/{run_id}/artifacts/zones.json")
         report = await c.get(f"/runs/{run_id}/artifacts/report.json")
-        unknown = await c.get(f"/runs/{run_id}/artifacts/fake_grid.json")
+        unknown = await c.get(f"/runs/{run_id}/artifacts/grid.json")
         missing_run = await c.get("/runs/nope/artifacts/zones.json")
     ScoreResponse.model_validate(zones.json())
     assert len(Report.model_validate(report.json()).recommendations) == 10

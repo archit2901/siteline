@@ -1,5 +1,8 @@
 # Jayan — prompts to paste into Claude Code (or another coding assistant)
 
+> **Obsolete (see docs/HANDOFF.md section 3):** Parth and Jayan no longer use Claude Code; Archit owns this work.
+> Kept for reference only.
+
 Start in the repo root on branch `sites`. Paste one block at a time. After each block:
 `/milestone <name>` → commit → `/handoff` → post the note in team chat.
 Not using Claude Code? Start the block with "Read CLAUDE.md, services/sites/CLAUDE.md and connectors/CLAUDE.md first."
