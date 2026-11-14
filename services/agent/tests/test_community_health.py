@@ -26,7 +26,7 @@ def test_nonprofit_clinics_get_both_halves(business: str, specialty: str) -> Non
 
 @pytest.mark.parametrize("business,specialty,sector", [
     ("food pantry", "", "nonprofit.food_bank"), ("nonprofit youth center", "", "nonprofit.base"),
-    ("", "orthopedics", "healthcare"), ("laundromat", "", "retail.services"),
+    ("", "orthopedics", "healthcare.orthopedics"), ("", "cardiology", "healthcare"), ("laundromat", "", "retail.services"),
 ])
 def test_other_businesses_route_as_before(business: str, specialty: str, sector: str) -> None:
     assert sector_of(business, specialty) == sector

@@ -109,6 +109,14 @@ export interface Strategy {
   sites: { site_id: string; address: string; sqft?: number | null; options: TenureOption[]; cheapest: string }[]
   assumptions: Record<string, number>
 }
+/** review.json (services/agent/review.py): hard requirements and the six perspectives. Not a contract type. */
+export interface ReviewRequirement { name: string; status: 'met' | 'failed' | 'unknown'; detail: string; verify: string }
+export interface ReviewNote { perspective: string; question: string; finding: string; status: 'supports' | 'risk' | 'open' | 'not_applicable'; evidence: string[] }
+export interface SiteReview { site_id: string; address: string; rank: number; status: 'confirmed' | 'provisional' | 'ineligible'; requirements: ReviewRequirement[]; notes: ReviewNote[] }
+export interface Review { objective: string; baseline: string; decision: string; why: string; alternative: string; what_could_change: string[]; sites: SiteReview[] }
+export function loadReview(runId: string): Promise<Review> {
+  return request(`/runs/${runId}/artifacts/review.json`)
+}
 export function loadStrategy(runId: string): Promise<Strategy> {
   return request(`/runs/${runId}/artifacts/strategy.json`)
 }

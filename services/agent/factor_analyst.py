@@ -16,7 +16,7 @@ from contracts.models import Factor, PracticeProfile
 from services.agent import llm
 from services.agent.tools.geo import SITE_FEATURES, stock_feature_ids, stock_feature_summary
 from services.agent.tools.catalog import load_catalog
-from services.agent.tools.packs import pack_for
+from services.agent.tools.packs import covers_teams, orthopedic_focus, pack_for
 
 PROMPT = (Path(__file__).parent / "prompts" / "factor_analyst.md").read_text()
 MAX_FACTORS = 24  # the cut only drops what cannot affect success; scouts are capped separately
@@ -44,7 +44,7 @@ SPECIFIC = [  # (pattern over specialty, business type, services and notes) -> p
     (r"urgent care|walk-in|walk in|retail clinic", "urgent_care"),
     (r"physical therap|physiotherap|\brehab", "physical_therapy"),
 ]
-SECTOR_PLAYBOOK = {"healthcare": "healthcare", "healthcare.community_health": "community_health", "nonprofit.food_bank": "food_bank", "nonprofit.base": "nonprofit",
+SECTOR_PLAYBOOK = {"healthcare": "healthcare", "healthcare.orthopedics": "orthopedics", "healthcare.community_health": "community_health", "nonprofit.food_bank": "food_bank", "nonprofit.base": "nonprofit",
                    "retail.services": "retail", "food.restaurant": "restaurant", "education.childcare": "childcare",
                    "fitness.base": "fitness"}
 MAX_CANDIDATES = 40
@@ -58,6 +58,8 @@ def playbooks_for(profile: PracticeProfile) -> list[str]:
     sector = SECTOR_PLAYBOOK.get(profile_sector(profile))
     if sector == "community_health":  # both halves of a nonprofit clinic, then what is specific to it
         names += ["healthcare", "nonprofit"]
+    if sector == "orthopedics":
+        names.append("healthcare")
     if sector:
         names.append(sector)
     text = " ".join([profile.specialty, profile.business_type, profile.name, *profile.services, profile.free_text]).lower().replace("_", " ")
@@ -66,7 +68,11 @@ def playbooks_for(profile: PracticeProfile) -> list[str]:
             if name != "orthopedics" and "healthcare" not in names:
                 names.append("healthcare")
             names.append(name)
-    return names
+    # orthopedic subspecialties the practice does, and the schools/teams it covers
+    names += [f"orthopedics_{v}" for v in orthopedic_focus(profile)]
+    if covers_teams(profile) and "orthopedics" in names:
+        names.append("orthopedics_teams")
+    return list(dict.fromkeys(names))
 
 
 def playbook_text(profile: PracticeProfile) -> str:

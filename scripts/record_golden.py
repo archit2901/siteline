@@ -39,7 +39,7 @@ def main() -> int:
     for name in sorted(files):
         shutil.copyfile(src / name, dest / name)
     # strategy.json (space and lease/buy/build plan) is not a contract artifact, so it is copied without validation.
-    for name in ("strategy.json", "ranked.json"):
+    for name in ("strategy.json", "ranked.json", "review.json"):
         if (src / name).exists() and name not in files:
             shutil.copyfile(src / name, dest / name)
             files.add(name)

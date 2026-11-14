@@ -1,0 +1,20 @@
+# EvalCase (contracts/models.py). SYNTHETIC adult joint-replacement practice; not a real practice.
+id: ortho_joint
+profile:
+  name: "Example Joint Care (synthetic)"
+  specialty: orthopedics
+  services: ["joint replacement", "injections", "x-ray"]
+  payers_accepted: [medicare, commercial]
+  languages: [English]
+  existing_offices:
+    - {name: "Memorial City (synthetic)", lat: 29.781, lon: -95.545, clinicians: 4}
+  constraints: {min_sqft: 5000, max_sqft: 9000, max_rent_psf: 38, min_parking_per_1000sf: 6, ground_floor: true, special_rooms: ["x-ray"]}
+  free_text: |-
+    [ortho_focus] What kind of orthopedic care will this clinic focus on: Joint replacement (hip, knee, shoulder)
+    [team_coverage] Do you cover any high school, college or club teams: No
+    [surgery_site] Where do your surgeons operate: Methodist Hospital and Texas Orthopedic Hospital
+  stock_pack: null
+must_include: ["adults 65+ and Medicare", "arthritis and obesity", "hospital or surgery center where surgeons operate", "parking and step-free access for walkers", "competition from hospital-employed orthopedists"]
+must_not_include: ["high schools"]
+sign_checks: {}
+notes: "Synthetic. Joint care should not pull in high school factors."

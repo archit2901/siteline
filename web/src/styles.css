@@ -471,3 +471,19 @@ a.source:hover { border-color: #000; color: #000; }
 .sharebar span {
   background: #5f8a6a;
 }
+
+/* decision tab: requirements and perspectives */
+.decision .changes { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.45; }
+.decision .review .kicker { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.decision .review.ineligible { opacity: .6; }
+.decision .reqs, .decision .persp { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; line-height: 1.4; }
+.decision .reqs li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; }
+.decision small { display: block; color: var(--ink2); font-size: 12px; }
+.decision .mark { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; align-items: center; justify-content: center; font-size: 11px; border: 1px solid var(--line); }
+.decision [data-status=met] .mark, .decision [data-status=supports] .mark { background: #000; color: #fff; border-color: #000; }
+.decision [data-status=failed] .mark, .decision [data-status=risk] .mark { background: #b3261e; color: #fff; border-color: #b3261e; }
+.decision .persp { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.decision .persp div { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 10px; }
+.decision .persp dt { display: flex; gap: 6px; align-items: flex-start; font-weight: 600; }
+.decision .persp dd { margin: 0; }
+@media (max-width: 720px) { .decision .persp div { grid-template-columns: 1fr; } }

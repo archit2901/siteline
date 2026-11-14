@@ -35,6 +35,8 @@ from services.agent.critic import build_report
 from services.agent.factor_analyst import analyze
 from services.agent.runs import Run
 from services.agent.profiler import profile_business
+from services.agent.partners import partner_scouts
+from services.agent.review import review
 from services.agent.scout import ScoutResult, run_scout
 from services.agent.tools import geomath
 from services.agent.tools.backends import get_geo, get_sites
@@ -166,13 +168,22 @@ async def run_pipeline(run: Run) -> None:
         await run.emit(f"dataset-scout:{competitor.factor_id}", "tool_result", {
             "tool": "choose_dataset", "factor_id": competitor.factor_id, "ok": True,
             "summary": f"OpenStreetMap places tagged {', '.join(competitor_tags)} across Houston."})
-    uncovered = [f for f in factors if f.feature_id is None and (competitor is None or f.id != competitor.factor_id)]
+    # partners named in the intake (schools the practice covers, hospitals where it operates): no model call
+    factors, partners, partner_notes = partner_scouts(profile, factors, run.run_id[:6])
+    for r in partners:
+        await run.emit("factor-analyst", "factor", next(f for f in factors if f.id == r.factor_id).model_dump(mode="json"))
+        await run.emit(f"dataset-scout:{r.factor_id}", "tool_result", {
+            "tool": "choose_dataset", "factor_id": r.factor_id, "ok": True, "summary": r.candidate.title if r.candidate else ""})
+    caveats += [n for n in partner_notes if n.startswith("Could not")]
+    taken = {r.factor_id for r in partners} | ({competitor.factor_id} if competitor else set())
+    uncovered = [f for f in factors if f.feature_id is None and f.id not in taken]
     uncovered.sort(key=lambda f: {"high": 0, "medium": 1, "low": 2}[f.priority])
     results = list(await asyncio.gather(*(run_scout(f, meter, run.emit, run.run_id[:6]) for f in uncovered[:MAX_SCOUTS])))
     results += [ScoutResult(f.id, None, 0, caveat=f"Not searched this run: only the {MAX_SCOUTS} highest-priority "
                             "factors without data get a dataset scout.") for f in uncovered[MAX_SCOUTS:]]
     if competitor is not None:
         results.append(competitor)
+    results += partners
     candidates: list[DatasetCandidate] = [r.candidate for r in results if r.candidate]
     by_id = {f.id: f for f in factors}
     for r in results:
@@ -284,6 +295,10 @@ async def run_pipeline(run: Run) -> None:
     run.write_artifact("strategy.json", plan.model_dump_json(indent=2))
     caveats.append(strategy.caveat(plan))
     await run.emit(S, "file", {"name": "strategy.json", "path": "/strategy.json"})
+    label = demand.demand_label if demand is not None else "patients"
+    decision = await review(profile, pack_for(profile), ranked, {s.id: s for s in sites}, factors, geo, label)
+    run.write_artifact("review.json", decision.model_dump_json(indent=2))
+    await run.emit(S, "file", {"name": "review.json", "path": "/review.json"})
     excluded = sum(r.excluded_reason is not None for r in ranked)
     await run.emit(S, "tool_result", {"tool": "rank_sites", "ok": True,
                                       "summary": f"Ranked {len(ranked) - excluded} sites; {excluded} failed a hard constraint."})

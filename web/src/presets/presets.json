@@ -266,6 +266,58 @@
     }
   },
   {
+    "id": "sports_orthopedics",
+    "label": "Sports ortho (synthetic)",
+    "healthcare": true,
+    "profile": {
+      "name": "Example Sports Orthopedics (synthetic)",
+      "specialty": "orthopedics",
+      "business_type": "",
+      "customers": "High school and club athletes, active adults 18-44, and their parents",
+      "services": [
+        "sports medicine",
+        "fracture care",
+        "x-ray",
+        "casting and bracing"
+      ],
+      "payers_accepted": [
+        "commercial",
+        "medicaid",
+        "chip",
+        "medicare"
+      ],
+      "patient_mix": {},
+      "languages": [
+        "English",
+        "Spanish"
+      ],
+      "existing_offices": [
+        {
+          "name": "Vintage Park (synthetic)",
+          "address": "",
+          "lat": 29.995,
+          "lon": -95.585,
+          "clinicians": 3
+        }
+      ],
+      "constraints": {
+        "min_sqft": 4000,
+        "max_sqft": 9000,
+        "max_rent_psf": 35.0,
+        "min_parking_per_1000sf": 5.0,
+        "ground_floor": true,
+        "special_rooms": [
+          "x-ray",
+          "casting room"
+        ],
+        "space_uses": []
+      },
+      "free_text": "[ortho_focus] What kind of orthopedic care will this clinic focus on: Sports medicine, General orthopedics and fracture care\n[team_coverage] Do you cover any high school, college or club teams: Klein Cain and Klein Oak football; two athletic trainers and Friday sideline coverage, Saturday injury clinic\n[surgery_site] Where do your surgeons operate: Texas Orthopedic Hospital for ACL reconstruction and arthroscopy; X-ray, casting and bracing stay at the clinic\n[referrals] Where do new patients come from today: Athletic trainers at the two schools, urgent cares on 249 and the Grand Parkway, pediatricians, and parents searching after a game\n[capacity] How many providers, exam rooms and new patients a week: 2 surgeons and 2 PAs, 12 exam rooms, about 60 new patients a week\n[hours] When will the clinic be open: Weekdays, Evenings, Saturday injury clinic\n[visibility] How much does being seen from the road matter: Helps, not essential\n[tenure] Lease, buy or build: Lease only",
+      "stock_pack": null,
+      "region_id": "hou"
+    }
+  },
+  {
     "id": "pediatric_dentist",
     "label": "Pediatric dentist",
     "healthcare": true,

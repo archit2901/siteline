@@ -1,0 +1,13 @@
+# Foot and ankle: sprains and fractures in athletes, plus diabetic foot and degenerative disease in older adults;
+# podiatrists are the main competitor and a referral source.
+id: healthcare.orthopedics.foot_ankle
+extends: healthcare.orthopedics
+specialty: orthopedics
+demand_age_bands: ["0-17", "18-44", "45-64", "65+"]
+visit_rates: {"0-17": 0.02, "18-44": 0.03, "45-64": 0.05, "65+": 0.05}
+features: []
+site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray", "casting room"], competitor_feature: n_orthopedics, variant: foot_ankle}
+factor_hints:
+  - "diabetes burden (CDC PLACES): diabetic foot care"
+  - "podiatrists: competitors and referrers"
+  - "patients in boots and on scooters: step-free entry and parking at the door"

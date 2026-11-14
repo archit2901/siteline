@@ -357,6 +357,8 @@ def validate(values: np.ndarray, spec: FeatureSpec, rows_read: int, notes: list[
     ok_vals = values[~np.isnan(values)]
     coverage = float(len(ok_vals) / len(values)) if len(values) else 0.0
     ok = (point_count or 0) >= 5 if spec.geo_level == "point" else coverage >= 0.8
+    if spec.id.startswith("partner_") and spec.agg == "distance_to_nearest":  # named partners (services/agent/partners.py):
+        ok = (point_count or 0) >= len(spec.filter_values) and coverage >= 0.8  # every named place found, all cells
     if not ok:
         notes.append("too few points inside Houston" if spec.geo_level == "point" else "covers less than 80% of cells")
     return ValidationReport(

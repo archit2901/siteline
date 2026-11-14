@@ -115,4 +115,4 @@ def test_playbook_must_keep_factors_are_checked():
     assert any("hospital" in p for p, _ in keep)
     f = Factor(id="older_adults", factor="Older adults nearby", why="Joint replacement demand", proxy="pop 65+",
                direction=1, priority="high")
-    assert any(d.startswith("Regional hospitals") for d in dropped([f], keep))
+    assert any(d.startswith("Drive time to the hospitals") for d in dropped([f], keep))

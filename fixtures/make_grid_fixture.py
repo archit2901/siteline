@@ -24,6 +24,7 @@ COLUMNS = [
     # population and demand bands
     "pop_total", "pop_u18", "pop_18_44", "pop_45_64", "pop_65p", "pop_density_km2", "pop_growth_pct",
     "pop_total_within_5km", "pop_u18_within_5km", "pop_45_64_within_5km", "pop_65p_within_5km",
+    "pop_u18_within_10km", "pop_65p_within_10km", "ins_any_medicare_within_10km", "medicaid_u19_within_10km",
     # payers (shares of residents) and income
     "share_any_medicare", "share_any_medicaid", "share_any_private", "share_uninsured", "medicaid_u19_within_5km",
     "ins_any_medicaid", "ins_any_medicaid_within_5km", "ins_uninsured",
@@ -32,7 +33,7 @@ COLUMNS = [
     "share_spanish", "share_lep",
     # clinician supply (per cell, used as Huff competitors) and ring sums
     "n_orthopedics", "n_primary_care", "n_pediatrics", "n_nephrology", "n_physical_therapy",
-    "n_orthopedics_within_10km", "n_primary_care_within_5km", "n_pediatrics_within_5km",
+    "n_orthopedics_within_10km", "n_primary_care_within_5km", "n_primary_care_within_10km", "n_pediatrics_within_5km",
     "n_nephrology_within_10km", "n_physical_therapy_within_5km", "n_hospitals_within_5km",
 ]
 FORBIDDEN_PREFIXES = ("n_costar", "n_lease_spaces", "n_medical_lease_spaces")

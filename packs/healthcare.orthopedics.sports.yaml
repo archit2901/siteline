@@ -1,0 +1,19 @@
+# Sports medicine: young athletes and active adults. Who gets hurt is driven by how many students play organized
+# sports nearby (Texas UIL football, soccer, basketball, volleyball), and who sends them is the school's athletic
+# trainer, so high school size and the practice's own team coverage matter more than age 65+.
+# Visit rates are PLANNING ASSUMPTIONS (NAMCS orthopedic visits by age, tilted to sports injury ages); not Houston-sourced.
+id: healthcare.orthopedics.sports
+extends: healthcare.orthopedics
+specialty: orthopedics
+demand_age_bands: ["0-17", "18-44", "45-64", "65+"]
+visit_rates: {"0-17": 0.06, "18-44": 0.07, "45-64": 0.05, "65+": 0.03}
+features:
+  - {id: hs_enrollment_within_10km, source: tea, value: hs_enrollment_within_10km, label: "High school students within 10 km (Texas Education Agency enrollment)", agg: sum, direction: 1, unit: "students"}
+  - {id: n_large_high_schools_within_10km, source: tea, value: n_large_high_schools_within_10km, label: "Large high schools (1,300+ students, UIL 5A/6A) within 10 km", agg: sum, direction: 1, unit: "schools"}
+  - {id: pop_u18_within_10km, source: acs, value: pop_u18_within_10km, label: "Children and teens within 10 km", agg: sum, direction: 1, unit: "people"}
+site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray", "casting room"], competitor_feature: n_orthopedics, variant: sports}
+factor_hints:
+  - "high schools with big athletic programs (UIL 5A/6A football, soccer, basketball): athletic trainers send ACL, meniscus, shoulder and concussion cases the next morning"
+  - "the practice's own team coverage: drive time from the clinic to the schools it covers (Friday-night sidelines, Saturday-morning injury clinic)"
+  - "youth club sports complexes, fields and gyms; active adults 18-44"
+  - "Saturday and after-school hours: injuries happen at Friday games and evening practices"

@@ -1,0 +1,14 @@
+# Spine: back and neck pain in working-age and older adults; most patients are managed without surgery (injections,
+# PT), imaging drives the workup, and referrals come from primary care, pain and PT. PLANNING ASSUMPTION visit rates.
+id: healthcare.orthopedics.spine
+extends: healthcare.orthopedics
+specialty: orthopedics
+demand_age_bands: ["18-44", "45-64", "65+"]
+visit_rates: {"18-44": 0.03, "45-64": 0.07, "65+": 0.08}
+features:
+  - {id: n_primary_care_within_10km, source: cms.doctors, value: n_primary_care_within_10km, label: "Primary care clinicians within 10 km (spine referral base)", agg: sum, direction: 1, unit: "clinicians"}
+site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray"], competitor_feature: n_orthopedics, variant: spine}
+factor_hints:
+  - "MRI access (own magnet or an imaging center nearby) and a fluoroscopy suite for injections"
+  - "work injuries and heavy-labor jobs (workers' comp back injuries)"
+  - "pain management and neurosurgery groups: competitors for some patients, referrers for others"

@@ -8,6 +8,7 @@ Answers travel in existing contract fields: customers, services, languages, paye
 constraints, and everything else as labeled lines in free_text ("Question: answer"), which the factor-analyst reads.
 """
 
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -100,6 +101,49 @@ HEALTHCARE = [
     Q(id="hospital", kind="text",
       text="Which hospitals do your physicians operate or round at?",
       why="Surgeons lose hours driving between clinic and hospital; distance to their hospitals is a real cost."),
+]
+
+ORTHOPEDICS = [  # outpatient orthopedic clinics: what happens here vs at the partner hospital/ASC decides the site
+    Q(id="ortho_focus", kind="multi", required=True,
+      options=["General orthopedics and fracture care", "Joint replacement (hip, knee, shoulder)", "Sports medicine",
+               "Spine", "Hand and upper extremity", "Foot and ankle", "Pediatric orthopedics",
+               "Workers' comp / occupational injuries"],
+      text="What kind of orthopedic care will this clinic focus on? List the biggest first.",
+      why="Joint care follows adults 50+ and Medicare; sports medicine follows high schools and young athletes; spine "
+          "and hand follow working-age adults and jobs. Each picks different factors, age groups and space."),
+    Q(id="payers", kind="multi", required=True, field="payers",
+      options=["Medicare", "Medicaid", "CHIP", "Commercial", "Workers' comp", "Self-pay"],
+      text="Which insurance do you accept, and roughly what share of patients is each? Any plans you are out of network with?",
+      why="Demand counts only residents whose coverage you accept; Medicare Advantage and narrow commercial networks "
+          "can close a market even when the population fits."),
+    Q(id="service_lines", kind="multi", field="services",
+      options=["Clinic visits", "X-ray", "MRI", "Physical therapy", "Surgery center (ASC)", "Orthopedic urgent care / walk-in",
+               "Injections / procedures", "Casting and bracing (DME)", "Telehealth follow-ups"],
+      text="Which services happen at this clinic itself?",
+      why="X-ray needs a shielded room on the ground floor; MRI needs a magnet suite and slab; PT needs an open gym "
+          "and fast parking turnover; walk-in care needs visibility. Anything not here happens at a partner."),
+    Q(id="surgery_site", kind="text", replaces=[],
+      text="Where do your surgeons operate, and which services stay there? (hospital or ASC names)",
+      why="Surgeons split days between clinic and OR, so drive time to that hospital or surgery center is a real "
+          "cost, and post-op visits come back to the clinic. We measure the drive to the facilities you name."),
+    Q(id="team_coverage", kind="text",
+      text="Do you cover any high school, college or club teams? Which schools, and what do you provide? "
+           "(sideline physician, athletic trainers, Saturday injury clinic) Say 'No' if none.",
+      why="A school's athletic trainer sends its injured athletes to the doctor on its sideline, so being a short "
+          "drive from the schools you cover (and near other large high schools) brings next-morning injury visits."),
+    Q(id="referrals", kind="text",
+      text="Where do new patients come from today? (primary care, ER and urgent care, athletic trainers, PT, self-referral)",
+      why="Referral sources become factors near each site; a competitor only counts as a referrer if you have an "
+          "actual relationship."),
+    Q(id="capacity", kind="text",
+      text="How many surgeons and APPs (PAs/NPs) will work here, how many exam rooms, and how many new patients a week can you see?",
+      why="Exam rooms per provider (about 3) and new-patient slots cap what a site can absorb, so we don't promise "
+          "more patients than the clinic can see."),
+    Q(id="hours", kind="multi",
+      options=["Weekdays", "Early mornings", "Evenings", "Saturday injury clinic", "Walk-in hours"],
+      text="When will the clinic be open?",
+      why="Friday-night and weekend sports injuries come in Saturday or Monday morning; working patients need early or "
+          "late slots; walk-in hours need visibility from the road."),
 ]
 
 COMMUNITY_HEALTH = [  # healthcare AND nonprofit: FQHCs, Look-Alikes, free and charity clinics
@@ -258,6 +302,7 @@ GENERAL = [
 
 SECTORS: dict[str, tuple[str, list[Question]]] = {
     "healthcare.community_health": ("Community health center (nonprofit clinic)", COMMUNITY_HEALTH),
+    "healthcare.orthopedics": ("Orthopedic clinic", ORTHOPEDICS),
     "healthcare": ("Medical practice", HEALTHCARE),
     "nonprofit.food_bank": ("Food bank or pantry", FOOD_BANK),
     "nonprofit.base": ("Nonprofit or social services", NONPROFIT),
@@ -277,6 +322,8 @@ def sector_of(text: str, specialty: str = "") -> str:
     """Business type text (and healthcare specialty) -> question set id. Social services win over 'health' words."""
     if is_community_health(f"{text} {specialty}"):
         return "healthcare.community_health"
+    if specialty == "orthopedics" or (not specialty and re.search(r"orthop|sports med|joint replacement", text, re.I)):
+        return "healthcare.orthopedics"
     if specialty:
         return "healthcare"
     sector = sector_for(text)

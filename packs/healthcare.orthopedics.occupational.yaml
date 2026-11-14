@@ -1,0 +1,14 @@
+# Occupational orthopedics: workers' comp injuries; demand follows where people work, not where they live, and
+# employers and case managers (not patients) pick the clinic, so jobs nearby and fast visits matter.
+id: healthcare.orthopedics.occupational
+extends: healthcare.orthopedics
+specialty: orthopedics
+demand_age_bands: ["18-44", "45-64"]
+visit_rates: {"18-44": 0.03, "45-64": 0.04}
+features:
+  - {id: jobs_within_5km, source: lodes, value: jobs_within_5km, label: "Jobs located within 5 km (where workplace injuries happen)", agg: sum, direction: 1, unit: "jobs"}
+site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray"], competitor_feature: n_orthopedics, variant: occupational}
+factor_hints:
+  - "industrial, construction, warehouse, energy and port jobs (LODES by industry)"
+  - "occupational medicine clinics and urgent cares that hold employer contracts"
+  - "freeway access for injured workers sent from job sites"

@@ -1,0 +1,22 @@
+# EvalCase (contracts/models.py). SYNTHETIC sports-medicine practice that covers two high school teams; not a real
+# practice. Expected factors are defined from the orthopedics_sports and orthopedics_teams playbooks, not tuned runs.
+id: ortho_sports_teams
+profile:
+  name: "Example Sports Orthopedics (synthetic)"
+  specialty: orthopedics
+  services: ["sports medicine", "fracture care", "x-ray", "casting and bracing"]
+  payers_accepted: [commercial, medicaid, chip, medicare]
+  languages: [English, Spanish]
+  existing_offices:
+    - {name: "Vintage Park (synthetic)", lat: 29.995, lon: -95.585, clinicians: 3}
+  constraints: {min_sqft: 4000, max_sqft: 9000, max_rent_psf: 35, min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray", "casting room"]}
+  free_text: |-
+    [ortho_focus] What kind of orthopedic care will this clinic focus on: Sports medicine, General orthopedics and fracture care
+    [team_coverage] Do you cover any high school, college or club teams: Klein Cain and Klein Oak football; two athletic trainers and Friday sideline coverage
+    [surgery_site] Where do your surgeons operate: Texas Orthopedic Hospital (ACL and arthroscopy); casting and X-ray stay at the clinic
+    [hours] When will the clinic be open: Weekdays, Evenings, Saturday injury clinic
+  stock_pack: null
+must_include: ["high schools with athletic programs", "drive time to the schools you cover", "hospital or surgery center where surgeons operate", "teens and young adults", "physical therapy for return to play", "parking and step-free access"]
+must_not_include: []
+sign_checks: {"drive time to the schools you cover": -1}
+notes: "Synthetic. Klein Cain and Klein Oak are real Klein ISD campuses used only as partner locations."

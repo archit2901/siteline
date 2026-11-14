@@ -1,0 +1,15 @@
+# Pediatric orthopedics: fractures, scoliosis, clubfoot, hip dysplasia and young athletes; parents drive, Medicaid
+# and CHIP cover a large share of children, and the children's hospital is both referrer and competitor.
+id: healthcare.orthopedics.pediatric
+extends: healthcare.orthopedics
+specialty: orthopedics
+demand_age_bands: ["0-17"]
+visit_rates: {"0-17": 0.07}
+features:
+  - {id: pop_u18_within_10km, source: acs, value: pop_u18_within_10km, label: "Children and teens within 10 km", agg: sum, direction: 1, unit: "people"}
+  - {id: medicaid_u19_within_10km, source: acs, value: medicaid_u19_within_10km, label: "Children on Medicaid or CHIP within 10 km", agg: sum, direction: 1, unit: "people"}
+  - {id: hs_enrollment_within_10km, source: tea, value: hs_enrollment_within_10km, label: "High school students within 10 km (Texas Education Agency enrollment)", agg: sum, direction: 1, unit: "students"}
+site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray", "casting room"], competitor_feature: n_orthopedics, variant: pediatric}
+factor_hints:
+  - "children's hospitals (Texas Children's) as referrer and competitor; pediatricians as the main referral base"
+  - "after-school hours; family parking and stroller access"

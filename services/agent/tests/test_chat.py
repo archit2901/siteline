@@ -29,7 +29,8 @@ def test_merge_fills_profile_and_clamps() -> None:
 
 
 def test_merge_maps_specialties_and_keeps_previous() -> None:
-    prev = PracticeProfile(name="Bayou Bones", business_type="clinic", customers="older adults")
+    prev = PracticeProfile(name="Bayou Bones", business_type="clinic", customers="older adults",
+                           free_text="[ortho_focus] Focus: Joint replacement (hip, knee, shoulder)")
     draft = IntakeDraft(healthcare_specialty="Orthopedic", payers=["Medicare", "Commercial", "bitcoin"],
                         locations=[LocationDraft(name="Main", address="6400 Fannin St, Houston, TX")])
     profile, missing = merge(draft, prev)

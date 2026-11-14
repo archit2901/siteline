@@ -27,7 +27,21 @@ Service lines that change the site:
   gas; heavy buildout favors buying or build-to-suit; low visibility need; mostly commercial and Medicare payers.
 - Walk-in orthopedic urgent care: visibility from a busy road, signage, evening and weekend hours, retail frontage.
 Space: 5-6 parking spaces per 1,000 sq ft, drop-off at the door, step-free entry for patients on crutches.
+How an outpatient orthopedic clinic actually wins (use these mechanisms, not template factors):
+- New patients mostly arrive by referral or a direct search after an injury; established patients return for
+  follow-ups (fracture care every 2-6 weeks, post-op at 2 weeks, 6 weeks, 3 months). Repeat trips make drive time
+  and parking count more than for one-off visits.
+- The binding constraint is usually staffed rooms and imaging, not demand: about 3 exam rooms per provider, one
+  X-ray room per 2-3 providers, casting space. A site with more demand than the clinic can see adds nothing.
+- Growth that only moves patients from the practice's own offices is not growth: count net-new patients after
+  subtracting what existing offices would lose (cannibalization), and compare against expanding an existing site.
+- Payers decide who can come: Medicare and Medicare Advantage for joints and spine, commercial for sports and
+  elective cases, workers' comp for occupational injuries, Medicaid/CHIP for children. A narrow network can close a
+  market whose population looks ideal.
+- A nearby orthopedic group is a competitor unless the intake documents a referral or call-coverage relationship.
+  A hospital campus can be a referrer (ER fracture follow-ups) and a competitor (its employed orthopedists) at once.
 Must keep:
-- `hospital` Regional hospitals: drive time to where the surgeons operate and round, and hospital systems that pull patients into their own clinics
-- `high school|athletic|youth sport` High schools with athletic programs (sports injury referrals)
-- `competit|urgent care|imaging|hospital-employed` Competition beyond other orthopedists: hospital-employed groups, orthopedic urgent care, imaging, PT chains
+- `hospital|asc|surgery center|operat` Drive time to the hospitals or surgery centers where the surgeons operate, and hospital systems whose employed orthopedists compete
+- `compet|urgent care|imaging|hospital-employed|orthopedi` Competition beyond other orthopedists: hospital-employed groups, orthopedic urgent care, imaging, PT chains
+- `primary care|referr|emergency|\ber\b|urgent care` Referral base: primary care, emergency departments and urgent cares that send fractures and new injuries
+- `parking|step-free|accessib|drop-off|crutch|walker` Parking at the door and a step-free path to check-in for patients on crutches, walkers and in boots
