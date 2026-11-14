@@ -14,6 +14,7 @@ import pyarrow.parquet as pq
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "data" / "raw" / "houston_h3_r8.parquet"
+GENERAL = ROOT / "data" / "derived" / "general_stock.parquet"  # public ACS + LODES (scripts/build_general_stock.py)
 OUT = Path(__file__).parent / "grid.json"
 
 KEYS = ["h3", "cell_lat", "cell_lon", "county"]
@@ -53,9 +54,13 @@ def main() -> int:
     assert not any(c.startswith(FORBIDDEN_PREFIXES) for c in COLUMNS), "CoStar-derived column in the fixture"
     table = pq.read_table(SOURCE, columns=KEYS + COLUMNS)
     rows = [{k: clean(k, v) for k, v in row.items()} for row in table.to_pylist()]
+    if GENERAL.exists():
+        extra = {r["h3"]: r for r in pq.read_table(GENERAL).to_pylist()}
+        for row in rows:
+            row.update({k: clean(k, v) for k, v in extra.get(row["h3"], {}).items() if k != "h3"})
     rows.sort(key=lambda r: str(r["h3"]))
     OUT.write_text(json.dumps(rows, separators=(",", ":")) + "\n")
-    print(f"wrote {len(rows)} cells x {len(KEYS) + len(COLUMNS)} columns to {OUT.relative_to(ROOT)}")
+    print(f"wrote {len(rows)} cells x {len(rows[0])} columns to {OUT.relative_to(ROOT)}")
     return 0
 
 

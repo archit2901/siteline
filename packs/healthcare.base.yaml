@@ -1,7 +1,8 @@
-# StockPack (contracts/models.py). Loaded for every practice; specialty packs extend it.
+# StockPack (contracts/models.py). Healthcare practices; extends general.base; specialty packs extend it.
 # Feature ids are column names of the Houston grid (data/raw/houston_h3_r8.parquet, fixtures/grid.json), or a sum of
 # columns written with "+" in `value`. Ring sums (*_within_5km / *_within_10km) are straight-line k=6 / k=12 H3 rings.
 id: healthcare.base
+extends: general.base
 demand_age_bands: ["0-17", "18-44", "45-64", "65+"]
 visit_rates: {}
 features:

@@ -9,9 +9,11 @@ from contracts.models import PackFeature, PracticeProfile, RegionFeature, StockP
 
 ROOT = Path(__file__).resolve().parents[3]
 PACKS = ROOT / "packs"
-BASE = "healthcare.base"
+BASE = "general.base"
 PROVENANCE = {
     "acs": "https://www.census.gov/data/developers/data-sets/acs-5year.html",
+    "acs.sf": "https://www.census.gov/programs-surveys/acs/data/summary-file.html",
+    "lodes": "https://lehd.ces.census.gov/data/",
     "cms.doctors": "https://data.cms.gov/provider-data/dataset/mj5m-pzi6",
     "cms.hospitals": "https://data.cms.gov/provider-data/dataset/xubh-q36u",
 }
