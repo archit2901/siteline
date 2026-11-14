@@ -1,0 +1,24 @@
+{
+  "description": "One group of people who are this business's customers, measured by a grid feature.",
+  "properties": {
+    "feature_id": {
+      "title": "Feature Id",
+      "type": "string"
+    },
+    "label": {
+      "title": "Label",
+      "type": "string"
+    },
+    "weight": {
+      "default": 1.0,
+      "title": "Weight",
+      "type": "number"
+    }
+  },
+  "required": [
+    "feature_id",
+    "label"
+  ],
+  "title": "DemandSegment",
+  "type": "object"
+}

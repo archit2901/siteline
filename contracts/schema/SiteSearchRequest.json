@@ -40,6 +40,13 @@
           },
           "title": "Special Rooms",
           "type": "array"
+        },
+        "space_uses": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Space Uses",
+          "type": "array"
         }
       },
       "title": "Constraints",

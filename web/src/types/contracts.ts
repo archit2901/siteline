@@ -65,6 +65,7 @@ export type MaxRentPsf = number | null;
 export type MinParkingPer1000Sf = number;
 export type GroundFloor = boolean;
 export type SpecialRooms = string[];
+export type SpaceUses = string[];
 export type Url2 = string;
 export type Format2 = "csv" | "json" | "geojson" | "socrata" | "arcgis" | "census_api" | "gtfs";
 export type Columns = string[];
@@ -76,9 +77,20 @@ export type GeoKeyGuess = string | null;
 export type GeoLevelGuess = ("tract" | "zip" | "county" | "point") | null;
 export type Ingestible = boolean;
 export type Reason = string | null;
+export type FeatureId2 = string;
+export type Label = string;
+export type Weight = number;
+export type Segments = DemandSegment[];
+export type DemandLabel = string;
+export type CompetitorFeature = string | null;
+export type CompetitorLabel = string;
+export type SpaceUses1 = string[];
+export type Rationale1 = string;
 export type Id3 = string;
 export type Name = string;
 export type Specialty = string;
+export type BusinessType = string;
+export type Customers = string;
 export type Services = string[];
 export type PayersAccepted = string[];
 export type Languages = string[];
@@ -95,7 +107,7 @@ export type MustInclude = string[];
 export type MustNotInclude = string[];
 export type Notes2 = string;
 export type Id4 = string;
-export type Label = string;
+export type Label1 = string;
 export type SourceId = string;
 export type SourceUrl = string | null;
 export type Format3 = ("csv" | "json" | "geojson" | "socrata" | "arcgis" | "census_api" | "gtfs") | null;
@@ -110,7 +122,7 @@ export type Direction1 = 1 | -1;
 export type Unit = string;
 export type Layer = "stock_base" | "stock_pack" | "agent_found";
 export type ProvenanceUrl = string;
-export type FeatureId2 = string;
+export type FeatureId3 = string;
 export type H3 = string;
 export type Value = number | null;
 export type Ok1 = boolean;
@@ -135,7 +147,7 @@ export type MatterportId = string | null;
 export type VexcelImageRef = string | null;
 export type Source = "costar" | "fixture";
 export type Candidates1 = SiteCandidate[];
-export type CompetitorFeature = string | null;
+export type CompetitorFeature1 = string | null;
 export type SiteId = string;
 export type NetNewPatients = number;
 export type CapturedPatients = number;
@@ -143,7 +155,7 @@ export type CannibalizedPatients = number;
 export type RegionId3 = string;
 export type Id6 = string;
 export type Source1 = string;
-export type Label1 = string;
+export type Label2 = string;
 export type Value1 = string | null;
 export type FilterColumn1 = string | null;
 export type FilterValues1 = string[];
@@ -156,7 +168,7 @@ export type Format4 = ("csv" | "json" | "geojson" | "socrata" | "arcgis" | "cens
 export type RegionId4 = string;
 export type RegionId5 = string;
 export type Candidates2 = SiteCandidate[];
-export type CompetitorFeature1 = string | null;
+export type CompetitorFeature2 = string | null;
 export type WithStability = boolean;
 export type SiteId1 = string;
 export type NetNewPatients1 = number;
@@ -175,8 +187,9 @@ export type FinalScore1 = number;
 export type Stability1 = number | null;
 export type Justification = Claim[];
 export type Caveats = string[];
+export type AnnualRentPerCustomer = number | null;
 export type Id7 = string;
-export type Label2 = string;
+export type Label3 = string;
 export type Source2 = string;
 export type Unit2 = string;
 export type Layer1 = "stock_base" | "stock_pack" | "agent_found";
@@ -186,6 +199,7 @@ export type Factors1 = Factor[];
 export type Recommendations = Recommendation[];
 export type Caveats1 = string[];
 export type Verified = boolean;
+export type DemandLabel1 = string;
 export type RegionId6 = string;
 export type H32 = string;
 export type Score = number;
@@ -380,6 +394,7 @@ export interface Constraints {
   min_parking_per_1000sf?: MinParkingPer1000Sf;
   ground_floor?: GroundFloor;
   special_rooms?: SpecialRooms;
+  space_uses?: SpaceUses;
   [k: string]: unknown;
 }
 /**
@@ -401,6 +416,34 @@ export interface DatasetPreview {
   [k: string]: unknown;
 }
 /**
+ * Who the customers are, who competes and what space fits: written by the business profiler, validated in
+ * Python against the grid. Healthcare presets derive it from their pack.
+ *
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "DemandModel".
+ */
+export interface DemandModel {
+  segments?: Segments;
+  demand_label?: DemandLabel;
+  competitor_feature?: CompetitorFeature;
+  competitor_label?: CompetitorLabel;
+  space_uses?: SpaceUses1;
+  rationale?: Rationale1;
+  [k: string]: unknown;
+}
+/**
+ * One group of people who are this business's customers, measured by a grid feature.
+ *
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "DemandSegment".
+ */
+export interface DemandSegment {
+  feature_id: FeatureId2;
+  label: Label;
+  weight?: Weight;
+  [k: string]: unknown;
+}
+/**
  * This interface was referenced by `SitelineContracts`'s JSON-Schema
  * via the `definition` "EvalCase".
  */
@@ -414,12 +457,16 @@ export interface EvalCase {
   [k: string]: unknown;
 }
 /**
+ * Intake for any business (the name is historical). Healthcare fills specialty/payers; others business_type.
+ *
  * This interface was referenced by `SitelineContracts`'s JSON-Schema
  * via the `definition` "PracticeProfile".
  */
 export interface PracticeProfile {
   name: Name;
-  specialty: Specialty;
+  specialty?: Specialty;
+  business_type?: BusinessType;
+  customers?: Customers;
   services?: Services;
   payers_accepted?: PayersAccepted;
   patient_mix?: PatientMix;
@@ -459,7 +506,7 @@ export interface SignChecks {
  */
 export interface FeatureSpec {
   id: Id4;
-  label: Label;
+  label: Label1;
   source_id: SourceId;
   source_url?: SourceUrl;
   format?: Format3;
@@ -483,7 +530,7 @@ export interface FeatureSpec {
  * via the `definition` "FeatureValue".
  */
 export interface FeatureValue {
-  feature_id: FeatureId2;
+  feature_id: FeatureId3;
   h3: H3;
   value: Value;
   [k: string]: unknown;
@@ -508,7 +555,8 @@ export interface HuffRequest {
   profile: PracticeProfile;
   spec: ScoringSpec;
   candidates: Candidates1;
-  competitor_feature?: CompetitorFeature;
+  competitor_feature?: CompetitorFeature1;
+  demand?: DemandModel | null;
   [k: string]: unknown;
 }
 /**
@@ -565,7 +613,7 @@ export interface IngestRequest {
 export interface PackFeature {
   id: Id6;
   source: Source1;
-  label?: Label1;
+  label?: Label2;
   value?: Value1;
   filter_column?: FilterColumn1;
   filter_values?: FilterValues1;
@@ -596,8 +644,9 @@ export interface RankRequest {
   profile: PracticeProfile;
   spec: ScoringSpec;
   candidates: Candidates2;
-  competitor_feature?: CompetitorFeature1;
+  competitor_feature?: CompetitorFeature2;
   with_stability?: WithStability;
+  demand?: DemandModel | null;
   [k: string]: unknown;
 }
 /**
@@ -630,6 +679,7 @@ export interface Recommendation {
   stability?: Stability1;
   justification: Justification;
   caveats?: Caveats;
+  annual_rent_per_customer?: AnnualRentPerCustomer;
   [k: string]: unknown;
 }
 /**
@@ -640,7 +690,7 @@ export interface Recommendation {
  */
 export interface RegionFeature {
   id: Id7;
-  label: Label2;
+  label: Label3;
   source: Source2;
   unit?: Unit2;
   layer: Layer1;
@@ -659,6 +709,8 @@ export interface Report {
   caveats?: Caveats1;
   sources?: Sources;
   verified?: Verified;
+  demand_label?: DemandLabel1;
+  demand?: DemandModel | null;
   [k: string]: unknown;
 }
 export interface Sources {
@@ -749,6 +801,7 @@ export interface ScoreRequest {
   profile: PracticeProfile;
   spec: ScoringSpec;
   top_n?: TopN;
+  demand?: DemandModel | null;
   [k: string]: unknown;
 }
 /**
@@ -762,6 +815,7 @@ export interface SensitivityRequest {
   candidates: Candidates3;
   draws?: Draws;
   kappa?: Kappa;
+  demand?: DemandModel | null;
   [k: string]: unknown;
 }
 /**

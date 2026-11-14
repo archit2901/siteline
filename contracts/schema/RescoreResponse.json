@@ -71,6 +71,18 @@
           },
           "title": "Caveats",
           "type": "array"
+        },
+        "annual_rent_per_customer": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Annual Rent Per Customer"
         }
       },
       "required": [

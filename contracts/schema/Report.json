@@ -61,9 +61,88 @@
           },
           "title": "Special Rooms",
           "type": "array"
+        },
+        "space_uses": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Space Uses",
+          "type": "array"
         }
       },
       "title": "Constraints",
+      "type": "object"
+    },
+    "DemandModel": {
+      "description": "Who the customers are, who competes and what space fits: written by the business profiler, validated in\nPython against the grid. Healthcare presets derive it from their pack.",
+      "properties": {
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/DemandSegment"
+          },
+          "title": "Segments",
+          "type": "array"
+        },
+        "demand_label": {
+          "default": "customers",
+          "title": "Demand Label",
+          "type": "string"
+        },
+        "competitor_feature": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Competitor Feature"
+        },
+        "competitor_label": {
+          "default": "",
+          "title": "Competitor Label",
+          "type": "string"
+        },
+        "space_uses": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Space Uses",
+          "type": "array"
+        },
+        "rationale": {
+          "default": "",
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "title": "DemandModel",
+      "type": "object"
+    },
+    "DemandSegment": {
+      "description": "One group of people who are this business's customers, measured by a grid feature.",
+      "properties": {
+        "feature_id": {
+          "title": "Feature Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "weight": {
+          "default": 1.0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "feature_id",
+        "label"
+      ],
+      "title": "DemandSegment",
       "type": "object"
     },
     "Factor": {
@@ -210,13 +289,25 @@
       "type": "object"
     },
     "PracticeProfile": {
+      "description": "Intake for any business (the name is historical). Healthcare fills specialty/payers; others business_type.",
       "properties": {
         "name": {
           "title": "Name",
           "type": "string"
         },
         "specialty": {
+          "default": "",
           "title": "Specialty",
+          "type": "string"
+        },
+        "business_type": {
+          "default": "",
+          "title": "Business Type",
+          "type": "string"
+        },
+        "customers": {
+          "default": "",
+          "title": "Customers",
           "type": "string"
         },
         "services": {
@@ -281,8 +372,7 @@
         }
       },
       "required": [
-        "name",
-        "specialty"
+        "name"
       ],
       "title": "PracticeProfile",
       "type": "object"
@@ -337,6 +427,18 @@
           },
           "title": "Caveats",
           "type": "array"
+        },
+        "annual_rent_per_customer": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Annual Rent Per Customer"
         }
       },
       "required": [
@@ -562,6 +664,22 @@
       "default": false,
       "title": "Verified",
       "type": "boolean"
+    },
+    "demand_label": {
+      "default": "patients",
+      "title": "Demand Label",
+      "type": "string"
+    },
+    "demand": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DemandModel"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

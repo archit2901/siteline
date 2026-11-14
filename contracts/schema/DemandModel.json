@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "DemandSegment": {
+      "description": "One group of people who are this business's customers, measured by a grid feature.",
+      "properties": {
+        "feature_id": {
+          "title": "Feature Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "weight": {
+          "default": 1.0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "feature_id",
+        "label"
+      ],
+      "title": "DemandSegment",
+      "type": "object"
+    }
+  },
+  "description": "Who the customers are, who competes and what space fits: written by the business profiler, validated in\nPython against the grid. Healthcare presets derive it from their pack.",
+  "properties": {
+    "segments": {
+      "items": {
+        "$ref": "#/$defs/DemandSegment"
+      },
+      "title": "Segments",
+      "type": "array"
+    },
+    "demand_label": {
+      "default": "customers",
+      "title": "Demand Label",
+      "type": "string"
+    },
+    "competitor_feature": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Competitor Feature"
+    },
+    "competitor_label": {
+      "default": "",
+      "title": "Competitor Label",
+      "type": "string"
+    },
+    "space_uses": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Space Uses",
+      "type": "array"
+    },
+    "rationale": {
+      "default": "",
+      "title": "Rationale",
+      "type": "string"
+    }
+  },
+  "title": "DemandModel",
+  "type": "object"
+}

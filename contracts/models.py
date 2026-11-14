@@ -14,7 +14,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, HttpUrl
 
-CONTRACT_VERSION = "1.0.0"
+CONTRACT_VERSION = "1.1.0"
 
 # ---------------------------------------------------------------------------
 # Shared literals
@@ -48,11 +48,16 @@ class Constraints(BaseModel):
     min_parking_per_1000sf: float = 4.0
     ground_floor: bool = True
     special_rooms: list[str] = Field(default_factory=list)  # e.g. "x-ray", "dialysis stations"
+    space_uses: list[str] = Field(default_factory=list)  # CoStar space uses to search; empty = from the DemandModel
 
 
 class PracticeProfile(BaseModel):
+    """Intake for any business (the name is historical). Healthcare fills specialty/payers; others business_type."""
+
     name: str
-    specialty: str  # "orthopedics" | "pediatric_dentistry" | "dialysis" | "physical_therapy" | free text
+    specialty: str = ""  # healthcare: "orthopedics" | "pediatric_dentistry" | "dialysis" | "physical_therapy" | free text
+    business_type: str = ""  # any business: "laundromat", "tutoring center", "coffee shop", ... (empty for healthcare)
+    customers: str = ""  # who the customers are, in the owner's words
     services: list[str] = Field(default_factory=list)
     payers_accepted: list[str] = Field(default_factory=list)  # "medicare", "medicaid", "chip", "commercial", "workers_comp"
     patient_mix: dict[str, float] = Field(default_factory=dict)  # optional shares, e.g. {"65+": 0.4}
@@ -62,6 +67,26 @@ class PracticeProfile(BaseModel):
     free_text: str = ""
     stock_pack: str | None = None  # e.g. "healthcare.orthopedics"; load_profile fills it in when empty
     region_id: str = "hou"
+
+
+class DemandSegment(BaseModel):
+    """One group of people who are this business's customers, measured by a grid feature."""
+
+    feature_id: str  # per-cell count column, e.g. "renter_households", "pop_u18", "jobs"
+    label: str
+    weight: float = 1.0
+
+
+class DemandModel(BaseModel):
+    """Who the customers are, who competes and what space fits: written by the business profiler, validated in
+    Python against the grid. Healthcare presets derive it from their pack."""
+
+    segments: list[DemandSegment] = Field(default_factory=list)
+    demand_label: str = "customers"  # "patients", "students", "households", ...
+    competitor_feature: str | None = None  # per-cell count column of competitor locations
+    competitor_label: str = ""
+    space_uses: list[str] = Field(default_factory=list)  # CoStar space uses, e.g. ["Retail", "Flex"]
+    rationale: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -194,6 +219,7 @@ class ScoreRequest(BaseModel):
     profile: PracticeProfile  # used for demand (age bands, accepted payers)
     spec: ScoringSpec
     top_n: int = 15
+    demand: DemandModel | None = None  # any business: demand from these segments instead of the pack
 
 
 class ZoneScore(BaseModel):
@@ -255,6 +281,7 @@ class HuffRequest(BaseModel):
     spec: ScoringSpec
     candidates: list[SiteCandidate]
     competitor_feature: str | None = None  # point feature whose locations compete (e.g. "cms_ortho_points")
+    demand: DemandModel | None = None
 
 
 class HuffResult(BaseModel):
@@ -271,6 +298,7 @@ class SensitivityRequest(BaseModel):
     candidates: list[SiteCandidate]
     draws: int = 200
     kappa: float = 50.0  # Dirichlet concentration around the chosen weights
+    demand: DemandModel | None = None
 
 
 class SensitivityResult(BaseModel):
@@ -287,6 +315,7 @@ class RankRequest(BaseModel):
     candidates: list[SiteCandidate]
     competitor_feature: str | None = None
     with_stability: bool = True
+    demand: DemandModel | None = None
 
 
 class RankedSite(BaseModel):
@@ -319,6 +348,7 @@ class Recommendation(BaseModel):
     stability: float | None = None
     justification: list[Claim]
     caveats: list[str] = Field(default_factory=list)
+    annual_rent_per_customer: float | None = None  # asking rent × sq ft ÷ net-new (Python-computed)
 
 
 class Report(BaseModel):
@@ -329,6 +359,8 @@ class Report(BaseModel):
     caveats: list[str] = Field(default_factory=list)
     sources: dict[str, HttpUrl] = Field(default_factory=dict)  # feature_id -> provenance
     verified: bool = False
+    demand_label: str = "patients"  # what net_new_patients counts for this business
+    demand: DemandModel | None = None
 
 
 # ---------------------------------------------------------------------------
