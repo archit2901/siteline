@@ -14,7 +14,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, HttpUrl
 
-CONTRACT_VERSION = "1.2.0"
+CONTRACT_VERSION = "1.3.0"
 
 # ---------------------------------------------------------------------------
 # Shared literals
@@ -415,6 +415,43 @@ class RescoreRequest(BaseModel):
 class RescoreResponse(BaseModel):
     zones: ScoreResponse
     recommendations: list[Recommendation]
+
+
+# ---------------------------------------------------------------------------
+# Chat: intake in the owner's words, then questions about the results
+# ---------------------------------------------------------------------------
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class IntakeRequest(BaseModel):
+    messages: list[ChatMessage]
+    draft: PracticeProfile | None = None  # what the chat understood so far (the client sends it back each turn)
+
+
+class IntakeResponse(BaseModel):
+    reply: str  # the assistant's next chat line
+    profile: PracticeProfile
+    ready: bool = False  # enough to run the agent
+    missing: list[str] = Field(default_factory=list)  # what is still unknown, in plain words
+
+
+class AskRequest(BaseModel):
+    question: str
+    report: Report
+
+
+class AskFact(BaseModel):
+    text: str  # rendered by Python from stored report values
+    site_id: str | None = None
+    rank: int | None = None
+    refs: list[str] = Field(default_factory=list)
+
+
+class AskResponse(BaseModel):
+    answer: str  # a short lead with no numbers; the numbers are in facts
+    facts: list[AskFact] = Field(default_factory=list)
 
 
 class Health(BaseModel):

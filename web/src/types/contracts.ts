@@ -44,50 +44,12 @@ export type ApprovalId1 = string;
 export type Decision = "approve" | "edit" | "reject";
 export type KeptFactorIds = string[] | null;
 export type Note = string | null;
-export type RegionId = string;
-export type Id2 = string;
-export type Title1 = string;
-export type Publisher1 = string;
-export type Url1 = string;
-export type Format1 = "csv" | "json" | "geojson" | "socrata" | "arcgis" | "census_api" | "gtfs";
-export type GeoLevel1 = "tract" | "zip" | "county" | "point";
-export type GeoKey = string | null;
-export type Measures = string[];
-export type Coverage = string;
-export type Connector = string | null;
-export type Notes1 = string;
-export type Entries = CatalogEntry[];
 export type Text = string;
-export type EvidenceRefs = string[];
-export type MinSqft = number;
-export type MaxSqft = number;
-export type MaxRentPsf = number | null;
-export type MinParkingPer1000Sf = number;
-export type GroundFloor = boolean;
-export type SpecialRooms = string[];
-export type SpaceUses = string[];
-export type Url2 = string;
-export type Format2 = "csv" | "json" | "geojson" | "socrata" | "arcgis" | "census_api" | "gtfs";
-export type Columns = string[];
-export type SampleRows = {
-  [k: string]: unknown;
-}[];
-export type RowCount = number | null;
-export type GeoKeyGuess = string | null;
-export type GeoLevelGuess = ("tract" | "zip" | "county" | "point") | null;
-export type Ingestible = boolean;
-export type Reason = string | null;
-export type FeatureId2 = string;
-export type Label = string;
-export type Weight = number;
-export type Segments = DemandSegment[];
-export type DemandLabel = string;
-export type CompetitorFeature = string | null;
-export type CompetitorLabel = string;
-export type SpaceUses1 = string[];
-export type Rationale1 = string;
-export type Trip = "neighborhood" | "local" | "destination";
-export type Id3 = string;
+export type SiteId = string | null;
+export type Rank = number | null;
+export type Refs = string[];
+export type Question = string;
+export type RunId = string;
 export type Name = string;
 export type Specialty = string;
 export type BusinessType = string;
@@ -101,13 +63,91 @@ export type Lat = number | null;
 export type Lon = number | null;
 export type Clinicians = number;
 export type ExistingOffices = Office[];
+export type MinSqft = number;
+export type MaxSqft = number;
+export type MaxRentPsf = number | null;
+export type MinParkingPer1000Sf = number;
+export type GroundFloor = boolean;
+export type SpecialRooms = string[];
+export type SpaceUses = string[];
 export type FreeText = string;
 export type StockPack = string | null;
+export type RegionId = string;
+export type Factors1 = Factor[];
+export type Rank1 = number;
+export type Id2 = string;
+export type Address1 = string;
+export type Lat1 = number;
+export type Lon1 = number;
+export type H3 = string | null;
+export type Submarket = string | null;
+export type Sqft = number | null;
+export type RentPsf = number | null;
+export type Floor = number | null;
+export type BuildingClass = string | null;
+export type Available = boolean | null;
+export type ParkingSpaces = number | null;
+export type ParkingEstimated = boolean;
+export type MatterportId = string | null;
+export type VexcelImageRef = string | null;
+export type Source = "costar" | "fixture";
+export type NetNewPatients = number;
+export type ZoneScore = number;
+export type SiteQuality = number;
+export type FinalScore = number;
+export type Stability = number | null;
+export type Text1 = string;
+export type EvidenceRefs = string[];
+export type Justification = Claim[];
+export type Caveats = string[];
+export type AnnualRentPerCustomer = number | null;
+export type Recommendations = Recommendation[];
+export type Caveats1 = string[];
+export type Verified = boolean;
+export type DemandLabel = string;
+export type FeatureId2 = string;
+export type Label = string;
+export type Weight = number;
+export type Segments = DemandSegment[];
+export type DemandLabel1 = string;
+export type CompetitorFeature = string | null;
+export type CompetitorLabel = string;
+export type SpaceUses1 = string[];
+export type Rationale1 = string;
+export type Trip = "neighborhood" | "local" | "destination";
+export type Answer = string;
+export type Facts = AskFact[];
 export type RegionId1 = string;
+export type Id3 = string;
+export type Title1 = string;
+export type Publisher1 = string;
+export type Url1 = string;
+export type Format1 = "csv" | "json" | "geojson" | "socrata" | "arcgis" | "census_api" | "gtfs";
+export type GeoLevel1 = "tract" | "zip" | "county" | "point";
+export type GeoKey = string | null;
+export type Measures = string[];
+export type Coverage = string;
+export type Connector = string | null;
+export type Notes1 = string;
+export type Entries = CatalogEntry[];
+export type Role = "user" | "assistant";
+export type Content = string;
+export type Url2 = string;
+export type Format2 = "csv" | "json" | "geojson" | "socrata" | "arcgis" | "census_api" | "gtfs";
+export type Columns = string[];
+export type SampleRows = {
+  [k: string]: unknown;
+}[];
+export type RowCount = number | null;
+export type GeoKeyGuess = string | null;
+export type GeoLevelGuess = ("tract" | "zip" | "county" | "point") | null;
+export type Ingestible = boolean;
+export type Reason = string | null;
+export type Id4 = string;
 export type MustInclude = string[];
 export type MustNotInclude = string[];
 export type Notes2 = string;
-export type Id4 = string;
+export type Id5 = string;
 export type Label1 = string;
 export type SourceId = string;
 export type SourceUrl = string | null;
@@ -124,36 +164,24 @@ export type Unit = string;
 export type Layer = "stock_base" | "stock_pack" | "agent_found";
 export type ProvenanceUrl = string;
 export type FeatureId3 = string;
-export type H3 = string;
+export type H31 = string;
 export type Value = number | null;
 export type Ok1 = boolean;
 export type Service = string;
 export type FixtureMode = boolean;
 export type ContractVersion = string;
 export type RegionId2 = string;
-export type Id5 = string;
-export type Address1 = string;
-export type Lat1 = number;
-export type Lon1 = number;
-export type H31 = string | null;
-export type Submarket = string | null;
-export type Sqft = number | null;
-export type RentPsf = number | null;
-export type Floor = number | null;
-export type BuildingClass = string | null;
-export type Available = boolean | null;
-export type ParkingSpaces = number | null;
-export type ParkingEstimated = boolean;
-export type MatterportId = string | null;
-export type VexcelImageRef = string | null;
-export type Source = "costar" | "fixture";
 export type Candidates1 = SiteCandidate[];
 export type CompetitorFeature1 = string | null;
-export type SiteId = string;
-export type NetNewPatients = number;
+export type SiteId1 = string;
+export type NetNewPatients1 = number;
 export type CapturedPatients = number;
 export type CannibalizedPatients = number;
 export type RegionId3 = string;
+export type Messages = ChatMessage[];
+export type Reply = string;
+export type Ready = boolean;
+export type Missing = string[];
 export type Id6 = string;
 export type Source1 = string;
 export type Label2 = string;
@@ -171,36 +199,21 @@ export type RegionId5 = string;
 export type Candidates2 = SiteCandidate[];
 export type CompetitorFeature2 = string | null;
 export type WithStability = boolean;
-export type SiteId1 = string;
-export type NetNewPatients1 = number;
+export type SiteId2 = string;
+export type NetNewPatients2 = number;
 export type CapturedPatients1 = number;
 export type CannibalizedPatients1 = number;
-export type ZoneScore = number;
-export type SiteQuality = number;
-export type FinalScore = number;
-export type ExcludedReason = string | null;
-export type Stability = number | null;
-export type Rank = number;
-export type NetNewPatients2 = number;
 export type ZoneScore1 = number;
 export type SiteQuality1 = number;
 export type FinalScore1 = number;
+export type ExcludedReason = string | null;
 export type Stability1 = number | null;
-export type Justification = Claim[];
-export type Caveats = string[];
-export type AnnualRentPerCustomer = number | null;
 export type Id7 = string;
 export type Label3 = string;
 export type Source2 = string;
 export type Unit2 = string;
 export type Layer1 = "stock_base" | "stock_pack" | "agent_found";
 export type ProvenanceUrl1 = string;
-export type RunId = string;
-export type Factors1 = Factor[];
-export type Recommendations = Recommendation[];
-export type Caveats1 = string[];
-export type Verified = boolean;
-export type DemandLabel1 = string;
 export type RegionId6 = string;
 export type H32 = string;
 export type Score = number;
@@ -223,9 +236,9 @@ export type RegionId9 = string;
 export type Candidates3 = SiteCandidate[];
 export type Draws = number;
 export type Kappa = number;
-export type SiteId2 = string;
-export type Stability2 = number;
 export type SiteId3 = string;
+export type Stability2 = number;
+export type SiteId4 = string;
 export type VexcelImageRef1 = string | null;
 export type ParkingEstimate = number | null;
 export type ParkingNote = string | null;
@@ -350,112 +363,38 @@ export interface ApproveRequest {
 }
 /**
  * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "Catalog".
+ * via the `definition` "AskFact".
  */
-export interface Catalog {
-  region_id: RegionId;
-  entries?: Entries;
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "CatalogEntry".
- */
-export interface CatalogEntry {
-  id: Id2;
-  title: Title1;
-  publisher: Publisher1;
-  url: Url1;
-  format: Format1;
-  geo_level: GeoLevel1;
-  geo_key?: GeoKey;
-  measures: Measures;
-  coverage: Coverage;
-  connector?: Connector;
-  notes?: Notes1;
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "Claim".
- */
-export interface Claim {
+export interface AskFact {
   text: Text;
-  evidence_refs: EvidenceRefs;
+  site_id?: SiteId;
+  rank?: Rank;
+  refs?: Refs;
   [k: string]: unknown;
 }
 /**
  * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "Constraints".
+ * via the `definition` "AskRequest".
  */
-export interface Constraints {
-  min_sqft?: MinSqft;
-  max_sqft?: MaxSqft;
-  max_rent_psf?: MaxRentPsf;
-  min_parking_per_1000sf?: MinParkingPer1000Sf;
-  ground_floor?: GroundFloor;
-  special_rooms?: SpecialRooms;
-  space_uses?: SpaceUses;
-  [k: string]: unknown;
-}
-/**
- * geo POST /features/profile response.
- *
- * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "DatasetPreview".
- */
-export interface DatasetPreview {
-  url: Url2;
-  format: Format2;
-  columns: Columns;
-  sample_rows?: SampleRows;
-  row_count?: RowCount;
-  geo_key_guess?: GeoKeyGuess;
-  geo_level_guess?: GeoLevelGuess;
-  ingestible: Ingestible;
-  reason?: Reason;
-  [k: string]: unknown;
-}
-/**
- * Who the customers are, who competes and what space fits: written by the business profiler, validated in
- * Python against the grid. Healthcare presets derive it from their pack.
- *
- * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "DemandModel".
- */
-export interface DemandModel {
-  segments?: Segments;
-  demand_label?: DemandLabel;
-  competitor_feature?: CompetitorFeature;
-  competitor_label?: CompetitorLabel;
-  space_uses?: SpaceUses1;
-  rationale?: Rationale1;
-  trip?: Trip;
-  [k: string]: unknown;
-}
-/**
- * One group of people who are this business's customers, measured by a grid feature.
- *
- * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "DemandSegment".
- */
-export interface DemandSegment {
-  feature_id: FeatureId2;
-  label: Label;
-  weight?: Weight;
+export interface AskRequest {
+  question: Question;
+  report: Report;
   [k: string]: unknown;
 }
 /**
  * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "EvalCase".
+ * via the `definition` "Report".
  */
-export interface EvalCase {
-  id: Id3;
+export interface Report {
+  run_id: RunId;
   profile: PracticeProfile;
-  must_include: MustInclude;
-  must_not_include?: MustNotInclude;
-  sign_checks?: SignChecks;
-  notes?: Notes2;
+  factors: Factors1;
+  recommendations: Recommendations;
+  caveats?: Caveats1;
+  sources?: Sources;
+  verified?: Verified;
+  demand_label?: DemandLabel;
+  demand?: DemandModel | null;
   [k: string]: unknown;
 }
 /**
@@ -477,7 +416,7 @@ export interface PracticeProfile {
   constraints?: Constraints;
   free_text?: FreeText;
   stock_pack?: StockPack;
-  region_id?: RegionId1;
+  region_id?: RegionId;
   [k: string]: unknown;
 }
 export interface PatientMix {
@@ -495,6 +434,181 @@ export interface Office {
   clinicians?: Clinicians;
   [k: string]: unknown;
 }
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "Constraints".
+ */
+export interface Constraints {
+  min_sqft?: MinSqft;
+  max_sqft?: MaxSqft;
+  max_rent_psf?: MaxRentPsf;
+  min_parking_per_1000sf?: MinParkingPer1000Sf;
+  ground_floor?: GroundFloor;
+  special_rooms?: SpecialRooms;
+  space_uses?: SpaceUses;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "Recommendation".
+ */
+export interface Recommendation {
+  rank: Rank1;
+  site: SiteCandidate;
+  net_new_patients: NetNewPatients;
+  zone_score: ZoneScore;
+  site_quality: SiteQuality;
+  final_score: FinalScore;
+  stability?: Stability;
+  justification: Justification;
+  caveats?: Caveats;
+  annual_rent_per_customer?: AnnualRentPerCustomer;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "SiteCandidate".
+ */
+export interface SiteCandidate {
+  id: Id2;
+  address: Address1;
+  lat: Lat1;
+  lon: Lon1;
+  h3?: H3;
+  submarket?: Submarket;
+  sqft?: Sqft;
+  rent_psf?: RentPsf;
+  floor?: Floor;
+  building_class?: BuildingClass;
+  available?: Available;
+  parking_spaces?: ParkingSpaces;
+  parking_estimated?: ParkingEstimated;
+  matterport_id?: MatterportId;
+  vexcel_image_ref?: VexcelImageRef;
+  source?: Source;
+  checks?: Checks;
+  [k: string]: unknown;
+}
+export interface Checks {
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "Claim".
+ */
+export interface Claim {
+  text: Text1;
+  evidence_refs: EvidenceRefs;
+  [k: string]: unknown;
+}
+export interface Sources {
+  [k: string]: string;
+}
+/**
+ * Who the customers are, who competes and what space fits: written by the business profiler, validated in
+ * Python against the grid. Healthcare presets derive it from their pack.
+ *
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "DemandModel".
+ */
+export interface DemandModel {
+  segments?: Segments;
+  demand_label?: DemandLabel1;
+  competitor_feature?: CompetitorFeature;
+  competitor_label?: CompetitorLabel;
+  space_uses?: SpaceUses1;
+  rationale?: Rationale1;
+  trip?: Trip;
+  [k: string]: unknown;
+}
+/**
+ * One group of people who are this business's customers, measured by a grid feature.
+ *
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "DemandSegment".
+ */
+export interface DemandSegment {
+  feature_id: FeatureId2;
+  label: Label;
+  weight?: Weight;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "AskResponse".
+ */
+export interface AskResponse {
+  answer: Answer;
+  facts?: Facts;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "Catalog".
+ */
+export interface Catalog {
+  region_id: RegionId1;
+  entries?: Entries;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "CatalogEntry".
+ */
+export interface CatalogEntry {
+  id: Id3;
+  title: Title1;
+  publisher: Publisher1;
+  url: Url1;
+  format: Format1;
+  geo_level: GeoLevel1;
+  geo_key?: GeoKey;
+  measures: Measures;
+  coverage: Coverage;
+  connector?: Connector;
+  notes?: Notes1;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "ChatMessage".
+ */
+export interface ChatMessage {
+  role: Role;
+  content: Content;
+  [k: string]: unknown;
+}
+/**
+ * geo POST /features/profile response.
+ *
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "DatasetPreview".
+ */
+export interface DatasetPreview {
+  url: Url2;
+  format: Format2;
+  columns: Columns;
+  sample_rows?: SampleRows;
+  row_count?: RowCount;
+  geo_key_guess?: GeoKeyGuess;
+  geo_level_guess?: GeoLevelGuess;
+  ingestible: Ingestible;
+  reason?: Reason;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "EvalCase".
+ */
+export interface EvalCase {
+  id: Id4;
+  profile: PracticeProfile;
+  must_include: MustInclude;
+  must_not_include?: MustNotInclude;
+  sign_checks?: SignChecks;
+  notes?: Notes2;
+  [k: string]: unknown;
+}
 export interface SignChecks {
   [k: string]: 1 | -1;
 }
@@ -507,7 +621,7 @@ export interface SignChecks {
  * via the `definition` "FeatureSpec".
  */
 export interface FeatureSpec {
-  id: Id4;
+  id: Id5;
   label: Label1;
   source_id: SourceId;
   source_url?: SourceUrl;
@@ -533,7 +647,7 @@ export interface FeatureSpec {
  */
 export interface FeatureValue {
   feature_id: FeatureId3;
-  h3: H3;
+  h3: H31;
   value: Value;
   [k: string]: unknown;
 }
@@ -563,38 +677,11 @@ export interface HuffRequest {
 }
 /**
  * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "SiteCandidate".
- */
-export interface SiteCandidate {
-  id: Id5;
-  address: Address1;
-  lat: Lat1;
-  lon: Lon1;
-  h3?: H31;
-  submarket?: Submarket;
-  sqft?: Sqft;
-  rent_psf?: RentPsf;
-  floor?: Floor;
-  building_class?: BuildingClass;
-  available?: Available;
-  parking_spaces?: ParkingSpaces;
-  parking_estimated?: ParkingEstimated;
-  matterport_id?: MatterportId;
-  vexcel_image_ref?: VexcelImageRef;
-  source?: Source;
-  checks?: Checks;
-  [k: string]: unknown;
-}
-export interface Checks {
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `SitelineContracts`'s JSON-Schema
  * via the `definition` "HuffResult".
  */
 export interface HuffResult {
-  site_id: SiteId;
-  net_new_patients: NetNewPatients;
+  site_id: SiteId1;
+  net_new_patients: NetNewPatients1;
   captured_patients: CapturedPatients;
   cannibalized_patients: CannibalizedPatients;
   [k: string]: unknown;
@@ -606,6 +693,26 @@ export interface HuffResult {
 export interface IngestRequest {
   region_id?: RegionId3;
   spec: FeatureSpec;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "IntakeRequest".
+ */
+export interface IntakeRequest {
+  messages: Messages;
+  draft?: PracticeProfile | null;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `SitelineContracts`'s JSON-Schema
+ * via the `definition` "IntakeResponse".
+ */
+export interface IntakeResponse {
+  reply: Reply;
+  profile: PracticeProfile;
+  ready?: Ready;
+  missing?: Missing;
   [k: string]: unknown;
 }
 /**
@@ -656,32 +763,15 @@ export interface RankRequest {
  * via the `definition` "RankedSite".
  */
 export interface RankedSite {
-  site_id: SiteId1;
-  net_new_patients: NetNewPatients1;
+  site_id: SiteId2;
+  net_new_patients: NetNewPatients2;
   captured_patients: CapturedPatients1;
   cannibalized_patients: CannibalizedPatients1;
-  zone_score: ZoneScore;
-  site_quality: SiteQuality;
-  final_score: FinalScore;
-  excluded_reason?: ExcludedReason;
-  stability?: Stability;
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "Recommendation".
- */
-export interface Recommendation {
-  rank: Rank;
-  site: SiteCandidate;
-  net_new_patients: NetNewPatients2;
   zone_score: ZoneScore1;
   site_quality: SiteQuality1;
   final_score: FinalScore1;
+  excluded_reason?: ExcludedReason;
   stability?: Stability1;
-  justification: Justification;
-  caveats?: Caveats;
-  annual_rent_per_customer?: AnnualRentPerCustomer;
   [k: string]: unknown;
 }
 /**
@@ -698,25 +788,6 @@ export interface RegionFeature {
   layer: Layer1;
   provenance_url: ProvenanceUrl1;
   [k: string]: unknown;
-}
-/**
- * This interface was referenced by `SitelineContracts`'s JSON-Schema
- * via the `definition` "Report".
- */
-export interface Report {
-  run_id: RunId;
-  profile: PracticeProfile;
-  factors: Factors1;
-  recommendations: Recommendations;
-  caveats?: Caveats1;
-  sources?: Sources;
-  verified?: Verified;
-  demand_label?: DemandLabel1;
-  demand?: DemandModel | null;
-  [k: string]: unknown;
-}
-export interface Sources {
-  [k: string]: string;
 }
 /**
  * This interface was referenced by `SitelineContracts`'s JSON-Schema
@@ -825,7 +896,7 @@ export interface SensitivityRequest {
  * via the `definition` "SensitivityResult".
  */
 export interface SensitivityResult {
-  site_id: SiteId2;
+  site_id: SiteId3;
   stability: Stability2;
   [k: string]: unknown;
 }
@@ -834,7 +905,7 @@ export interface SensitivityResult {
  * via the `definition` "SiteCheckResult".
  */
 export interface SiteCheckResult {
-  site_id: SiteId3;
+  site_id: SiteId4;
   vexcel_image_ref?: VexcelImageRef1;
   parking_estimate?: ParkingEstimate;
   parking_note?: ParkingNote;

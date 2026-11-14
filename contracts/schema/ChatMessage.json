@@ -1,0 +1,22 @@
+{
+  "properties": {
+    "role": {
+      "enum": [
+        "user",
+        "assistant"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "content": {
+      "title": "Content",
+      "type": "string"
+    }
+  },
+  "required": [
+    "role",
+    "content"
+  ],
+  "title": "ChatMessage",
+  "type": "object"
+}
