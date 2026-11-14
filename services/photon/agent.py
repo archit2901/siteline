@@ -7,7 +7,12 @@ the web app runs here: the chat intake asks for anything missing, the live run s
 weights) are answered by replying YES or NO in Messages, the top spaces come back as a text, and follow-up questions
 are answered from the verified report (/ask). Every number in a reply comes from agent-api, never from this file.
 
-Env: PHOTON_API_KEY (project:read + project:write), PHOTON_PROJECT_ID, AGENT_URL (default http://localhost:8000).
+Env: PHOTON_API_KEY (project:read + project:write), PHOTON_PROJECT_ID, AGENT_URL (default http://localhost:8000),
+PHOTON_ALLOWED_SENDERS (comma-separated phone numbers / iMessage emails allowed to use it; empty = anyone who can
+reach the line, which on a shared line is only the sender you registered).
+
+Guards: direct conversations only (no group chats, so nobody approves someone else's run), one conversation per sender,
+an optional sender allowlist, and at most MAX_PER_MINUTE messages per sender. Each message's text is capped.
 """
 
 import asyncio
@@ -25,6 +30,28 @@ import httpx
 log = logging.getLogger("siteline.photon")
 AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8000").rstrip("/")
 POLL_SECONDS = 2.0
+MAX_PER_MINUTE = 10
+MAX_TEXT = 1000
+
+
+def allowed_senders() -> set[str]:
+    return {h.strip().lower() for h in os.environ.get("PHOTON_ALLOWED_SENDERS", "").split(",") if h.strip()}
+
+
+class SenderLimiter:
+    """At most MAX_PER_MINUTE messages per sender in a rolling minute (each can trigger model calls)."""
+
+    def __init__(self, per_minute: int = MAX_PER_MINUTE) -> None:
+        self.per_minute = per_minute
+        self.seen: dict[str, list[float]] = {}
+
+    def allow(self, sender: str, now: float) -> bool:
+        recent = [t for t in self.seen.get(sender, []) if now - t < 60]
+        if len(recent) >= self.per_minute:
+            self.seen[sender] = recent
+            return False
+        self.seen[sender] = [*recent, now]
+        return True
 YES = re.compile(r"^\s*(y|yes|yeah|yep|ok|okay|approve|sure|go|do it)\b", re.I)
 NO = re.compile(r"^\s*(n|no|nope|skip|reject)\b", re.I)
 RESTART = re.compile(r"^\s*(new|restart|start over|reset)\s*$", re.I)
@@ -206,8 +233,10 @@ async def main() -> None:
     project = os.environ["PHOTON_PROJECT_ID"]
     api = AgentApi()
     photon = _photon()
-    threads: dict[str, Conversation] = {}
+    threads: dict[str, Conversation] = {}  # keyed by sender id
     seen: set[str] = set()
+    allow = allowed_senders()
+    limiter = SenderLimiter()
     since = (datetime.now(timezone.utc) - timedelta(seconds=5)).isoformat(timespec="milliseconds").replace("+00:00", "Z")
     log.info("Siteline is listening on Photon project %s", project)
 
@@ -237,13 +266,19 @@ async def main() -> None:
             seen.add(m.id)
             since = max(since, m.createdAt)  # next poll starts at the newest message seen (ids dedupe the overlap)
             sender, agent, space = m.sentBy.root, m.receivedBy.root, m.space.root
-            if sender.kind != "human":
+            if sender.kind != "human" or getattr(space, "kind", "direct") != "direct":
+                continue  # direct threads only: in a group anyone could answer another person's approval
+            handle = str(getattr(sender, "handle", "") or "").lower()
+            if allow and handle not in allow:
+                log.info("ignored a message from a sender not in PHOTON_ALLOWED_SENDERS")
                 continue
-            convo = threads.get(space.id)
+            if not limiter.allow(sender.id, asyncio.get_running_loop().time()):
+                continue
+            convo = threads.get(sender.id)  # one conversation per sender
             if convo is None:
-                convo = threads[space.id] = Conversation(api, sender_for(space.id, agent.id, m.id))
+                convo = threads[sender.id] = Conversation(api, sender_for(space.id, agent.id, m.id))
             convo.send = sender_for(space.id, agent.id, m.id)  # reply under the newest message
-            asyncio.create_task(_safe(convo.handle(m.content.text)))
+            asyncio.create_task(_safe(convo.handle(m.content.text[:MAX_TEXT])))
         await asyncio.sleep(POLL_SECONDS)
 
 

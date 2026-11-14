@@ -77,3 +77,13 @@ def test_texts_use_report_numbers() -> None:
     assert "8,293 renter households in reach, 3,600 sq ft, $25.00/sq ft, 3D tour: https://my.matterport.com/show/?m=abc" in text
     weights = approval_text({"kind": "weights", "spec": {"weights": {"a": 0.6, "b": 0.4}}}, {"a": "Renters nearby"})
     assert "Renters nearby 60%" in weights and "b 40%" in weights
+
+
+def test_sender_limiter_and_allowlist(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from services.photon.agent import SenderLimiter, allowed_senders
+
+    lim = SenderLimiter(per_minute=2)
+    assert [lim.allow("a", t) for t in (0, 1, 2)] == [True, True, False]
+    assert lim.allow("b", 2) and lim.allow("a", 61)  # per sender, rolling minute
+    monkeypatch.setenv("PHOTON_ALLOWED_SENDERS", "+14155550123, Me@Example.com")
+    assert allowed_senders() == {"+14155550123", "me@example.com"}
