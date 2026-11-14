@@ -1,0 +1,124 @@
+{
+  "description": "What the site-inspector checked for one space, combining CoStar (listing), Vexcel (aerial) and Matterport (3D).\nEvery number comes from those APIs or the listing; findings are rendered by Python from these values.",
+  "properties": {
+    "checked": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Checked",
+      "type": "array"
+    },
+    "parked_cars": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parked Cars"
+    },
+    "radius_m": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Radius M"
+    },
+    "listed_parking": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Listed Parking"
+    },
+    "occupancy": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Occupancy"
+    },
+    "scan_area_sqft": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Scan Area Sqft"
+    },
+    "scan_rooms": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Scan Rooms"
+    },
+    "scan_floors": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Scan Floors"
+    },
+    "scan_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Scan Name"
+    },
+    "findings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "unavailable": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unavailable",
+      "type": "array"
+    }
+  },
+  "title": "SiteInspection",
+  "type": "object"
+}

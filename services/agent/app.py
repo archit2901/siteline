@@ -167,7 +167,8 @@ async def rescore(run_id: str, request: RescoreRequest) -> RescoreResponse:
     spec = normalize(request.spec)
     zones, ranked = await score_and_rank(run, spec)
     report, _ = await build_report(run.run_id, run.state["profile"], run.state.get("factors", []), run.state["sites"],
-                                   ranked, get_geo(), None, [], select=False)
+                                   ranked, get_geo(), None, [], select=False, demand=run.state.get("demand"),
+                                   inspections=run.state.get("inspections"), community=run.state.get("community"))
     return RescoreResponse(zones=zones, recommendations=report.recommendations)
 
 

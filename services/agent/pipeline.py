@@ -30,7 +30,7 @@ from contracts.models import (
     SiteCandidate,
     SiteSearchRequest,
 )
-from services.agent import llm
+from services.agent import inspector, llm
 from services.agent.critic import build_report
 from services.agent.factor_analyst import analyze
 from services.agent.runs import Run
@@ -45,6 +45,7 @@ from services.agent.tools.sites_client import MockSites
 from services.agent.tools.weights import advise_weights, scorable
 
 S = "site-strategist"
+I = "site-inspector"
 P = "business-profiler"
 STEPS = [
     "Understand the business and its customers",
@@ -54,6 +55,7 @@ STEPS = [
     "Weigh what matters most for this business",
     "Find real spaces in the top zones",
     "Rank sites by new customers won",
+    "Inspect the top spaces from above and inside",
     "Write and verify the report",
 ]
 SEARCH_ZONES = 400  # zones handed to the site search, best first (CoStar covers inner Harris only)
@@ -263,8 +265,29 @@ async def run_pipeline(run: Run) -> None:
     await run.emit(S, "tool_result", {"tool": "rank_sites", "ok": True,
                                       "summary": f"Ranked {len(ranked) - excluded} sites; {excluded} failed a hard constraint."})
 
-    # 8. report
+    # 8. inspect the top spaces (CoStar listing + Vexcel aerial + Matterport scan) and who lives around them
     await run.emit(S, "todo", todos(7))
+    by_site = {s.id: s for s in sites}
+    usable = [r for r in ranked if r.excluded_reason is None]
+    minutes = geomath.TRIP_MINUTES[demand.trip] if demand is not None else 15.0
+    community = {}
+    for r in usable[:15]:
+        need = await geo.community(by_site[r.site_id].lat, by_site[r.site_id].lon, minutes)
+        if need is not None:
+            community[r.site_id] = need
+    await run.emit(I, "tool_call", {"tool": "plan_inspection", "args": {"spaces": min(len(usable), inspector.INSPECT_TOP)}})
+
+    async def inspector_event(type_: str, payload: dict[str, Any]) -> None:
+        await run.emit(I, type_, payload)  # type: ignore[arg-type]
+
+    inspections, notes = await inspector.inspect(profile, ranked, by_site, meter, inspector_event)
+    checked = sum(len(i.checked) for i in inspections.values())
+    await run.emit(I, "tool_result", {"tool": "plan_inspection", "ok": True, "usage": meter.snapshot(),
+                                      "summary": f"{checked} checks on {len(inspections)} spaces; " + "; ".join(notes)})
+    run.state["inspections"], run.state["community"] = inspections, community
+
+    # 9. report
+    await run.emit(S, "todo", todos(8))
     if geomath.competitor_column(pack_for(profile), demand.competitor_feature if demand else None) is None:
         caveats.append(geomath.NO_COMPETITOR_CAVEAT)
     if demand is None and not pack_for(profile).visit_rates:
@@ -273,7 +296,8 @@ async def run_pipeline(run: Run) -> None:
     if demand is not None:
         caveats.append(f"Net-new counts {demand.demand_label} each site would win after competitors and your other "
                        "locations take their share; it is not a sales forecast.")
-    report, problems = await build_report(run.run_id, profile, factors, sites, ranked, geo, meter, caveats, demand=demand)
+    report, problems = await build_report(run.run_id, profile, factors, sites, ranked, geo, meter, caveats, demand=demand,
+                                          inspections=inspections, community=community)
     run.write_artifact("report.json", report.model_dump_json(indent=2))
     await run.emit("analyst-critic", "tool_result", {
         "tool": "verify_claims", "ok": report.verified, "usage": meter.snapshot(),

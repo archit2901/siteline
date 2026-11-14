@@ -14,7 +14,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, HttpUrl
 
-CONTRACT_VERSION = "1.3.0"
+CONTRACT_VERSION = "1.4.0"
 
 # ---------------------------------------------------------------------------
 # Shared literals
@@ -341,6 +341,34 @@ class Claim(BaseModel):
     evidence_refs: list[str]  # e.g. "feature:pop_65plus@882a100d65fffff", "model:net_new@site_12", "site:sqft@site_12"
 
 
+class SiteInspection(BaseModel):
+    """What the site-inspector checked for one space, combining CoStar (listing), Vexcel (aerial) and Matterport (3D).
+    Every number comes from those APIs or the listing; findings are rendered by Python from these values."""
+
+    checked: list[str] = Field(default_factory=list)  # "listing", "aerial", "3d"
+    parked_cars: int | None = None  # Vexcel parked-car detection around the building
+    radius_m: int | None = None  # half-width of the detection square
+    listed_parking: int | None = None  # CoStar property parking spaces
+    occupancy: float | None = None  # parked_cars / listed_parking
+    scan_area_sqft: int | None = None  # Matterport scanned floor area
+    scan_rooms: int | None = None
+    scan_floors: int | None = None
+    scan_name: str | None = None
+    findings: list[str] = Field(default_factory=list)
+    unavailable: list[str] = Field(default_factory=list)  # checks that could not run (no key, no scan, API error)
+
+
+class CommunityNeed(BaseModel):
+    """Who lives in a site's catchment, from Census data (Python-computed, population-weighted)."""
+
+    minutes: float  # catchment used (trip type)
+    households: int | None = None
+    no_car_share: float | None = None  # households without a vehicle (ACS B08201)
+    renter_share: float | None = None
+    medicaid_share: float | None = None  # residents with Medicaid coverage (ACS B27010)
+    lower_income_share: float | None = None  # households in tracts under 80% of the region's median income
+
+
 class Recommendation(BaseModel):
     rank: int
     site: SiteCandidate
@@ -352,6 +380,8 @@ class Recommendation(BaseModel):
     justification: list[Claim]
     caveats: list[str] = Field(default_factory=list)
     annual_rent_per_customer: float | None = None  # asking rent × sq ft ÷ net-new (Python-computed)
+    inspection: SiteInspection | None = None
+    community: CommunityNeed | None = None
 
 
 class Report(BaseModel):

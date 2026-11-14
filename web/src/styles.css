@@ -1726,3 +1726,103 @@ fieldset.section {
   width: 100%;
   font-size: var(--t-xs);
 }
+
+/* ---------- inspection and community ---------- */
+.inspect,
+.community {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+}
+.inspect h3,
+.community h3 {
+  margin-top: 0;
+}
+.checks {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.checks li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+.checks small {
+  display: block;
+  font-weight: 400;
+  color: var(--ink-3);
+  font-size: var(--t-xs);
+}
+.checks .tick {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #b9b6ac;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.checks li[data-done='true'] .tick {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.meter-row {
+  margin-top: 6px;
+}
+.meter-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--t-sm);
+}
+.occ,
+.sharebar {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--wash);
+  overflow: hidden;
+}
+.occ {
+  margin-top: 6px;
+}
+.occ span,
+.sharebar span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  border-radius: 5px;
+}
+.occ[data-tight='true'] span {
+  background: var(--route);
+}
+.shares {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 8px;
+}
+.shares div {
+  display: grid;
+  gap: 4px;
+}
+.shares dt {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+.shares dd {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 10px;
+  align-items: center;
+}
+.shares dd b {
+  text-align: right;
+}
+.sharebar span {
+  background: var(--fit);
+}

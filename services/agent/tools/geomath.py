@@ -11,6 +11,7 @@ import h3
 import numpy as np
 
 from contracts.models import (
+    CommunityNeed,
     Constraints,
     DemandModel,
     DemandSegment,
@@ -347,3 +348,42 @@ def sensitivity(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: Sco
                 model: DemandModel | None = None) -> list[SensitivityResult]:
     ranked = rank(grid, pack, profile, spec, candidates, None, with_stability=True, draws=draws, kappa=kappa, model=model)
     return [SensitivityResult(site_id=r.site_id, stability=r.stability or 0.0) for r in ranked]
+
+
+# ---------------------------------------------------------------------------
+# Community need: who lives in a site's catchment
+# ---------------------------------------------------------------------------
+LOWER_INCOME = 0.8  # HUD's low-and-moderate income line: 80% of the area median
+
+
+def community_need(grid: Grid, lat: float, lon: float, minutes: float) -> CommunityNeed:
+    """Household- and population-weighted shares over the cells within `minutes` of the site (Census columns)."""
+    t = travel_minutes(grid.lat, grid.lon, lat, lon)
+    inside = t <= minutes
+    col = lambda name: np.nan_to_num(grid.columns[name], nan=0.0) if name in grid.columns else None  # noqa: E731
+    hh, pop = col("households"), col("pop_total")
+    out = CommunityNeed(minutes=minutes)
+    if hh is None or not inside.any():
+        return out
+    total_hh = float(hh[inside].sum())
+    out.households = round(total_hh)
+    if total_hh <= 0:
+        return out
+    share = lambda num: round(float(num[inside].sum()) / total_hh, 4)  # noqa: E731
+    if (no_car := col("no_vehicle_households")) is not None:
+        out.no_car_share = share(no_car)
+    if (renters := col("renter_households")) is not None:
+        out.renter_share = share(renters)
+    if "median_hh_income" in grid.columns and pop is not None:
+        income = grid.columns["median_hh_income"]
+        known = ~np.isnan(income) & (pop > 0)
+        # Region median of tract incomes, weighted by population (same for every site in the run).
+        order = np.argsort(income[known])
+        cum = np.cumsum(pop[known][order])
+        region_median = float(income[known][order][np.searchsorted(cum, cum[-1] / 2)])
+        low = inside & known & (income < LOWER_INCOME * region_median)
+        out.lower_income_share = round(float(hh[low].sum()) / total_hh, 4)
+    if "share_any_medicaid" in grid.columns and pop is not None and float(pop[inside].sum()) > 0:
+        medicaid = np.nan_to_num(grid.columns["share_any_medicaid"], nan=0.0)
+        out.medicaid_share = round(float((medicaid * pop)[inside].sum() / pop[inside].sum()), 4)
+    return out

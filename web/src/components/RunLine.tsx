@@ -50,6 +50,10 @@ export default function RunLine({ todos, scouts, factors, trace, status, profile
     if (i === scoutAt && scouts.length) return `${scouts.length} scout${scouts.length > 1 ? 's' : ''} in parallel`
     if (isTransfer(t.content) && t.status === 'in_progress' && status === 'waiting') return 'Waiting for you'
     if (i === stops.length - 1 && result) return `${result.count} spaces ranked${result.verified ? ', every number verified' : ''}`
+    if (/^inspect/i.test(t.content)) {
+      const checks = trace.filter((l) => l.agent === 'site-inspector' && l.kind === 'result' && l.tool !== 'plan_inspection')
+      if (checks.length) return `${checks.length} checks: CoStar listing, Vexcel aerial, Matterport scan`
+    }
     return null
   }
 

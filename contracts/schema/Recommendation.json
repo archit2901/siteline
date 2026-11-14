@@ -21,6 +21,80 @@
       "title": "Claim",
       "type": "object"
     },
+    "CommunityNeed": {
+      "description": "Who lives in a site's catchment, from Census data (Python-computed, population-weighted).",
+      "properties": {
+        "minutes": {
+          "title": "Minutes",
+          "type": "number"
+        },
+        "households": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Households"
+        },
+        "no_car_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "No Car Share"
+        },
+        "renter_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Renter Share"
+        },
+        "medicaid_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Medicaid Share"
+        },
+        "lower_income_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lower Income Share"
+        }
+      },
+      "required": [
+        "minutes"
+      ],
+      "title": "CommunityNeed",
+      "type": "object"
+    },
     "SiteCandidate": {
       "properties": {
         "id": {
@@ -187,6 +261,130 @@
       ],
       "title": "SiteCandidate",
       "type": "object"
+    },
+    "SiteInspection": {
+      "description": "What the site-inspector checked for one space, combining CoStar (listing), Vexcel (aerial) and Matterport (3D).\nEvery number comes from those APIs or the listing; findings are rendered by Python from these values.",
+      "properties": {
+        "checked": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Checked",
+          "type": "array"
+        },
+        "parked_cars": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parked Cars"
+        },
+        "radius_m": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radius M"
+        },
+        "listed_parking": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Listed Parking"
+        },
+        "occupancy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occupancy"
+        },
+        "scan_area_sqft": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scan Area Sqft"
+        },
+        "scan_rooms": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scan Rooms"
+        },
+        "scan_floors": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scan Floors"
+        },
+        "scan_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scan Name"
+        },
+        "findings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "unavailable": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unavailable",
+          "type": "array"
+        }
+      },
+      "title": "SiteInspection",
+      "type": "object"
     }
   },
   "properties": {
@@ -250,6 +448,28 @@
       ],
       "default": null,
       "title": "Annual Rent Per Customer"
+    },
+    "inspection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SiteInspection"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "community": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CommunityNeed"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [
