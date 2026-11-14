@@ -9,11 +9,12 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from contracts.models import (ApproveRequest, AskRequest, AskResponse, Health, IntakeRequest, IntakeResponse,
+from contracts.models import (ApproveRequest, PracticeProfile, AskRequest, AskResponse, Health, IntakeRequest, IntakeResponse,
                              RescoreRequest, RescoreResponse, RunCreate, RunCreated)
-from services.agent import concierge, intake
+from services.agent import concierge, intake, questions
 from services.agent.critic import build_report
 from services.agent.pipeline import normalize, run_pipeline, score_and_rank
 from services.agent.runs import BadRequest, Run, RunNotFound, RunStore, TooBusy, list_golden
@@ -108,6 +109,22 @@ async def intake_chat(request: IntakeRequest) -> IntakeResponse:
     chat_limiter.admit()
     async with chat_limiter.slots:
         return await intake.chat(request.messages[-40:], request.draft)
+
+
+@app.get("/intake/questions")
+async def intake_questions(business: str = "", specialty: str = "") -> questions.QuestionSet:
+    """The base questions plus the sector set for a business type (no model call; the web form pops it up)."""
+    return questions.questions_for(business[:200], specialty[:60])
+
+
+class MissingRequest(BaseModel):
+    profile: PracticeProfile
+
+
+@app.post("/intake/missing")
+async def intake_missing(request: MissingRequest) -> dict[str, list[str]]:
+    """What a run still needs for this profile (the same rule the chat uses)."""
+    return {"missing": intake.missing_for(request.profile)}
 
 
 @app.post("/ask")

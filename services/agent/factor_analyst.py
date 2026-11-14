@@ -14,6 +14,7 @@ from pydantic import BaseModel, ValidationError
 from contracts.models import Factor, PracticeProfile
 from services.agent import llm
 from services.agent.tools.geo import SITE_FEATURES, stock_feature_ids, stock_feature_summary
+from services.agent.tools.catalog import load_catalog
 from services.agent.tools.packs import pack_for
 
 PROMPT = (Path(__file__).parent / "prompts" / "factor_analyst.md").read_text()
@@ -27,6 +28,15 @@ class FactorList(BaseModel):
     factors: list[Factor]
 
 
+def catalog_summary(region_id: str = "hou") -> str:
+    """One line per curated dataset: what the scouts can fetch without searching the open web."""
+    try:
+        entries = load_catalog(region_id).entries
+    except Exception:  # a broken catalog must not block the factor list
+        return "- (catalog unavailable)"
+    return "\n".join(f"- {e.title}: {', '.join(e.measures[:6])}" for e in entries)
+
+
 def request_text(profile: PracticeProfile) -> str:
     pack = pack_for(profile)
     intake = profile.model_dump(mode="json", exclude={"stock_pack", "region_id"})
@@ -35,6 +45,8 @@ def request_text(profile: PracticeProfile) -> str:
         f"PRACTICE INTAKE:\n{json.dumps(intake, indent=2)}\n\n"
         f"AVAILABLE STOCK FEATURES (pack {pack.id}):\n{stock_feature_summary(profile)}\n\n"
         f"HINTS FROM THE SPECIALTY PACK (seeds, not limits):\n{hints}\n\n"
+        f"DATASETS THE SCOUTS CAN FETCH (curated Houston catalog; the scouts can also search for others):\n"
+        f"{catalog_summary(profile.region_id)}\n\n"
         "Write this practice's factor list."
     )
 

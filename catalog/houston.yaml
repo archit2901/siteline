@@ -319,3 +319,152 @@ entries:
   coverage: Harris, Fort Bend, Montgomery (Houston bounding box)
   connector: null
   notes: Assisted living and nursing homes. Volunteer-mapped; coverage is uneven, so counts are a lower bound.
+- id: osm_food_assistance
+  title: 'OpenStreetMap: food banks, food pantries and soup kitchens'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22social_facility%22%3D%22food_bank%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22amenity%22%3D%22food_bank%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22social_facility%22%3D%22soup_kitchen%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22social_facility%22%3D%22food_pantry%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - food banks
+  - food pantries
+  - soup kitchens
+  - food assistance
+  - emergency food
+  - existing pantries (competition or partners)
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box); 6 places when added
+  connector: null
+  notes: Food banks, pantries and soup kitchens. Only a handful are tagged in Houston, so this badly undercounts pantries;
+    the Houston Food Bank's partner map (houstonfoodbank.org/find-help/find-food-map) is the complete list but has no open
+    data endpoint. Treat counts as a floor, never as 'no pantries here'.
+- id: osm_social_services
+  title: 'OpenStreetMap: social facilities (shelters, outreach, group homes)'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22amenity%22%3D%22social_facility%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22social_facility%22%3D%22shelter%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22social_facility%22%3D%22outreach%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - social services
+  - shelters
+  - homeless services
+  - outreach
+  - case management
+  - other nonprofits
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box); 162 places when added
+  connector: null
+  notes: Any amenity=social_facility (shelters, outreach, group homes, food banks). Volunteer-mapped; a lower bound.
+- id: osm_places_of_worship
+  title: 'OpenStreetMap: places of worship'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22amenity%22%3D%22place_of_worship%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - churches
+  - places of worship
+  - faith communities
+  - partner sites
+  - food pantry hosts
+  - community gathering
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box); 3187 places when added
+  connector: null
+  notes: Churches, mosques, temples. Faith communities host many pantries and programs; well mapped in Houston.
+- id: osm_grocery
+  title: 'OpenStreetMap: supermarkets and grocery stores'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22shop%22%3D%22supermarket%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22shop%22%3D%22greengrocer%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - supermarkets
+  - grocery stores
+  - fresh food access
+  - food deserts
+  - grocery anchor
+  - retail anchor
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box); 568 places when added
+  connector: null
+  notes: Supermarkets and greengrocers. For official food-desert status use the USDA flags in the stock layer.
+- id: osm_convenience
+  title: 'OpenStreetMap: convenience stores'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22shop%22%3D%22convenience%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - convenience stores
+  - corner stores
+  - food swamps
+  - low-quality food access
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box); 1907 places when added
+  connector: null
+  notes: Convenience and corner stores; many sell little fresh food.
+- id: osm_laundromats
+  title: 'OpenStreetMap: laundromats and dry cleaners'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22shop%22%3D%22laundry%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22shop%22%3D%22dry_cleaning%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - laundromats
+  - laundry
+  - dry cleaners
+  - laundromat competition
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box); 299 places when added
+  connector: null
+  notes: Self-service laundries and dry cleaners. Volunteer-mapped; a lower bound.
+- id: osm_restaurants
+  title: 'OpenStreetMap: restaurants, fast food and cafes'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22amenity%22%3D%22restaurant%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22amenity%22%3D%22fast_food%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22amenity%22%3D%22cafe%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - restaurants
+  - fast food
+  - cafes
+  - coffee shops
+  - dining
+  - restaurant competition
+  - nightlife and foot traffic
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box); 7761 places when added
+  connector: null
+  notes: Restaurants, fast food and cafes; use filter on 'cuisine' for same-cuisine competition.
+- id: osm_salons
+  title: 'OpenStreetMap: hair salons, barbers and beauty shops'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22shop%22%3D%22hairdresser%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3Bnwr%5B%22shop%22%3D%22beauty%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - hair salons
+  - barbers
+  - beauty shops
+  - nail salons
+  - salon competition
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box); 1271 places when added
+  connector: null
+  notes: Hairdressers, barbers and beauty shops. Volunteer-mapped; a lower bound.
+- id: osm_community_centres
+  title: 'OpenStreetMap: community centres'
+  publisher: OpenStreetMap contributors
+  url: https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A50%5D%3B%28nwr%5B%22amenity%22%3D%22community_centre%22%5D%2829.2%2C-96.3%2C30.8%2C-94.6%29%3B%29%3Bout+center+tags%3B
+  format: json
+  geo_level: point
+  geo_key: _lat,_lon
+  measures:
+  - community centers
+  - partner sites
+  - event space
+  - neighborhood hubs
+  coverage: Harris, Fort Bend, Montgomery (Houston bounding box); 246 places when added
+  connector: null
+  notes: Community centres, including non-city ones the COH layer does not list.

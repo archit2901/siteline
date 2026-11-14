@@ -16,7 +16,23 @@ PROVENANCE = {
     "lodes": "https://lehd.ces.census.gov/data/",
     "cms.doctors": "https://data.cms.gov/provider-data/dataset/mj5m-pzi6",
     "cms.hospitals": "https://data.cms.gov/provider-data/dataset/xubh-q36u",
+    "usda.fara": "https://www.ers.usda.gov/data-products/food-access-research-atlas/",
 }
+# Business type words -> sector pack (first match wins; checked on business_type, then the name and services).
+SECTORS: list[tuple[str, tuple[str, ...]]] = [
+    ("nonprofit.food_bank", ("food bank", "food pantry", "pantry", "food distribution", "soup kitchen",
+                             "meal program", "meals on wheels", "mobile pantry", "community fridge")),
+    ("nonprofit.base", ("nonprofit", "non-profit", "not-for-profit", "charity", "ministry", "shelter", "outreach",
+                        "social service", "community center", "case management", "homeless", "refugee", "food insecurity")),
+    ("education.childcare", ("child care", "childcare", "daycare", "day care", "preschool", "pre-k", "montessori",
+                             "early learning", "after-school", "after school", "tutoring", "learning center")),
+    ("fitness.base", ("gym", "fitness", "yoga", "pilates", "crossfit", "martial arts", "boxing", "climbing",
+                      "dance studio", "cycling studio", "personal training")),
+    ("food.restaurant", ("restaurant", "cafe", "café", "coffee", "bakery", "pizza", "taqueria", "food truck",
+                         "bar", "brewery", "diner", "juice", "boba", "tea shop")),
+    ("retail.services", ("laundromat", "laundry", "dry clean", "salon", "barber", "nail", "spa", "convenience",
+                         "phone repair", "pawn", "tailor", "car wash", "pet grooming", "retail", "store", "shop")),
+]
 
 
 @lru_cache
@@ -44,9 +60,23 @@ def load_pack(pack_id: str) -> StockPack:
     })
 
 
+def sector_for(text: str) -> str | None:
+    """The sector pack a business description names, or None (whole-word match, case-insensitive)."""
+    import re
+
+    low = f" {text.lower()} "
+    for pack_id, words in SECTORS:
+        if any(re.search(rf"(?<![a-z]){re.escape(w)}(?![a-z])", low) for w in words):
+            return pack_id
+    return None
+
+
 def pack_for(profile: PracticeProfile) -> StockPack:
-    """profile.stock_pack, else healthcare.<specialty>, else healthcare.base."""
-    for pack_id in (profile.stock_pack, f"healthcare.{profile.specialty}", BASE):
+    """profile.stock_pack, else healthcare.<specialty>, else the sector the business type names, else general.base."""
+    sector = sector_for(profile.business_type or "") or (
+        None if profile.specialty else sector_for(" ".join([profile.name, *profile.services])))
+    specialty = (f"healthcare.{profile.specialty}", "healthcare.base") if profile.specialty else (None, None)
+    for pack_id in (profile.stock_pack, *specialty, sector, BASE):
         if pack_id:
             try:
                 return load_pack(pack_id)

@@ -1,0 +1,21 @@
+# StockPack (contracts/models.py). Gyms, studios, martial arts, climbing, sports training.
+id: fitness.base
+extends: general.base
+demand_age_bands: ["18-44", "45-64"]
+visit_rates: {}
+features: []
+site_rules:
+  space_uses: ["Retail", "Flex", "Industrial", "OfficeRetail"]
+  demand:
+    segments:
+      - {feature_id: pop_18_44, label: "adults 18-44", weight: 1.0}
+      - {feature_id: pop_45_64, label: "adults 45-64", weight: 0.5}
+    demand_label: "potential members"
+    trip: local
+    competitor_osm_tags: ["leisure=fitness_centre", "leisure=sports_centre"]
+    competitor_label: "gyms and studios"
+factor_hints:
+  - "adults of your members' ages and incomes"
+  - "gyms and studios with the same format nearby"
+  - "commute routes and parking"
+  - "physical inactivity rates (room to grow) vs. active neighborhoods"

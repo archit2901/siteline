@@ -1,0 +1,23 @@
+# StockPack (contracts/models.py). Neighborhood retail and personal services: laundromats, salons and barbers,
+# dry cleaners, convenience retail, phone repair. Feature ids are Houston grid columns (see general.base.yaml).
+id: retail.services
+extends: general.base
+demand_age_bands: ["18-44", "45-64", "65+"]
+visit_rates: {}
+features:
+  - {id: below_200fpl_within_5km, source: acs.sf, value: below_200fpl_pop_within_5km, label: "People below 200% of poverty within 5 km", agg: sum, direction: 1, unit: "people"}
+site_rules:
+  space_uses: ["Retail", "OfficeRetail", "Flex"]
+  ground_floor: true
+  demand:
+    segments: [{feature_id: households, label: "households", weight: 1.0}]
+    demand_label: "households"
+    trip: neighborhood
+    competitor_osm_tags: []
+    competitor_label: "similar shops"
+factor_hints:
+  - "foot and car traffic past the storefront"
+  - "renters and apartments (laundromats: no in-unit washers)"
+  - "anchor tenants in the same center (grocery, discount store)"
+  - "parking right at the door"
+  - "same-type shops within a short drive"

@@ -1,0 +1,22 @@
+# StockPack (contracts/models.py). Restaurants, cafes, bakeries and food service.
+id: food.restaurant
+extends: general.base
+demand_age_bands: ["18-44", "45-64", "65+"]
+visit_rates: {}
+features: []
+site_rules:
+  space_uses: ["Retail", "OfficeRetail"]
+  ground_floor: true
+  demand:
+    segments:
+      - {feature_id: pop_total, label: "residents", weight: 1.0}
+      - {feature_id: jobs, label: "daytime workers", weight: 0.6}
+    demand_label: "potential diners"
+    trip: neighborhood
+    competitor_osm_tags: []
+    competitor_label: "similar restaurants"
+factor_hints:
+  - "daytime workers for lunch, residents for dinner"
+  - "household income vs. your price point"
+  - "same-cuisine restaurants nearby"
+  - "visibility, parking and drive-through potential"

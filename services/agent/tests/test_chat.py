@@ -10,7 +10,9 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from contracts.models import ChatMessage, PracticeProfile, Report
 from services.agent import concierge, intake
 from services.agent.concierge import AnswerDraft, compose, fact_options
-from services.agent.intake import IntakeDraft, guard_reply, is_ready, merge
+from services.agent.intake import AnswerDraft as IntakeAnswer
+from services.agent.intake import IntakeDraft, LocationDraft, guard_reply, is_ready, merge, missing_for
+from services.agent.questions import questions_for, sector_of
 from services.agent.runs import FIXTURES
 
 REPORT = Report.model_validate(json.loads((FIXTURES / "report.json").read_text()))
@@ -18,7 +20,8 @@ USER = [ChatMessage(role="user", content="A bakery for young families, about 1,5
 
 
 def test_merge_fills_profile_and_clamps() -> None:
-    draft = IntakeDraft(business_type="bakery", customers="young families", min_sqft=1800, max_sqft=1200, max_rent_psf=9999)
+    draft = IntakeDraft(business_type="bakery", customers="young families", min_sqft=1800, max_sqft=1200, max_rent_psf=9999,
+                        first_location=True)
     profile, missing = merge(draft, None)
     assert profile.business_type == "bakery" and profile.name == "My bakery" and missing == []
     assert (profile.constraints.min_sqft, profile.constraints.max_sqft) == (1200, 1800)  # swapped into order
@@ -27,16 +30,40 @@ def test_merge_fills_profile_and_clamps() -> None:
 
 def test_merge_maps_specialties_and_keeps_previous() -> None:
     prev = PracticeProfile(name="Bayou Bones", business_type="clinic", customers="older adults")
-    profile, missing = merge(IntakeDraft(healthcare_specialty="Orthopedic"), prev)
+    draft = IntakeDraft(healthcare_specialty="Orthopedic", payers=["Medicare", "Commercial", "bitcoin"],
+                        locations=[LocationDraft(name="Main", address="6400 Fannin St, Houston, TX")])
+    profile, missing = merge(draft, prev)
     assert profile.specialty == "orthopedics" and profile.business_type == "" and profile.name == "Bayou Bones"
     assert profile.customers == "older adults" and missing == []
+    assert profile.payers_accepted == ["commercial", "medicare"] and profile.existing_offices[0].name == "Main"
+    other, _ = merge(IntakeDraft(healthcare_specialty="Cardiology"), prev)
+    assert other.specialty == "cardiology"  # any specialty is kept; packs fall back to healthcare.base
 
 
-def test_missing_and_ready() -> None:
+def test_missing_and_ready_need_locations_and_sector_answers() -> None:
     profile, missing = merge(IntakeDraft(business_type="gym"), None)
-    assert missing == ["who the customers are"]
-    assert not is_ready(profile, missing, USER)
-    assert is_ready(profile, missing, [*USER, ChatMessage(role="user", content="just run it")])
+    assert missing == ["who the customers are", "your current locations"]
+    assert not is_ready(profile, missing, [*USER, ChatMessage(role="user", content="just run it")])  # no escape
+    pantry, missing = merge(IntakeDraft(business_type="food pantry", customers="families", first_location=True), None)
+    assert missing == ["what does this site do", "who do you serve most"]
+    pantry, missing = merge(IntakeDraft(services=["Choice pantry"], answers=[
+        IntakeAnswer(question_id="who_served", answer="Seniors and families with kids"),
+        IntakeAnswer(question_id="nope", answer="ignored")]), pantry)
+    assert missing == [] and is_ready(pantry, missing, USER)
+    assert "[who_served]" in pantry.free_text and "[locations]" in pantry.free_text and "nope" not in pantry.free_text
+    again, _ = merge(IntakeDraft(), pantry)  # earlier answers survive a turn where the model returns none
+    assert missing_for(again) == [] and again.free_text == pantry.free_text
+
+
+def test_sector_question_sets() -> None:
+    assert sector_of("community food pantry") == "nonprofit.food_bank"
+    assert sector_of("Laundromat") == "retail.services"
+    assert sector_of("homeless shelter health clinic") == "nonprofit.base"
+    assert sector_of("urgent care clinic") == "healthcare" and sector_of("", "dialysis") == "healthcare"
+    assert sector_of("daycare") == "education.childcare" and sector_of("bookkeeping") == "general.base"
+    qs = questions_for("food bank")
+    assert qs.base[0].id == "locations" and qs.base[0].required
+    assert {q.id for q in qs.sector_questions} >= {"program_type", "client_travel", "logistics"}
 
 
 def test_reply_guard_blocks_invented_numbers() -> None:

@@ -1,0 +1,36 @@
+# StockPack (contracts/models.py). Food banks, food pantries, mobile pantries and meal programs.
+# Feature ids are Houston grid columns (see nonprofit.base.yaml). Low access = USDA ERS SNAP-Authorized Retailer
+# Access Map 2025: a low-income tract where many residents live more than 1/2 or 1 mile from a SNAP retailer.
+id: nonprofit.food_bank
+extends: nonprofit.base
+specialty: food_bank
+demand_age_bands: ["0-17", "18-44", "45-64", "65+"]
+visit_rates: {}
+features:
+  - {id: lila_half_mile, source: usda.fara, value: lila_half_mile, label: "Low-income tract with low food access (1/2 mile)", agg: mean, direction: 1, unit: "flag"}
+  - {id: lila_1_mile, source: usda.fara, value: lila_1_mile, label: "Low-income tract with low food access (1 mile)", agg: mean, direction: 1, unit: "flag"}
+  - {id: low_vehicle_access, source: usda.fara, value: low_vehicle_access, label: "Tract with many households lacking a car and far from food", agg: mean, direction: 1, unit: "flag"}
+  - {id: pop_low_food_access_within_5km, source: usda.fara, value: pop_low_food_access_within_5km, label: "People in low-income, low-access tracts within 5 km", agg: sum, direction: 1, unit: "people"}
+site_rules:
+  space_uses: ["Industrial", "Flex", "Retail", "OfficeRetail"]
+  ground_floor: true
+  caveat: >-
+    Existing pantries come from OpenStreetMap, which lists only a handful in Houston (the Houston Food Bank's partner
+    map has no open data), so competition is undercounted and net-new is an upper bound. Check the partner map before
+    committing to a site.
+  demand:
+    # SNAP households are not added on top: nearly all of them are already below 185% of poverty.
+    segments:
+      - {feature_id: below_185fpl_pop, label: "people below 185% of poverty (TEFAP eligible)", weight: 1.0}
+    demand_label: "people eligible for food assistance"
+    trip: neighborhood  # clients carry groceries home, often on foot or by bus
+    competitor_osm_tags: ["social_facility=food_bank", "amenity=food_bank", "social_facility=soup_kitchen"]
+    competitor_label: "food pantries and food banks"
+factor_hints:
+  - "people who qualify for TEFAP or SNAP (below 185% of poverty)"
+  - "food deserts: low-income tracts far from a grocery store"
+  - "households without a car; METRO bus stops near the site"
+  - "existing pantries nearby (avoid duplicating; fill gaps)"
+  - "children (school meals gaps) and seniors (homebound, CSFP boxes)"
+  - "loading dock, cold storage and truck access for deliveries"
+  - "partner sites: churches, schools and community centers that could host distributions"

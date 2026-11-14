@@ -26,7 +26,9 @@ PROMPT = (
     "3. competitor_osm_tags: OpenStreetMap key=value tags for places that compete with it, e.g. shop=laundry, "
     "amenity=cafe, amenity=school, amenity=kindergarten, amenity=childcare, leisure=fitness_centre, "
     "amenity=restaurant, amenity=fast_food, shop=hairdresser, shop=beauty, amenity=pharmacy, amenity=dentist, "
-    "amenity=clinic, amenity=veterinary, shop=supermarket, shop=convenience. Up to 4 tags.\n"
+    "amenity=clinic, amenity=veterinary, shop=supermarket, shop=convenience, social_facility=food_bank, "
+    "amenity=food_bank, social_facility=soup_kitchen, amenity=social_facility, social_facility=shelter, "
+    "amenity=community_centre, amenity=place_of_worship. Up to 4 tags.\n"
     "4. competitor_label: plural plain-language name of those competitors.\n"
     "5. space_uses: which commercial space types fit, from: " + ", ".join(SPACE_USES) + ".\n"
     "6. trip: how far customers usually travel: neighborhood (walk or a few minutes: laundromat, coffee shop, "
@@ -81,9 +83,24 @@ def validate(draft: ProfileDraft) -> tuple[DemandModel, list[str], list[str]]:
     return model, tags, notes
 
 
+def preset(profile: PracticeProfile) -> tuple[DemandModel, list[str]] | None:
+    """The sector pack's default demand model (site_rules.demand), validated like a model draft."""
+    pack = pack_for(profile)
+    raw = pack.site_rules.get("demand")
+    if not isinstance(raw, dict):
+        return None
+    draft = ProfileDraft.model_validate({**raw, "space_uses": pack.site_rules.get("space_uses", []),
+                                         "rationale": f"Sector defaults from stock pack {pack.id}."})
+    model, tags, _ = validate(draft)
+    return model, tags
+
+
 async def profile_business(profile: PracticeProfile, meter: llm.UsageMeter | None = None) -> tuple[DemandModel | None, list[str], list[str]]:
     if is_healthcare(profile):
         return None, [], [f"Healthcare practice: demand and competitors from pack {pack_for(profile).id}."]
+    sector = preset(profile)
+    if sector is not None and sector[1]:  # the pack names who is served and who else serves them
+        return sector[0], sector[1], [f"Customers and competitors from sector pack {pack_for(profile).id}."]
     columns = "\n".join(f"- {k}: {v}" for k, v in DEMAND_COLUMNS.items())
     intake = (f"BUSINESS: {profile.business_type or profile.specialty or profile.name}\nNAME: {profile.name}\n"
               f"CUSTOMERS (owner's words): {profile.customers or '-'}\nSERVICES: {', '.join(profile.services) or '-'}\n"
@@ -93,6 +110,7 @@ async def profile_business(profile: PracticeProfile, meter: llm.UsageMeter | Non
             [SystemMessage(PROMPT), HumanMessage(intake)])
         draft = out if isinstance(out, ProfileDraft) else ProfileDraft()
     except Exception as exc:  # never block a run on the profiler; defaults still produce a ranking
-        return DEFAULT, [], [f"profiler failed ({type(exc).__name__}); using defaults"]
+        fallback = sector or (DEFAULT, [])
+        return fallback[0], fallback[1], [f"profiler failed ({type(exc).__name__}); using defaults"]
     model, tags, notes = validate(draft)
     return model, tags, notes

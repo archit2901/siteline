@@ -61,6 +61,7 @@ Live mode needs AWS credentials in the default chain (`~/.aws`; never in `.env`)
 cp .env.example .env                           # AGENT_BACKEND=local, AGENT_MODE=scripted, FIXTURE_MODE=0, VITE_FIXTURE_MODE=0
 PYTHONPATH=. .venv/bin/python scripts/check_bedrock.py
 PYTHONPATH=. .venv/bin/python scripts/build_general_stock.py      # ACS + LODES -> data/derived/general_stock.parquet
+PYTHONPATH=. .venv/bin/python -m scripts.build_sector_stock        # ACS poverty/SNAP + USDA food access -> sector_stock.parquet
 make run-agent                                 # :8000
 make run-web                                   # :5173, "Live agent"
 ```
@@ -82,6 +83,8 @@ Deploy: [infra/README.md](infra/README.md). It runs one EC2 box with Caddy for H
 |---|---|---|
 | Population by age, income, insurance, language (tracts) | [Census ACS 5-year](https://www.census.gov/data/developers/data-sets/acs-5year.html) | stock grid |
 | Renters, units in structure, vehicles available, households (2024 tracts) | [ACS summary files](https://www.census.gov/programs-surveys/acs/data/summary-file.html) | demand for any business |
+| Poverty (100/185/200%), children and seniors in poverty, SNAP households, children under 5 (2024 tracts) | [ACS summary files](https://www.census.gov/programs-surveys/acs/data/summary-file.html) C17002, B17020, B22003, B01001 | nonprofit, food bank and child care packs |
+| Low-income, low-food-access tracts (2025 SNAP retailers, 2020 tracts) | [USDA ERS Food Access Research Atlas](https://www.ers.usda.gov/data-products/food-access-research-atlas/) | food bank pack |
 | Jobs by workplace (2022 blocks) | [LEHD LODES8](https://lehd.ces.census.gov/data/) | daytime workers |
 | Clinicians by specialty | [CMS Doctors and Clinicians](https://data.cms.gov/provider-data/dataset/mj5m-pzi6) | healthcare competitors |
 | Hospitals | [CMS Hospital General Information](https://data.cms.gov/provider-data/dataset/xubh-q36u) | healthcare factors |

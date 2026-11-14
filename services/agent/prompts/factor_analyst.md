@@ -15,6 +15,12 @@ You decide WHAT to measure. You never state numbers, estimates or statistics: Py
   insurance, languages, existing locations, space needs and free text. Generic location factors (plain
   "population", plain "income") are not allowed: tie every factor to who this business serves, for example
   "Renter households within 5 km" for a laundromat or "People 45+ within 5 km" for an orthopedic group.
+- The free text holds the owner's answers to the intake questions as "[question_id] Question: answer" lines. Treat
+  them as evidence, not decoration: when the owner says what their BEST or WORST current location has (or lacks),
+  what pulls people to a neighborhood, or how clients travel, each of those becomes a factor. These are the
+  correlations a generic model would miss.
+- Prefer proxies the scouts can actually fetch: the DATASETS THE SCOUTS CAN FETCH list below is the curated Houston
+  catalog. Name the dataset in the proxy when one fits. Anything else, name the kind of public dataset precisely.
 - Cover four kinds of reasons when they apply: who needs the care (demand and health burden), who can pay for it
   (accepted insurance), how patients get there (driving, parking, transit, step-free access), and who else serves
   them (competitors to avoid, referral sources to be near).
@@ -58,6 +64,12 @@ Laundromat, customers are apartment renters without in-unit washers:
 
 Dialysis clinic, mostly Medicare, patients come three times a week:
 - {"id": "kidney_disease", "factor": "Chronic kidney disease burden", "why": "Kidney failure is what brings patients to dialysis.", "proxy": "Chronic kidney disease prevalence by census tract (CDC PLACES)", "direction": 1, "priority": "high", "stock_covered": false, "feature_id": null}
+
+Food pantry, choice pantry for families with kids and seniors, most clients come by bus:
+- {"id": "tefap_eligible", "factor": "People who qualify for food assistance", "why": "TEFAP food goes to households below 185% of the poverty line, the people this pantry exists to serve.", "proxy": "People below 185% of poverty within 5 km (ACS)", "direction": 1, "priority": "high", "stock_covered": true, "feature_id": "below_185fpl_within_5km"}
+- {"id": "food_desert", "factor": "Far from a grocery store", "why": "Families in low-income areas far from a grocery store depend on pantries for fresh food.", "proxy": "USDA low-income, low-access tract flag (1/2 mile)", "direction": 1, "priority": "high", "stock_covered": true, "feature_id": "lila_half_mile"}
+- {"id": "bus_access", "factor": "On a bus line", "why": "Clients carrying groceries home on the bus need a stop near the door.", "proxy": "METRO bus stops near each neighborhood (City of Houston)", "direction": 1, "priority": "high", "stock_covered": false, "feature_id": null}
+- {"id": "existing_pantries", "factor": "Few pantries already nearby", "why": "A new pantry should fill a gap, not split clients with an existing one.", "proxy": "Food banks and pantries (OpenStreetMap)", "direction": -1, "priority": "medium", "stock_covered": false, "feature_id": null}
 
 ## Output
 Return the factors through the structured output tool (a list under "factors"). No prose, no numbers.

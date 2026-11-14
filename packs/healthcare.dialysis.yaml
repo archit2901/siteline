@@ -3,7 +3,10 @@ id: healthcare.dialysis
 extends: healthcare.base
 specialty: dialysis
 demand_age_bands: ["45-64", "65+"]
-visit_rates: {}
+# Share of residents in each age band who are patients of this specialty in a year. PLANNING ASSUMPTIONS informed
+# by NCHS NAMCS (ambulatory visits by specialty and age) and USRDS (dialysis prevalence); not sourced per Houston.
+# Replace with sourced rates when available; the run caveats say they are assumptions.
+visit_rates: {"18-44": 0.0007, "45-64": 0.0028, "65+": 0.0055}
 features:
   - {id: pop_65p_within_5km, source: acs, value: pop_65p_within_5km, label: "People 65+ within 5 km", agg: sum, direction: 1, unit: "people"}
   # Nephrologists refer to dialysis and cluster near existing dialysis units: proxy until CMS dialysis facilities are ingested.

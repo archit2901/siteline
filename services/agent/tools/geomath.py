@@ -39,6 +39,11 @@ DEMAND_COLUMNS = {
     "pop_total": "people", "pop_u18": "children under 18", "pop_18_44": "adults 18-44", "pop_45_64": "adults 45-64",
     "pop_65p": "adults 65+", "households": "households", "renter_households": "renter households",
     "no_vehicle_households": "households without a car", "jobs": "workers (jobs located here)",
+    # sector stock (scripts/build_sector_stock.py)
+    "poverty_pop": "people below the poverty line", "below_185fpl_pop": "people below 185% of poverty (TEFAP/WIC)",
+    "below_200fpl_pop": "people below 200% of poverty", "children_in_poverty": "children in poverty",
+    "seniors_in_poverty": "seniors (65+) in poverty", "snap_households": "households on SNAP",
+    "children_under_5": "children under 5", "pop_low_food_access": "people in low-income, low-food-access tracts",
 }
 PAYER_COLUMNS = {"medicare": "share_any_medicare", "medicaid": "share_any_medicaid", "chip": "share_any_medicaid",
                  "commercial": "share_any_private", "private": "share_any_private"}

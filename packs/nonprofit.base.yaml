@@ -1,0 +1,32 @@
+# StockPack (contracts/models.py). Nonprofits and social services; extends general.base; nonprofit.* extend it.
+# Need features come from data/derived/sector_stock.parquet (scripts/build_sector_stock.py: ACS 2024 C17002, B17020,
+# B22003, B01001 and USDA ERS SNAP-Authorized Retailer Access Map 2025).
+# site_rules.demand is the default DemandModel for the sector: who is served (DEMAND_COLUMNS), who else serves them
+# (OpenStreetMap tags), how far clients travel and which CoStar space uses fit. The business profiler starts from it.
+id: nonprofit.base
+extends: general.base
+demand_age_bands: ["0-17", "18-44", "45-64", "65+"]
+visit_rates: {}
+features:
+  - {id: poverty_pop_within_5km, source: acs.sf, value: poverty_pop_within_5km, label: "People below the poverty line within 5 km", agg: sum, direction: 1, unit: "people"}
+  - {id: below_185fpl_within_5km, source: acs.sf, value: below_185fpl_pop_within_5km, label: "People below 185% of poverty within 5 km (TEFAP/WIC range)", agg: sum, direction: 1, unit: "people"}
+  - {id: share_below_poverty, source: acs.sf, value: share_below_poverty, label: "Share of residents below the poverty line", agg: mean, direction: 1, unit: "share"}
+  - {id: share_below_185fpl, source: acs.sf, value: share_below_185fpl, label: "Share of residents below 185% of poverty", agg: mean, direction: 1, unit: "share"}
+  - {id: snap_households_within_5km, source: acs.sf, value: snap_households_within_5km, label: "Households on SNAP within 5 km", agg: sum, direction: 1, unit: "households"}
+  - {id: share_snap, source: acs.sf, value: share_snap, label: "Share of households on SNAP", agg: mean, direction: 1, unit: "share"}
+  - {id: children_in_poverty_within_5km, source: acs.sf, value: children_in_poverty_within_5km, label: "Children in poverty within 5 km", agg: sum, direction: 1, unit: "children"}
+  - {id: seniors_in_poverty_within_5km, source: acs.sf, value: seniors_in_poverty_within_5km, label: "Seniors (65+) in poverty within 5 km", agg: sum, direction: 1, unit: "people"}
+site_rules:
+  space_uses: ["Retail", "Office", "OfficeRetail", "Flex", "Industrial"]
+  demand:
+    segments: [{feature_id: poverty_pop, label: "people below the poverty line", weight: 1.0}]
+    demand_label: "people in need"
+    trip: local
+    competitor_osm_tags: ["amenity=social_facility", "social_facility=outreach"]
+    competitor_label: "social service sites"
+factor_hints:
+  - "where the people you serve live (poverty, SNAP, children or seniors in need)"
+  - "households without a car and bus access"
+  - "other agencies already serving the area (gaps vs. duplication)"
+  - "partner sites: schools, churches, libraries, community centers"
+  - "limited-English households and the languages you offer"

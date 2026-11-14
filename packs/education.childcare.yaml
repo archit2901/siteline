@@ -1,0 +1,25 @@
+# StockPack (contracts/models.py). Child care, preschool, after-school and tutoring.
+id: education.childcare
+extends: general.base
+demand_age_bands: ["0-17"]
+visit_rates: {}
+features:
+  - {id: children_under_5_within_5km, source: acs.sf, value: children_under_5_within_5km, label: "Children under 5 within 5 km", agg: sum, direction: 1, unit: "children"}
+  - {id: children_in_poverty_within_5km, source: acs.sf, value: children_in_poverty_within_5km, label: "Children in poverty within 5 km (subsidy-eligible)", agg: sum, direction: 1, unit: "children"}
+site_rules:
+  space_uses: ["Retail", "OfficeRetail", "Office", "Flex"]
+  ground_floor: true
+  demand:
+    segments:
+      - {feature_id: children_under_5, label: "children under 5", weight: 1.0}
+      - {feature_id: jobs, label: "workers commuting in (care near work)", weight: 0.2}
+    demand_label: "children"
+    trip: local
+    competitor_osm_tags: ["amenity=childcare", "amenity=kindergarten"]
+    competitor_label: "child care centers"
+factor_hints:
+  - "young children nearby and births (growth)"
+  - "working parents: jobs and commute routes"
+  - "household income vs. subsidy (Texas Workforce Commission CCS)"
+  - "licensed child care capacity nearby (Texas HHS)"
+  - "outdoor play space and safe drop-off"

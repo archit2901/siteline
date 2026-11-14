@@ -1,0 +1,21 @@
+# EvalCase (contracts/models.py). Nonprofit: a choice food pantry adding a second site (nonprofit.food_bank pack).
+id: food_pantry
+profile:
+  name: "Example Community Pantry"
+  business_type: food pantry
+  customers: "Families with children and seniors below 185% of poverty; many Spanish-speaking; most come by bus"
+  services: ["Choice pantry", "Senior boxes (CSFP)", "SNAP enrollment help"]
+  languages: [English, Spanish]
+  existing_offices:
+    - {name: "Gulfton pantry", lat: 29.7215, lon: -95.4770, clinicians: 4}
+  constraints: {min_sqft: 2500, max_sqft: 8000, max_rent_psf: 24, min_parking_per_1000sf: 2, ground_floor: true}
+  free_text: |-
+    [best_location] Which current location does best, which struggles, and why do you think so: Gulfton is busiest because it is two blocks from a METRO stop and next to apartment complexes; clients carry groceries home on the bus.
+    [who_served] Who do you serve most: Families with kids and seniors; many seniors live alone.
+    [client_travel] How do clients reach you: Mostly walk or bus
+    [logistics] Do you need a loading dock, cold storage, freezer space, or room for a truck: Need a walk-in cooler and a place for a box truck to unload weekly.
+    [network] Are you a partner agency of a regional food bank: Houston Food Bank partner; we want an area with no pantry nearby.
+    [pull] What about a neighborhood would pull people to your door: Near a bus line, schools and churches, far from a grocery store.
+must_include: ["people below poverty or eligible for food assistance", "food desert or low grocery access", "bus or transit access", "existing pantries or food banks nearby"]
+must_not_include: []
+sign_checks: {"existing pantries or food banks nearby": -1}

@@ -3,7 +3,10 @@ id: healthcare.pediatric_dentistry
 extends: healthcare.base
 specialty: pediatric_dentistry
 demand_age_bands: ["0-17"]
-visit_rates: {}
+# Share of residents in each age band who are patients of this specialty in a year. PLANNING ASSUMPTIONS informed
+# by NCHS NAMCS (ambulatory visits by specialty and age) and USRDS (dialysis prevalence); not sourced per Houston.
+# Replace with sourced rates when available; the run caveats say they are assumptions.
+visit_rates: {"0-17": 0.55}
 features:
   - {id: pop_u18_within_5km, source: acs, value: pop_u18_within_5km, label: "Children under 18 within 5 km", agg: sum, direction: 1, unit: "children"}
   - {id: medicaid_u19_within_5km, source: acs, value: medicaid_u19_within_5km, label: "Children on Medicaid/CHIP within 5 km", agg: sum, direction: 1, unit: "children"}

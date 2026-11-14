@@ -163,12 +163,18 @@ def _matches(number: str, value: float) -> bool:
 
 async def verify_claims(report: Report, sites: dict[str, SiteCandidate], ranked: dict[str, RankedSite],
                         geo: GeoClient) -> list[Problem]:
-    """Every number in every claim that does not match a value referenced by that claim."""
+    """Every number in every claim that does not match a value referenced by that claim. Feature labels are
+    Python-written names ("People within 5 km", "below 185% of poverty"), so their digits are not claims."""
+    labels = sorted({m.label for m in await geo.list_features("hou") if m.label and re.search(r"\d", m.label)},
+                    key=len, reverse=True)
     problems = []
     for rec in report.recommendations:
         for claim in rec.justification:
             values = [v for v in [await resolve(r, sites, ranked, geo) for r in claim.evidence_refs] if v is not None]
-            for number in NUMBER.findall(claim.text):
+            text = claim.text
+            for label in labels:
+                text = text.replace(f"{label} here:", " here:")
+            for number in NUMBER.findall(text):
                 if not any(_matches(number, v) for v in values):
                     problems.append(Problem(rec.site.id, number, claim.text))
     return problems

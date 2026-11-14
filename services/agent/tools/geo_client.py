@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parents[3]
 GRID_FIXTURE = ROOT / "fixtures" / "grid.json"
 GRID_PARQUET = ROOT / "data" / "raw" / "houston_h3_r8.parquet"
 GENERAL_STOCK = ROOT / "data" / "derived" / "general_stock.parquet"  # scripts/build_general_stock.py
+SECTOR_STOCK = ROOT / "data" / "derived" / "sector_stock.parquet"  # scripts/build_sector_stock.py
 REGIONS = {"hou"}
 # CoStar-derived grid columns never enter the feature store (repo is public; see docs/HANDOFF.md section 6).
 COSTAR_COLUMNS = ("n_costar", "n_lease_spaces", "n_medical_lease_spaces")
@@ -161,10 +162,13 @@ class LocalGeo(GridGeo):
         numeric = [f.name for f in table.schema if pat.is_integer(f.type) or pat.is_floating(f.type)]
         keep = ["h3", "GEOID", *[c for c in numeric if not c.startswith(COSTAR_COLUMNS)]]
         rows = table.select(keep).to_pylist()
-        if GENERAL_STOCK.exists():  # renters, housing, vehicles, households, jobs (ACS + LODES)
-            extra = {r["h3"]: r for r in pq.read_table(GENERAL_STOCK).to_pylist()}
-            for row in rows:
-                row.update({k: v for k, v in extra.get(row["h3"], {}).items() if k != "h3"})
+        # general: renters, housing, vehicles, households, jobs (ACS + LODES); sector: poverty, SNAP, young
+        # children, USDA food access (ACS + USDA ERS)
+        for stock in (GENERAL_STOCK, SECTOR_STOCK):
+            if stock.exists():
+                extra = {r["h3"]: r for r in pq.read_table(stock).to_pylist()}
+                for row in rows:
+                    row.update({k: v for k, v in extra.get(row["h3"], {}).items() if k != "h3"})
         super().__init__(_grid_from_rows(rows))
 
 

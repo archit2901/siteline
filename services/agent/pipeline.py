@@ -267,8 +267,16 @@ async def run_pipeline(run: Run) -> None:
     await run.emit(S, "todo", todos(7))
     if geomath.competitor_column(pack_for(profile), demand.competitor_feature if demand else None) is None:
         caveats.append(geomath.NO_COMPETITOR_CAVEAT)
+    if isinstance(pack_for(profile).site_rules.get("caveat"), str):
+        caveats.append(pack_for(profile).site_rules["caveat"])
+    if not profile.existing_offices:
+        caveats.append("No current locations were given, so nothing is subtracted for cannibalization and the agent "
+                       "could not learn from where you already succeed.")
     if demand is None and not pack_for(profile).visit_rates:
         caveats.append("Visit rates by age are not sourced yet, so net-new counts residents in reach, not visits.")
+    elif demand is None:
+        caveats.append("Net-new patients use planning-assumption rates of how many residents of each age see this "
+                       "specialty in a year (informed by national NCHS and USRDS figures), not Houston-sourced rates.")
     await run.emit("analyst-critic", "tool_call", {"tool": "verify_claims", "args": {"sites": min(10, len(ranked))}})
     if demand is not None:
         caveats.append(f"Net-new counts {demand.demand_label} each site would win after competitors and your other "
