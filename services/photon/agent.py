@@ -294,4 +294,5 @@ if __name__ == "__main__":
 
     load_dotenv()  # PHOTON_API_KEY and PHOTON_PROJECT_ID from .env (never printed)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # one poll every 2 s would bury the conversation in the log
     asyncio.run(main())

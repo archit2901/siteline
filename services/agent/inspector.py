@@ -98,14 +98,18 @@ def findings(insp: SiteInspection, site: SiteCandidate) -> list[str]:
             elif insp.occupancy is not None:
                 text += f": {insp.occupancy * 100:.0f}% full when the image was taken"
         out.append(text + ".")
+    # A building's scan usually covers one part of it (a lobby, a suite, a shell floor), not the listed space, so the
+    # findings describe the scan and never claim it measures the listing. Scan names stay out of claim text (they
+    # often contain suite numbers the verifier would read as unsupported numbers); the flyer shows the name.
+    plural = lambda n, word: f"{n} {word}{'' if n == 1 else 's'}"  # noqa: E731
     if insp.scan_area_sqft is not None:
-        text = f"The Matterport scan measures {insp.scan_area_sqft:,} sq ft indoors"
+        text = f"A Matterport scan of part of the building measures {insp.scan_area_sqft:,} sq ft indoors"
         if site.sqft:
-            text += f" for a listing of {site.sqft:,} sq ft"
+            text += f"; the listed space is {site.sqft:,} sq ft"
         out.append(text + ".")
-    elif insp.scan_rooms is not None or insp.scan_floors is not None:
-        parts = [f"{insp.scan_floors} floors" if insp.scan_floors else "", f"{insp.scan_rooms} rooms" if insp.scan_rooms else ""]
-        out.append(f"The building's Matterport scan covers {' and '.join(p for p in parts if p)}.")
+    elif insp.scan_rooms or insp.scan_floors:
+        parts = [plural(insp.scan_floors, "floor") if insp.scan_floors else "", plural(insp.scan_rooms, "room") if insp.scan_rooms else ""]
+        out.append(f"The building has a Matterport 3D scan covering {' and '.join(p for p in parts if p)}.")
     return out
 
 

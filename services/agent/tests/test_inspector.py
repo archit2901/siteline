@@ -43,7 +43,7 @@ def test_fallback_inspection_combines_all_three_layers(apis: None) -> None:
     assert a.checked == ["listing", "aerial", "3d"]
     assert (a.parked_cars, a.listed_parking, a.occupancy, a.scan_area_sqft) == (28, 30, 0.933, 3410)
     assert any("may be tight at peak" in f for f in a.findings)  # 93% full on the aerial
-    assert any("3,410 sq ft indoors for a listing of 3,600 sq ft" in f for f in a.findings)
+    assert any("3,410 sq ft indoors; the listed space is 3,600 sq ft" in f for f in a.findings)
     b = results["b"]
     assert b.occupancy is None and "3d" not in b.checked  # no listed parking, no scan: nothing invented
 
