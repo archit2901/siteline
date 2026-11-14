@@ -109,3 +109,36 @@ def test_endpoints(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     a, b = asyncio.run(go())
     assert a.status_code == 200 and a.json()["profile"]["business_type"] == "bakery"
     assert b.status_code == 200 and b.json()["facts"][0]["rank"] == REPORT.recommendations[0].rank
+
+
+def test_ask_caps_client_sent_report() -> None:
+    big = REPORT.model_copy(deep=True)
+    rec = big.recommendations[0]
+    rec.justification = [rec.justification[0].model_copy(update={"text": "x" * 5000})] * 50
+    big.recommendations = [rec.model_copy(update={"rank": n}) for n in range(1, 200)]
+    big.caveats = ["c" * 5000] * 100
+    facts = fact_options(big)
+    assert max(len(f.text) for f in facts.values()) < 400
+    assert len({f.rank for f in facts.values() if f.rank}) == concierge.MAX_SITES
+    assert sum(k.startswith("caveat") for k in facts) == concierge.MAX_CAVEATS
+
+
+def test_chat_endpoints_are_rate_limited_and_body_capped(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from services.agent import app as app_module
+
+    async def fake_chat(messages, draft):  # type: ignore[no-untyped-def]
+        return intake.IntakeResponse(reply="ok", profile=PracticeProfile(name="x"))
+
+    monkeypatch.setattr(intake, "chat", fake_chat)
+    monkeypatch.setattr(app_module.chat_limiter, "per_minute", 2)
+    monkeypatch.setattr(app_module.chat_limiter, "started", __import__("collections").deque())
+
+    async def go() -> list[int]:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app_module.app), base_url="http://test") as c:
+            body = {"messages": [m.model_dump() for m in USER]}
+            codes = [(await c.post("/intake", json=body)).status_code for _ in range(3)]
+            huge = await c.post("/ask", content=b"{" + b" " * (app_module.MAX_BODY_BYTES + 10) + b"}",
+                                headers={"content-type": "application/json"})
+            return [*codes, huge.status_code]
+
+    assert asyncio.run(go()) == [200, 200, 429, 413]

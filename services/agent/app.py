@@ -1,11 +1,14 @@
 """agent-api: runs (live pipeline or replay), live event stream (SSE), approvals, rescore and run artifacts."""
 
+import asyncio
 import os
+import time
+from collections import deque
 from collections.abc import AsyncIterator
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
 from contracts.models import (ApproveRequest, AskRequest, AskResponse, Health, IntakeRequest, IntakeResponse,
@@ -23,6 +26,38 @@ app = FastAPI(title="Siteline agent-api")
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 store = RunStore()
 
+MAX_BODY_BYTES = int(os.environ.get("MAX_BODY_BYTES", str(512 * 1024)))  # a full report is ~50 KB
+
+
+@app.middleware("http")
+async def limit_body(request: Request, call_next):  # type: ignore[no-untyped-def]
+    """Reject oversized request bodies before they are parsed (chat and ask carry client-sent text and reports)."""
+    length = request.headers.get("content-length")
+    if length is not None and (not length.isdigit() or int(length) > MAX_BODY_BYTES):
+        return JSONResponse({"detail": "request body too large"}, status_code=413)
+    return await call_next(request)
+
+
+class ChatLimiter:
+    """Shared cap on the chat endpoints (/intake, /ask), which call the model outside any run's budget:
+    at most CHAT_CONCURRENCY in flight and CHAT_PER_MINUTE started per rolling minute, process-wide."""
+
+    def __init__(self) -> None:
+        self.slots = asyncio.Semaphore(int(os.environ.get("CHAT_CONCURRENCY", "4")))
+        self.per_minute = int(os.environ.get("CHAT_PER_MINUTE", "30"))
+        self.started: deque[float] = deque()
+
+    def admit(self) -> None:
+        now = time.monotonic()
+        while self.started and now - self.started[0] > 60:
+            self.started.popleft()
+        if len(self.started) >= self.per_minute or self.slots.locked():
+            raise HTTPException(429, "The assistant is busy; try again in a moment.")
+        self.started.append(now)
+
+
+chat_limiter = ChatLimiter()
+
 
 def get_run(run_id: str) -> Run:
     try:
@@ -39,13 +74,17 @@ async def health() -> Health:
 @app.post("/intake")
 async def intake_chat(request: IntakeRequest) -> IntakeResponse:
     """One chat turn: the owner's words so far -> the profile understood, what is missing, and the next reply."""
-    return await intake.chat(request.messages, request.draft)
+    chat_limiter.admit()
+    async with chat_limiter.slots:
+        return await intake.chat(request.messages[-40:], request.draft)
 
 
 @app.post("/ask")
 async def ask(request: AskRequest) -> AskResponse:
     """A question about a finished run, answered only from facts rendered from its verified report."""
-    return await concierge.ask(request.question, request.report)
+    chat_limiter.admit()
+    async with chat_limiter.slots:
+        return await concierge.ask(request.question, request.report)
 
 
 @app.get("/golden")

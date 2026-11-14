@@ -17,6 +17,8 @@ from services.agent import llm
 from services.agent.critic import singular
 
 MAX_FACTS = 6
+# The report arrives from the client (so offline and recorded runs work too); cap what reaches the prompt.
+MAX_SITES, MAX_CLAIMS, MAX_CAVEATS, MAX_TEXT, MAX_LISTING = 15, 6, 8, 300, 14_000
 OUT_OF_SCOPE = "I can only answer from this run's results: the ranked spaces, their numbers and the data behind them."
 
 PROMPT = """You route a business owner's question about the ranked spaces Siteline found. Do not answer it; classify it.
@@ -85,8 +87,8 @@ def site_facts(rec: Recommendation, label: str) -> list[tuple[str, str]]:
         out.append(("stability", f"{where}: stays in the top 10 in {rec.stability * 100:.0f}% of alternative weightings."))
     out.append(("scores", f"{where}: zone fit {rec.zone_score * 100:.0f}/100, space quality {rec.site_quality * 100:.0f}/100, "
                           f"final score {rec.final_score * 100:.0f}/100."))
-    for i, claim in enumerate(rec.justification):
-        out.append((f"claim{i}", f"{where}: {claim.text}"))
+    for i, claim in enumerate(rec.justification[:MAX_CLAIMS]):
+        out.append((f"claim{i}", f"{where}: {claim.text[:MAX_TEXT]}"))
     return out
 
 
@@ -94,18 +96,18 @@ def fact_options(report: Report) -> dict[str, AskFact]:
     """Every fact the concierge may use, keyed by a stable id like "r2.parking" or "caveat0"."""
     label = report.demand_label or "patients"
     facts: dict[str, AskFact] = {}
-    for rec in report.recommendations:
-        refs = {f"claim{i}": c.evidence_refs for i, c in enumerate(rec.justification)}
+    for rec in report.recommendations[:MAX_SITES]:
+        refs = {f"claim{i}": c.evidence_refs[:6] for i, c in enumerate(rec.justification[:MAX_CLAIMS])}
         for key, text in site_facts(rec, label):
             facts[f"r{rec.rank}.{key}"] = AskFact(text=text, site_id=rec.site.id, rank=rec.rank, refs=refs.get(key, []))
-    for i, c in enumerate(report.caveats or []):
-        facts[f"caveat{i}"] = AskFact(text=c)
+    for i, c in enumerate((report.caveats or [])[:MAX_CAVEATS]):
+        facts[f"caveat{i}"] = AskFact(text=c[:MAX_TEXT])
     return facts
 
 
 def compose(draft: AnswerDraft, facts: dict[str, AskFact], report: Report) -> AskResponse:
     """Python answers the classified question from the report; unknown ranks, fields and ids are dropped."""
-    recs = {r.rank: r for r in report.recommendations}
+    recs = {r.rank: r for r in report.recommendations[:MAX_SITES]}
     pick = lambda ids: [facts[i] for i in dict.fromkeys(ids) if i in facts][:MAX_FACTS]  # noqa: E731
     if draft.kind == "superlative" and draft.field:
         key, words, get = FIELDS[draft.field]
@@ -131,7 +133,7 @@ def compose(draft: AnswerDraft, facts: dict[str, AskFact], report: Report) -> As
         won = f"{rec.net_new_patients:,.0f}"
         claims = [f"r{n}.claim{i}" for i, c in enumerate(rec.justification)]
         has_won_claim = any(won in c.text for c in rec.justification)
-        ids = ([] if has_won_claim else [f"r{n}.won"]) + [f"r{n}.scores"] + claims
+        ids = ([] if has_won_claim else [f"r{n}.won"]) + [f"r{n}.scores"] + claims[:MAX_CLAIMS]
         if n + 1 in recs:
             ids.append(f"r{n + 1}.won")
         return AskResponse(answer=lead, facts=pick(ids))
@@ -148,7 +150,7 @@ async def ask(question: str, report: Report, model: BaseChatModel | None = None)
     if not question or not report.recommendations:
         return AskResponse(answer=OUT_OF_SCOPE)
     facts = fact_options(report)
-    listing = "\n".join(f"- {k}: {f.text}" for k, f in facts.items())
+    listing = "\n".join(f"- {k}: {f.text}" for k, f in facts.items())[:MAX_LISTING]
     meter = llm.UsageMeter(run_id=f"ask-{uuid.uuid4().hex[:8]}", budget=4)
     try:
         chat_model = model if model is not None else llm.get_chat_model("critic", meter)
