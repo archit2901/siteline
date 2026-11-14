@@ -210,11 +210,11 @@ def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
         after_denom = before_denom + site_attr
         p_site = np.divide(site_attr, after_denom, out=np.zeros(len(grid)), where=after_denom > 0)
         after_share = np.divide(office_attr, after_denom, out=np.zeros(len(grid)), where=after_denom > 0)
-        captured = float((d * p_site).sum())
-        cannibalized = float((d * (before_share - after_share)).sum())
-        results.append(HuffResult(site_id=site.id, captured_patients=round(captured, 1),
-                                  cannibalized_patients=round(cannibalized, 1),
-                                  net_new_patients=round(captured - cannibalized, 1)))
+        # Whole patients, and net-new = captured - cannibalized exactly, so every display shows the same integer.
+        captured = round(float((d * p_site).sum()))
+        cannibalized = round(float((d * (before_share - after_share)).sum()))
+        results.append(HuffResult(site_id=site.id, captured_patients=captured, cannibalized_patients=cannibalized,
+                                  net_new_patients=captured - cannibalized))
     return results
 
 

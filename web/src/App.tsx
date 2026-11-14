@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { AGENT_URL, approve, createRun, loadRunArtifact } from './api/client'
 import { FIXTURE_BASE, loadFixtureEvents, startReplay, type Replay } from './api/replay'
+import { subscribeToRun, type Subscription } from './api/sse'
 import ApprovalModal from './components/ApprovalModal'
 import FactorList from './components/FactorList'
 import IntakeForm, { PRESETS, type Preset } from './components/IntakeForm'
@@ -9,7 +11,8 @@ import SiteCards from './components/SiteCards'
 import { initialRunState, runReducer, type RunStatus } from './state/runReducer'
 import type { PracticeProfile } from './types/contracts'
 
-const FIXTURE_MODE = (import.meta.env.VITE_FIXTURE_MODE ?? '1') === '1'
+const DEFAULT_MODE: Mode = (import.meta.env.VITE_FIXTURE_MODE ?? '1') === '1' ? 'fixture' : 'live'
+type Mode = 'fixture' | 'live'
 
 const STATUS_TEXT: Record<RunStatus, string> = {
   idle: 'Ready',
@@ -26,7 +29,10 @@ export default function App() {
   const [preset, setPreset] = useState<Preset>(PRESETS[0])
   const [profile, setProfile] = useState<PracticeProfile>(PRESETS[0].profile)
   const [selectedSite, setSelectedSite] = useState<string | null>(null)
+  const [mode, setMode] = useState<Mode>(DEFAULT_MODE)
   const replay = useRef<Replay | null>(null)
+  const live = useRef<Subscription | null>(null)
+  const fixtureMode = mode === 'fixture'
 
   useEffect(() => {
     fetch(`${FIXTURE_BASE}/grid.json`)
@@ -36,24 +42,68 @@ export default function App() {
       })
       .then(setGrid)
       .catch((e: Error) => setLoadError(e.message))
-    return () => replay.current?.stop()
+    return () => {
+      replay.current?.stop()
+      live.current?.close()
+    }
   }, [])
 
   const start = useCallback(async () => {
     replay.current?.stop()
+    live.current?.close()
     setSelectedSite(null)
+    setLoadError(null)
     try {
-      const events = await loadFixtureEvents()
-      replay.current = startReplay(events, dispatch, { runId: 'fixture-replay' })
+      if (fixtureMode) {
+        const events = await loadFixtureEvents()
+        replay.current = startReplay(events, dispatch, { runId: 'fixture-replay' })
+        return
+      }
+      const { run_id: runId } = await createRun(profile)
+      dispatch({ type: 'start', runId })
+      live.current = subscribeToRun(
+        runId,
+        AGENT_URL,
+        (event) => {
+          dispatch({ type: 'event', event })
+          if (event.type === 'file') {
+            loadRunArtifact(runId, String(event.payload?.name ?? ''))
+              .then((action) => action && dispatch(action))
+              .catch((e: Error) => setLoadError(e.message))
+          }
+        },
+        setLoadError,
+      )
     } catch (e) {
       setLoadError((e as Error).message)
     }
-  }, [])
+  }, [fixtureMode, profile])
+
+  const answerApproval = useCallback(
+    async (decision: 'approve' | 'reject') => {
+      const approval = state.approval
+      if (!approval) return
+      if (fixtureMode) {
+        replay.current?.answer(approval.approval_id)
+        return
+      }
+      try {
+        await approve(state.runId!, { approval_id: approval.approval_id, decision })
+        dispatch({ type: 'approvalAnswered', approvalId: approval.approval_id })
+      } catch (e) {
+        setLoadError((e as Error).message)
+      }
+    },
+    [fixtureMode, state.approval, state.runId],
+  )
 
   const reset = useCallback(() => {
     replay.current?.stop()
     replay.current = null
+    live.current?.close()
+    live.current = null
     setSelectedSite(null)
+    setLoadError(null)
     dispatch({ type: 'reset' })
   }, [])
 
@@ -65,7 +115,7 @@ export default function App() {
   }, [factors, state.report])
   const scouts = useMemo(() => state.scoutOrder.map((id) => state.scouts[id]), [state.scoutOrder, state.scouts])
   const sites = state.report?.recommendations ?? []
-  const practiceName = state.report?.profile.name ?? (state.status === 'idle' ? null : FIXTURE_MODE ? 'Recorded run' : profile.name)
+  const practiceName = state.report?.profile.name ?? (state.status === 'idle' ? null : fixtureMode ? 'Recorded run' : profile.name)
 
   return (
     <div className="app">
@@ -79,7 +129,18 @@ export default function App() {
         </div>
         {practiceName && <span className="practice">{practiceName}</span>}
         <span className="spacer" />
-        {FIXTURE_MODE && <span className="mode">Fixture mode</span>}
+        {state.status === 'idle' ? (
+          <div className="modes" role="group" aria-label="Data source">
+            <button className="button" aria-pressed={fixtureMode} onClick={() => setMode('fixture')}>
+              Recorded run
+            </button>
+            <button className="button" aria-pressed={!fixtureMode} onClick={() => setMode('live')}>
+              Live agent
+            </button>
+          </div>
+        ) : (
+          <span className="mode">{fixtureMode ? 'Recorded run' : 'Live agent'}</span>
+        )}
         <span className="status" data-state={state.status} role="status">
           <span className="dot" />
           {STATUS_TEXT[state.status]}
@@ -97,7 +158,7 @@ export default function App() {
             <IntakeForm
               profile={profile}
               presetId={preset.id}
-              fixtureMode={FIXTURE_MODE}
+              fixtureMode={fixtureMode}
               onPreset={(p) => {
                 setPreset(p)
                 setProfile(p.profile)
@@ -134,8 +195,9 @@ export default function App() {
         <ApprovalModal
           approval={state.approval}
           featureLabels={featureLabels}
-          readOnly={FIXTURE_MODE}
-          onApprove={() => replay.current?.answer(state.approval!.approval_id)}
+          readOnly={fixtureMode}
+          onApprove={() => answerApproval('approve')}
+          onReject={() => answerApproval('reject')}
         />
       )}
     </div>

@@ -73,7 +73,7 @@ async def run_scout(factor: Factor, meter: llm.UsageMeter, emit: Emit) -> ScoutR
             await emit(agent, "tool_call", {"tool": "catalog_search", "args": {"query": factor.proxy}, "factor_id": factor.id})
             found = catalog_search(f"{factor.factor} {factor.proxy}")
             hits += [SearchHit(e.title, str(e.url), e.publisher, "catalog") for e in found]
-            await emit(agent, "tool_result", {"tool": "catalog_search", "factor_id": factor.id, "ok": bool(found),
+            await emit(agent, "tool_result", {"tool": "catalog_search", "factor_id": factor.id, "ok": True,
                                               "summary": f"{len(found)} catalog matches" + (f": {found[0].title}" if found else "")})
         await emit(agent, "tool_call", {"tool": "web_search", "args": {"query": query}, "factor_id": factor.id})
         web = await web_search(query, meter)

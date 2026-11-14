@@ -7,9 +7,10 @@ interface Props {
   featureLabels: Record<string, string>
   readOnly: boolean
   onApprove: () => void
+  onReject: () => void
 }
 
-export default function ApprovalModal({ approval, featureLabels, readOnly, onApprove }: Props) {
+export default function ApprovalModal({ approval, featureLabels, readOnly, onApprove, onReject }: Props) {
   const approveRef = useRef<HTMLButtonElement>(null)
   useEffect(() => approveRef.current?.focus(), [approval.approval_id])
 
@@ -73,6 +74,11 @@ export default function ApprovalModal({ approval, featureLabels, readOnly, onApp
 
         <div className="actions">
           {readOnly && <span className="hint">Recorded run: approving continues the replay.</span>}
+          {!readOnly && (
+            <button className="button" onClick={onReject}>
+              {isPlan ? 'Skip these datasets' : 'Reject'}
+            </button>
+          )}
           <button ref={approveRef} className="button primary" onClick={onApprove}>
             {isPlan ? 'Approve data plan' : 'Approve weights'}
           </button>

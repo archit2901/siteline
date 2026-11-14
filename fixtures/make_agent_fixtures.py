@@ -159,7 +159,9 @@ def build_report(grid: geomath.Grid, profile: PracticeProfile, factors: list[Fac
         kids = grid.columns["pop_u18_within_5km"][cell]
         spanish = grid.columns["share_spanish"][cell]
         claims = [
-            Claim(text=f"Estimated {r.net_new_patients:,.0f} net-new patients a year after {r.cannibalized_patients:,.0f} shift over from Office A.", evidence_refs=[f"model:net_new@{s.id}", f"model:cannibalized@{s.id}"]),
+            Claim(text=f"Estimated {r.net_new_patients:,.0f} net-new patients a year"
+                       + (f", after {r.cannibalized_patients:,.0f} shift over from Office A." if r.cannibalized_patients >= 1 else "."),
+                  evidence_refs=[f"model:net_new@{s.id}"] + ([f"model:cannibalized@{s.id}"] if r.cannibalized_patients >= 1 else [])),
             Claim(text=f"{kids:,.0f} children live within 5 km.", evidence_refs=[f"feature:pop_u18_within_5km@{s.h3}"]),
             Claim(text=f"{spanish * 100:.0f}% of residents speak Spanish at home.", evidence_refs=[f"feature:share_spanish@{s.h3}"]),
             Claim(text=f"{s.sqft:,} sq ft on the ground floor with {s.parking_spaces} parking spaces.", evidence_refs=[f"site:sqft@{s.id}", f"site:parking_spaces@{s.id}"]),

@@ -172,17 +172,16 @@
         "source": "fixture",
         "checks": {}
       },
-      "net_new_patients": 2975.2,
+      "net_new_patients": 2975.0,
       "zone_score": 0.8271,
       "site_quality": 1.0,
       "final_score": 0.9689,
       "stability": 1.0,
       "justification": [
         {
-          "text": "Estimated 2,975 net-new patients a year after 0 shift over from Office A.",
+          "text": "Estimated 2,975 net-new patients a year.",
           "evidence_refs": [
-            "model:net_new@site_14",
-            "model:cannibalized@site_14"
+            "model:net_new@site_14"
           ]
         },
         {
@@ -228,17 +227,16 @@
         "source": "fixture",
         "checks": {}
       },
-      "net_new_patients": 2527.7,
+      "net_new_patients": 2528.0,
       "zone_score": 0.8635,
       "site_quality": 1.0,
       "final_score": 0.9254,
       "stability": 1.0,
       "justification": [
         {
-          "text": "Estimated 2,528 net-new patients a year after 0 shift over from Office A.",
+          "text": "Estimated 2,528 net-new patients a year.",
           "evidence_refs": [
-            "model:net_new@site_03",
-            "model:cannibalized@site_03"
+            "model:net_new@site_03"
           ]
         },
         {
@@ -284,17 +282,16 @@
         "source": "fixture",
         "checks": {}
       },
-      "net_new_patients": 1969.9,
+      "net_new_patients": 1970.0,
       "zone_score": 0.8456,
       "site_quality": 1.0,
       "final_score": 0.8722,
       "stability": 1.0,
       "justification": [
         {
-          "text": "Estimated 1,970 net-new patients a year after 0 shift over from Office A.",
+          "text": "Estimated 1,970 net-new patients a year.",
           "evidence_refs": [
-            "model:net_new@site_07",
-            "model:cannibalized@site_07"
+            "model:net_new@site_07"
           ]
         },
         {
@@ -349,10 +346,9 @@
       "stability": 1.0,
       "justification": [
         {
-          "text": "Estimated 1,640 net-new patients a year after 0 shift over from Office A.",
+          "text": "Estimated 1,640 net-new patients a year.",
           "evidence_refs": [
-            "model:net_new@site_09",
-            "model:cannibalized@site_09"
+            "model:net_new@site_09"
           ]
         },
         {
@@ -398,17 +394,16 @@
         "source": "fixture",
         "checks": {}
       },
-      "net_new_patients": 1599.5,
+      "net_new_patients": 1600.0,
       "zone_score": 0.8528,
       "site_quality": 1.0,
       "final_score": 0.7735,
       "stability": 1.0,
       "justification": [
         {
-          "text": "Estimated 1,600 net-new patients a year after 0 shift over from Office A.",
+          "text": "Estimated 1,600 net-new patients a year.",
           "evidence_refs": [
-            "model:net_new@site_05",
-            "model:cannibalized@site_05"
+            "model:net_new@site_05"
           ]
         },
         {
@@ -454,17 +449,16 @@
         "source": "fixture",
         "checks": {}
       },
-      "net_new_patients": 1407.8,
+      "net_new_patients": 1408.0,
       "zone_score": 0.8478,
       "site_quality": 0.9752,
       "final_score": 0.7196,
       "stability": 1.0,
       "justification": [
         {
-          "text": "Estimated 1,408 net-new patients a year after 0 shift over from Office A.",
+          "text": "Estimated 1,408 net-new patients a year.",
           "evidence_refs": [
-            "model:net_new@site_06",
-            "model:cannibalized@site_06"
+            "model:net_new@site_06"
           ]
         },
         {
@@ -512,17 +506,16 @@
         "source": "fixture",
         "checks": {}
       },
-      "net_new_patients": 1126.5,
+      "net_new_patients": 1127.0,
       "zone_score": 0.8563,
       "site_quality": 1.0,
       "final_score": 0.6741,
       "stability": 1.0,
       "justification": [
         {
-          "text": "Estimated 1,126 net-new patients a year after 0 shift over from Office A.",
+          "text": "Estimated 1,127 net-new patients a year.",
           "evidence_refs": [
-            "model:net_new@site_04",
-            "model:cannibalized@site_04"
+            "model:net_new@site_04"
           ]
         },
         {
@@ -575,10 +568,9 @@
       "stability": 1.0,
       "justification": [
         {
-          "text": "Estimated 1,094 net-new patients a year after 0 shift over from Office A.",
+          "text": "Estimated 1,094 net-new patients a year.",
           "evidence_refs": [
-            "model:net_new@site_08",
-            "model:cannibalized@site_08"
+            "model:net_new@site_08"
           ]
         },
         {
@@ -627,14 +619,14 @@
         "source": "fixture",
         "checks": {}
       },
-      "net_new_patients": 770.2,
+      "net_new_patients": 770.0,
       "zone_score": 0.8369,
       "site_quality": 1.0,
       "final_score": 0.5706,
       "stability": 1.0,
       "justification": [
         {
-          "text": "Estimated 770 net-new patients a year after 1 shift over from Office A.",
+          "text": "Estimated 770 net-new patients a year, after 1 shift over from Office A.",
           "evidence_refs": [
             "model:net_new@site_11",
             "model:cannibalized@site_11"
@@ -683,14 +675,14 @@
         "source": "fixture",
         "checks": {}
       },
-      "net_new_patients": 730.4,
+      "net_new_patients": 730.0,
       "zone_score": 0.8698,
       "site_quality": 0.9167,
       "final_score": 0.5166,
       "stability": 1.0,
       "justification": [
         {
-          "text": "Estimated 730 net-new patients a year after 1 shift over from Office A.",
+          "text": "Estimated 730 net-new patients a year, after 1 shift over from Office A.",
           "evidence_refs": [
             "model:net_new@site_01",
             "model:cannibalized@site_01"

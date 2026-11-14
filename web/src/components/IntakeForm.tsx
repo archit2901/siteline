@@ -139,7 +139,7 @@ export default function IntakeForm({ profile, presetId, fixtureMode, onPreset, o
           {fixtureMode ? 'Replay a recorded run' : 'Find sites'}
         </button>
         {fixtureMode && (
-          <p className="hint">Fixture mode replays a recorded pediatric dentist run; live runs use this form.</p>
+          <p className="hint">Recorded run replays a pediatric dentist search. Switch to Live agent to run this form.</p>
         )}
       </form>
     </section>

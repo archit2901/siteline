@@ -119,7 +119,8 @@ function applyEvent(state: RunState, event: RunEvent): RunState {
           if (SCOUT_DONE.includes(s.status)) return s
           if (isCall) return { ...s, tries: tool === 'preview_dataset' ? s.tries + 1 : s.tries, status: s.status === 'retrying' ? 'retrying' : 'running' }
           if (!ok) return { ...s, status: 'retrying', last: text }
-          return { ...s, status: tool === 'preview_dataset' ? 'ready' : s.status, last: text }
+          const success = tool === 'preview_dataset' || tool === 'choose_dataset'
+          return { ...s, status: success ? 'ready' : s.status === 'retrying' ? 'running' : s.status, last: text }
         })
       }
       return next

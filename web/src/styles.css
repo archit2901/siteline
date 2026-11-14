@@ -147,6 +147,19 @@ a {
   color: var(--graphite);
 }
 
+.modes {
+  display: flex;
+  gap: 6px;
+}
+.modes .button {
+  padding: 4px 12px;
+  font-size: var(--size-sm);
+}
+.modes .button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
 .button {
   border: 1px solid var(--ink);
   background: var(--paper);
