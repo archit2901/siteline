@@ -67,3 +67,27 @@ export function intakeChat(messages: ChatMessage[], draft: PracticeProfile | nul
 export function ask(question: string, report: Report): Promise<AskResponse> {
   return request('/ask', { method: 'POST', body: JSON.stringify({ question, report }) })
 }
+
+/** One intake question (services/agent/questions.py); not a contract type, the agent-api serves it as-is. */
+export interface IntakeQuestion {
+  id: string
+  text: string
+  why: string
+  kind: 'text' | 'long' | 'choice' | 'multi' | 'locations'
+  options: string[]
+  placeholder: string
+  required: boolean
+  field: string
+}
+export interface QuestionSet {
+  sector: string
+  label: string
+  base: IntakeQuestion[]
+  sector_questions: IntakeQuestion[]
+}
+
+/** Base questions + the sector set for what the owner typed (no model call). */
+export function intakeQuestions(business: string, specialty = ''): Promise<QuestionSet> {
+  const q = new URLSearchParams({ business, specialty })
+  return request(`/intake/questions?${q}`)
+}
