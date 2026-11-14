@@ -6,7 +6,7 @@ import time
 from collections import deque
 from collections.abc import AsyncIterator
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from sse_starlette.sse import EventSourceResponse
@@ -29,13 +29,44 @@ store = RunStore()
 MAX_BODY_BYTES = int(os.environ.get("MAX_BODY_BYTES", str(512 * 1024)))  # a full report is ~50 KB
 
 
-@app.middleware("http")
-async def limit_body(request: Request, call_next):  # type: ignore[no-untyped-def]
-    """Reject oversized request bodies before they are parsed (chat and ask carry client-sent text and reports)."""
-    length = request.headers.get("content-length")
-    if length is not None and (not length.isdigit() or int(length) > MAX_BODY_BYTES):
-        return JSONResponse({"detail": "request body too large"}, status_code=413)
-    return await call_next(request)
+class BodyLimit:
+    """Pure ASGI middleware: reads the request body itself, counting the bytes actually received (chunked uploads
+    included), and answers 413 once they pass MAX_BODY_BYTES, before the app parses anything. Bodies under the cap
+    are replayed to the app unchanged. A declared Content-Length over the cap is refused without reading."""
+
+    def __init__(self, app, max_bytes: int) -> None:  # type: ignore[no-untyped-def]
+        self.app, self.max_bytes = app, max_bytes
+
+    async def __call__(self, scope, receive, send):  # type: ignore[no-untyped-def]
+        if scope["type"] != "http" or scope["method"] in ("GET", "HEAD", "OPTIONS"):
+            return await self.app(scope, receive, send)
+        too_large = JSONResponse({"detail": "request body too large"}, status_code=413)
+        declared = dict(scope.get("headers") or []).get(b"content-length")
+        if declared is not None and (not declared.isdigit() or int(declared) > self.max_bytes):
+            return await too_large(scope, receive, send)
+        body = bytearray()
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            body += message.get("body", b"")
+            if len(body) > self.max_bytes:
+                return await too_large(scope, receive, send)
+            if not message.get("more_body", False):
+                break
+        replayed = False
+
+        async def replay():  # type: ignore[no-untyped-def]
+            nonlocal replayed
+            if not replayed:
+                replayed = True
+                return {"type": "http.request", "body": bytes(body), "more_body": False}
+            return await receive()
+
+        await self.app(scope, replay, send)
+
+
+app.add_middleware(BodyLimit, max_bytes=MAX_BODY_BYTES)
 
 
 class ChatLimiter:

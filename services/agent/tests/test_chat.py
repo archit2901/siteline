@@ -142,3 +142,19 @@ def test_chat_endpoints_are_rate_limited_and_body_capped(monkeypatch) -> None:  
             return [*codes, huge.status_code]
 
     assert asyncio.run(go()) == [200, 200, 429, 413]
+
+
+def test_body_cap_counts_streamed_bytes(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """A chunked upload with no Content-Length is still cut off at the cap."""
+    from services.agent import app as app_module
+
+    async def chunks():  # type: ignore[no-untyped-def]
+        for _ in range(app_module.MAX_BODY_BYTES // 65536 + 2):
+            yield b" " * 65536
+
+    async def go() -> int:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app_module.app), base_url="http://test") as c:
+            r = await c.post("/ask", content=chunks(), headers={"content-type": "application/json"})
+            return r.status_code
+
+    assert asyncio.run(go()) == 413
