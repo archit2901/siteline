@@ -13,8 +13,12 @@ services/agent/
                    GET /runs/{id}/artifacts/{name}
   graph.py         build_agent(run_id) -> create_deep_agent(...)
   prompts/         strategist.md, factor_analyst.md, dataset_scout.md, site_scout.md, critic.md
-  tools/           profile.py, geo.py, sites.py, catalog.py, search.py, weights.py, verify.py,
-                   clients (GeoClient / SitesClient: Mock*, Local*, Http*, chosen by AGENT_BACKEND)
+  tools/           profile.py, geo.py, sites.py, catalog.py, search.py, weights.py, verify.py (LLM tools)
+    backends.py    get_geo() / get_sites() from AGENT_BACKEND
+    geo_client.py  GeoClient: MockGeo (fixtures/grid.json), LocalGeo (data/raw parquet), HttpGeo (GEO_URL)
+    geomath.py     ALL scoring math (normalize, zone score, demand, Huff net-new, quality, final, stability)
+    sites_client.py SitesClient: MockSites (zone pseudo-sites), LocalSites (CoStar files), HttpSites (SITES_URL)
+    packs.py       pack loading with `extends`; stock feature catalog -> RegionFeature
   runs.py          run store (SQLite in runs/runs.db), events.jsonl writer, replay
   stream.py        LangGraph stream chunk -> contracts.models.RunEvent
   evals/run_evals.py   runs evals/*.yaml through the factor-analyst and scores them

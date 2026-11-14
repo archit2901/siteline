@@ -13,6 +13,7 @@ services:
       - "8000:8000"
     volumes:
       - ./runs:/app/runs
+      - ./data:/app/data:ro
       - ./fixtures:/app/fixtures
       - ./catalog:/app/catalog
       - ./packs:/app/packs
