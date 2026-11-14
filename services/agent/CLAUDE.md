@@ -115,6 +115,21 @@ Extract every number in each Claim's text (ints, decimals, percents, "$" amounts
 `feature:<id>@<h3>` → stored feature value; `model:net_new@<site_id>` etc. → model output in run artifacts;
 `site:<field>@<site_id>` → SiteCandidate field. Any miss → `Report.verified=false`, the critic must rewrite.
 
+## Factor-analyst (Task 4, done)
+- `factor_analyst.py::analyze(profile, meter)` (scripted mode, evals): Nova structured output into `list[Factor]`,
+  one retry with the validation error, then `repair()` in Python: unknown feature ids -> data scout, status and
+  coverage set by code, unique ids, at most 12 factors.
+- Site-level factors use `feature_id` = `site:parking` | `site:ground_floor` | `site:rent` | `site:size` (stock_covered,
+  status covered). They feed site quality Q, never zone weights, and never spawn a scout.
+- `graph.py::build_agent` (planned mode): deepagents orchestrator + factor-analyst subagent. The intake is baked into
+  the subagent's own prompt (subagents only see the task description, and Nova paraphrases it), and the subagent
+  saves through a `save_factors` tool whose arguments are validated against `Factor`; Python takes the factors from
+  that call, not from /factors.json (the orchestrator has file tools).
+- Evals: `PYTHONPATH=. python -m services.agent.evals.run_evals [--mode scripted|planned|both] [--no-cache]`.
+  Nov 14 2026, Nova Pro as MODEL_SMART: 50/50 checks in both modes on two uncached runs; scripted ≈ $0.008 and
+  planned ≈ $0.045 per practice. Nova 2 Lite as orchestrator loops until the recursion limit: keep it as MODEL_FAST.
+- Nova skips `write_todos` in planned mode; emit todo events from code (scripted ordering) when needed.
+
 ## Prompts (prompts/*.md)
 - factor_analyst.md: input = PracticeProfile + stock feature list + pack factor_hints; output = JSON list of Factor
   only. Each factor needs a proxy measurable per Houston neighborhood; no bare "population"/"income". Few-shot with
