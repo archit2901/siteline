@@ -1,0 +1,15 @@
+# EvalCase (contracts/models.py). Non-healthcare: a neighborhood laundromat.
+id: laundromat
+profile:
+  name: "Example Laundromat"
+  business_type: laundromat
+  customers: "Apartment renters without in-unit washers, many families, some without a car"
+  services: ["self-service washers and dryers", "wash-and-fold"]
+  languages: [English, Spanish]
+  existing_offices:
+    - {name: "Store A (Gulfton area)", lat: 29.721, lon: -95.476, clinicians: 1}
+  constraints: {min_sqft: 2000, max_sqft: 5000, min_parking_per_1000sf: 3, ground_floor: true}
+  free_text: "Our customers live in apartments nearby and often walk or take the bus."
+must_include: ["renters or apartment households", "households without a car or walkability", "laundromat competition", "density of households nearby"]
+must_not_include: []
+sign_checks: {"laundromat competition": -1}

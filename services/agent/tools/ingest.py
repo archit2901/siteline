@@ -15,6 +15,7 @@ import json
 import logging
 import math
 import re
+import time
 from dataclasses import dataclass, field
 from itertools import islice
 from pathlib import Path
@@ -47,6 +48,16 @@ KM_PER_RING_STEP = 0.83  # ~ H3 res-8 cell spacing; k=6 ≈ 5 km
 OVERPASS = "https://overpass-api.de/api/interpreter"
 OSM_TAG = re.compile(r"^[a-z_:]{1,30}=[A-Za-z0-9_ ;:-]{1,40}$")
 CACHE = Path(__file__).resolve().parents[3] / "data" / "cache" / "osm"
+CACHE_TTL_SECONDS = 24 * 3600
+CACHE_MAX_BYTES = 20 * 1024 * 1024
+_QUERY = re.compile(r'^\[out:json\]\[timeout:50\];\((?:nwr\["[a-z_:]{1,30}"="[A-Za-z0-9_ ;:-]{1,40}"\]\([-0-9.,]+\);){1,6}\);out center tags;$')
+
+
+def is_canonical_overpass(url: str) -> bool:
+    """Only queries in the exact form overpass_url() builds (validated tags, Houston box) are fetched or cached."""
+    parsed = httpx.URL(url)
+    return parsed.host == "overpass-api.de" and parsed.path == "/api/interpreter" and \
+        bool(_QUERY.match(parsed.params.get("data", ""))) and set(parsed.params.keys()) == {"data"}
 
 
 def overpass_url(tags: list[str]) -> str:
@@ -59,11 +70,13 @@ def overpass_url(tags: list[str]) -> str:
     return str(httpx.URL(OVERPASS, params={"data": f"[out:json][timeout:50];({parts});out center tags;"}))
 
 
-async def _overpass_rows(client: httpx.AsyncClient, url: str) -> Rows:
+async def _overpass_rows(client: httpx.AsyncClient, url: str, max_rows: int = MAX_ROWS) -> Rows:
     """Overpass elements -> rows with _lat/_lon (way/relation centers). Cached; retried with backoff when busy."""
+    if not is_canonical_overpass(url):
+        raise ValueError("only Siteline-built OpenStreetMap queries are accepted")
     CACHE.mkdir(parents=True, exist_ok=True)
     cached = CACHE / f"{hashlib.sha1(url.encode()).hexdigest()}.json"
-    if cached.exists():
+    if cached.exists() and time.time() - cached.stat().st_mtime < CACHE_TTL_SECONDS:
         data = json.loads(cached.read_text())
     else:
         delay, data = 2.0, None
@@ -76,12 +89,15 @@ async def _overpass_rows(client: httpx.AsyncClient, url: str) -> Rows:
                 continue
             resp.raise_for_status()
             data = resp.json()
-            cached.write_text(json.dumps(data))
+            if len(resp.content) <= CACHE_MAX_BYTES:  # atomic write so a crash never leaves a half file
+                tmp = cached.with_suffix(".tmp")
+                tmp.write_text(json.dumps(data))
+                tmp.replace(cached)
             break
         if data is None:
             raise ValueError("OpenStreetMap Overpass is busy; try again in a minute")
     rows = []
-    for el in data.get("elements", []):
+    for el in data.get("elements", [])[:max_rows]:
         lat = el.get("lat", (el.get("center") or {}).get("lat"))
         lon = el.get("lon", (el.get("center") or {}).get("lon"))
         if lat is not None and lon is not None:
@@ -147,7 +163,7 @@ async def fetch_rows(url: str, fmt: str, *, tract_key: str | None = None, previe
     cap = PREVIEW_BYTES if preview else MAX_BYTES
     async with httpx.AsyncClient(headers=HEADERS, trust_env=False) as client:
         if urlparse(url).hostname == "overpass-api.de":
-            return await _overpass_rows(client, url)
+            return await _overpass_rows(client, url, 1000 if preview else MAX_ROWS)
         if fmt == "socrata":
             m = SOCRATA_ID.search(url)
             if not m:

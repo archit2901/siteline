@@ -51,3 +51,12 @@ async def test_unknown_peer_fails_closed() -> None:
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200))) as client:
         with pytest.raises(BlockedURL, match="could not confirm"):
             await safe_request(client, "HEAD", "https://data.cdc.gov/d/x")  # mock transport exposes no peer
+
+
+def test_only_canonical_overpass_queries_are_accepted() -> None:
+    from services.agent.tools.ingest import is_canonical_overpass, overpass_url
+
+    assert is_canonical_overpass(overpass_url(["shop=laundry", "amenity=cafe"]))
+    assert not is_canonical_overpass("https://overpass-api.de/api/interpreter?data=[out:json];node(1,1,90,180);out;")
+    with pytest.raises(ValueError):
+        overpass_url(['shop=laundry"];way(1,1,2,2);(._;'])

@@ -23,7 +23,7 @@ from services.agent import llm
 
 ROOT = Path(__file__).resolve().parents[3]
 JUDGE_PROMPT = (
-    "You check whether a list of location-planning factors for a healthcare practice covers a required theme. "
+    "You check whether a list of location-planning factors for a business covers a required theme. "
     "A factor covers the theme if it measures the same idea, even in different words (for example 'People 45+ "
     "within 5 km' covers 'aging population'; 'Few orthopedic surgeons nearby' covers 'orthopedic surgeon "
     "competition'). Pick the single best matching factor id, or matched=false if none covers it."

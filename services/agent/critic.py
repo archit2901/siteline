@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from contracts.models import (
     Claim,
+    DemandModel,
     Factor,
     PracticeProfile,
     RankedSite,
@@ -73,10 +74,19 @@ def _fmt(value: float, unit: str, feature_id: str = "") -> str:
     return f"{value:,.0f}"
 
 
-async def claim_options(site: SiteCandidate, ranked: RankedSite, factors: list[Factor], geo: GeoClient) -> list[ClaimOption]:
+def rent_per_customer(site: SiteCandidate, ranked: RankedSite) -> float | None:
+    """Annual asking rent ÷ net-new customers (None when rent, size or net-new is missing)."""
+    if site.rent_psf and site.sqft and ranked.net_new_patients >= 1:
+        return site.rent_psf * site.sqft / ranked.net_new_patients
+    return None
+
+
+async def claim_options(site: SiteCandidate, ranked: RankedSite, factors: list[Factor], geo: GeoClient,
+                        label: str = "patients") -> list[ClaimOption]:
     """Every claim the critic may use for one site, with text rendered from stored values."""
     out = []
-    text = f"Estimated {ranked.net_new_patients:,.0f} net-new patients a year"
+    per_year = " a year" if label == "patients" else ""
+    text = f"Estimated {ranked.net_new_patients:,.0f} net-new {label}{per_year}"
     refs = [f"model:net_new@{site.id}"]
     if ranked.cannibalized_patients >= 1:
         text += f", after {ranked.cannibalized_patients:,.0f} shift over from your existing offices"
@@ -105,6 +115,10 @@ async def claim_options(site: SiteCandidate, ranked: RankedSite, factors: list[F
     if site.parking_spaces:
         out.append(ClaimOption("parking", f"{site.parking_spaces:,} parking spaces at the building.",
                                [f"site:parking_spaces@{site.id}"]))
+    per_customer = rent_per_customer(site, ranked)
+    if per_customer is not None:
+        out.append(ClaimOption("rent_per_customer", f"Annual asking rent per net-new {label}: ${per_customer:,.2f}.",
+                               [f"model:rent_per_customer@{site.id}"]))
     if ranked.stability is not None:
         out.append(ClaimOption("stability", f"Stays in the top 10 in {ranked.stability * 100:.0f}% of alternative weightings.",
                                [f"model:stability@{site.id}"]))
@@ -119,6 +133,8 @@ async def resolve(ref: str, sites: dict[str, SiteCandidate], ranked: dict[str, R
         return (await geo.feature_value(name, target)).value
     if kind == "model" and target in ranked:
         r = ranked[target]
+        if name == "rent_per_customer":
+            return rent_per_customer(sites[target], r) if target in sites else None
         return {"net_new": r.net_new_patients, "cannibalized": r.cannibalized_patients, "captured": r.captured_patients,
                 "stability": r.stability, "zone_score": r.zone_score, "final_score": r.final_score}.get(name)
     if kind == "site" and target in sites:
@@ -163,14 +179,16 @@ def best_per_building(ranked: list[RankedSite], sites: dict[str, SiteCandidate])
 
 async def build_report(run_id: str, profile: PracticeProfile, factors: list[Factor], sites: list[SiteCandidate],
                        ranked: list[RankedSite], geo: GeoClient, meter: llm.UsageMeter | None,
-                       caveats: list[str], select: bool = True) -> tuple[Report, list[Problem]]:
+                       caveats: list[str], select: bool = True,
+                       demand: DemandModel | None = None) -> tuple[Report, list[Problem]]:
     """The verified top-10 report and any verification problems (claims that fail are dropped, never rewritten).
 
     select=False skips the model and uses the default claim order (for /rescore, which must not call an LLM)."""
     by_site = {s.id: s for s in sites}
     by_rank = {r.site_id: r for r in ranked}
     top = best_per_building([r for r in ranked if r.excluded_reason is None], by_site)[:TOP]
-    options = {r.site_id: await claim_options(by_site[r.site_id], r, factors, geo) for r in top}
+    label = demand.demand_label if demand else "patients"
+    options = {r.site_id: await claim_options(by_site[r.site_id], r, factors, geo, label) for r in top}
 
     listing = "\n\n".join(
         f"SITE {sid} ({by_site[sid].address}):\n" + "\n".join(f"- {o.key}: {o.text}" for o in opts)
@@ -187,7 +205,7 @@ async def build_report(run_id: str, profile: PracticeProfile, factors: list[Fact
     except Exception:  # selection is a nicety; fall back to the default order below
         chosen = {}
 
-    no_competitors = geomath.competitor_column(pack_for(profile), None) is None
+    no_competitors = geomath.competitor_column(pack_for(profile), demand.competitor_feature if demand else None) is None
     recs = []
     for rank, r in enumerate(top, start=1):
         opts = {o.key: o for o in options[r.site_id]}
@@ -209,13 +227,14 @@ async def build_report(run_id: str, profile: PracticeProfile, factors: list[Fact
             rank=rank, site=site, net_new_patients=r.net_new_patients, zone_score=r.zone_score,
             site_quality=r.site_quality, final_score=r.final_score, stability=r.stability,
             justification=[Claim(text=opts[k].text, evidence_refs=opts[k].refs) for k in keys], caveats=site_caveats,
+            annual_rent_per_customer=None if (rpc := rent_per_customer(site, r)) is None else round(rpc, 2),
         ))
 
     provenance = {f.id: f.provenance_url for f in await geo.list_features("hou")}
     report = Report(
         run_id=run_id, profile=profile, factors=factors, recommendations=recs, caveats=caveats,
         sources={f.feature_id: provenance[f.feature_id] for f in factors if f.feature_id in provenance},
-        verified=False,
+        verified=False, demand_label=label, demand=demand,
     )
     problems = await verify_claims(report, by_site, by_rank, geo)
     if problems:  # drop failing claims instead of shipping an unverified number

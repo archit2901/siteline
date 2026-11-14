@@ -92,6 +92,7 @@ class LocalSites:
 
     def __init__(self, raw_dir: Path = RAW) -> None:
         self.raw_dir = raw_dir
+        self._fit_cache: dict[tuple[str, ...], list[tuple[SiteCandidate, tuple[int, int]]]] = {}
         for name in ("houston_costar_lease_spaces.parquet", "houston_costar_properties.parquet"):
             if not (raw_dir / name).exists():
                 raise FileNotFoundError(f"{raw_dir / name} missing: AGENT_BACKEND=local needs the CoStar files")
@@ -160,18 +161,29 @@ class LocalSites:
         """Which zones have a clinic-fit listing within 2 km ("strong zones with no listings yet" otherwise)."""
         return {z: bool(self._near(z)) for z in zones}
 
-    def _near(self, zone: str) -> list[tuple[float, SiteCandidate, tuple[int, int]]]:
+    def _near(self, zone: str, pool: list[tuple[SiteCandidate, tuple[int, int]]] | None = None) -> list[tuple[float, SiteCandidate, tuple[int, int]]]:
         lat, lon = h3.cell_to_latlng(zone)
-        near = [(haversine_km(lat, lon, s.lat, s.lon), s, rng) for s, rng in self.clinic_fit]
+        near = [(haversine_km(lat, lon, s.lat, s.lon), s, rng) for s, rng in (pool if pool is not None else self.clinic_fit)]
         return sorted((x for x in near if x[0] <= SEARCH_RADIUS_KM), key=lambda x: (x[0], x[1].id))
 
+    def fit_spaces(self, uses: tuple[str, ...]) -> list[tuple[SiteCandidate, tuple[int, int]]]:
+        """Spaces of the given CoStar space uses (any size; the practice's range is applied in search)."""
+        if uses == tuple(sorted(CLINIC_SPACE_USES)):
+            return self.clinic_fit
+        if uses not in self._fit_cache:
+            self._fit_cache[uses] = [(self._candidate(r), (int(r["sqft_min"]), int(r["sqft_max"])))
+                                     for r in self.spaces if r["space_use"] in uses]
+        return self._fit_cache[uses]
+
     async def search(self, request: SiteSearchRequest) -> list[SiteCandidate]:
-        """Spaces near the zones (best zone first) that fit the practice's constraints, up to request.limit."""
+        """Spaces near the zones (best zone first) that fit the constraints and space uses, up to request.limit."""
         cons = request.constraints
+        uses = tuple(sorted(cons.space_uses)) if cons.space_uses else tuple(sorted(CLINIC_SPACE_USES))
+        pool = self.fit_spaces(uses)
         out: list[SiteCandidate] = []
         seen: set[str] = set()
         for zone in request.zones:
-            for dist, site, sqft_range in self._near(zone):
+            for dist, site, sqft_range in self._near(zone, pool):
                 if site.id in seen or not fits(site, sqft_range, cons):
                     continue
                 seen.add(site.id)

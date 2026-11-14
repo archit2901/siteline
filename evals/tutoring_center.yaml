@@ -1,0 +1,12 @@
+# EvalCase (contracts/models.py). Non-healthcare: an after-school tutoring center.
+id: tutoring_center
+profile:
+  name: "Example Tutoring Center"
+  business_type: tutoring center
+  customers: "K-12 students whose parents pay for after-school tutoring and test prep"
+  services: ["math and reading tutoring", "SAT/ACT prep"]
+  constraints: {min_sqft: 1500, max_sqft: 4000, min_parking_per_1000sf: 3, ground_floor: false}
+  free_text: "Parents drive kids after school; families with higher incomes are our core customers."
+must_include: ["school-age children", "household income", "tutoring competition", "proximity to schools"]
+must_not_include: []
+sign_checks: {"tutoring competition": -1}

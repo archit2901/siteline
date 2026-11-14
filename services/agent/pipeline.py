@@ -17,7 +17,9 @@ from pydantic import TypeAdapter
 from contracts.models import (
     ApprovalRequest,
     DatasetCandidate,
+    DemandModel,
     Factor,
+    FeatureSpec,
     IngestRequest,
     PracticeProfile,
     RankedSite,
@@ -32,18 +34,21 @@ from services.agent import llm
 from services.agent.critic import build_report
 from services.agent.factor_analyst import analyze
 from services.agent.runs import Run
-from services.agent.scout import run_scout
+from services.agent.profiler import profile_business
+from services.agent.scout import ScoutResult, run_scout
 from services.agent.tools import geomath
 from services.agent.tools.backends import get_geo, get_sites
+from services.agent.tools.ingest import overpass_url
 from services.agent.tools.packs import pack_for
 from services.agent.tools.profile import load_profile
 from services.agent.tools.sites_client import MockSites
 from services.agent.tools.weights import weights_from_priorities
 
 S = "site-strategist"
+P = "business-profiler"
 STEPS = [
-    "Load the practice profile",
-    "Reason about what makes an office succeed",
+    "Understand the business and its customers",
+    "Reason about what makes a location succeed",
     "Find data for uncovered factors",
     "Approve the data plan",
     "Approve weights and score Houston",
@@ -53,6 +58,32 @@ STEPS = [
 ]
 SEARCH_ZONES = 400  # zones handed to the site search, best first (CoStar covers inner Harris only)
 SITE_LIMIT = 40
+
+
+def competitor_scout(factors: list[Factor], demand: DemandModel, tags: list[str],
+                     run_tag: str) -> tuple[list[Factor], ScoutResult]:
+    """Attach OpenStreetMap competitor locations to the analyst's competition factor (or add one)."""
+    target = next((f for f in factors if f.feature_id is None and f.direction == -1
+                   and "compet" in f"{f.id} {f.factor}".lower()), None)
+    if target is None:
+        target = Factor(id="competitors_nearby", factor=f"Few {demand.competitor_label} nearby",
+                        why=f"Every nearby {demand.competitor_label.rstrip('s')} competes for the same customers.",
+                        proxy=f"{demand.competitor_label.capitalize()} within 5 km (OpenStreetMap)", direction=-1,
+                        priority="high")
+        factors = [*factors, target]
+    url = overpass_url(tags)
+    spec = FeatureSpec(
+        id=f"found_competitors_{run_tag}", label=f"{demand.competitor_label.capitalize()} within 5 km",
+        source_id="osm.overpass", source_url=url, format="json", geo_level="point", geo_key="_lat,_lon",  # type: ignore[arg-type]
+        agg="count_within", radius_min=7.0, direction=-1, unit="count", layer="agent_found",
+        provenance_url="https://www.openstreetmap.org/",  # type: ignore[arg-type]
+    )
+    candidate = DatasetCandidate(
+        id="cand_competitors", factor_id=target.id, title=f"OpenStreetMap: {demand.competitor_label} ({', '.join(tags)})",
+        url="https://www.openstreetmap.org/", publisher="OpenStreetMap contributors", format="json",  # type: ignore[arg-type]
+        geo_level="point", why="Locations of competing businesses across Houston.", status="valid",
+    )
+    return factors, ScoutResult(target.id, candidate, 1, spec=spec)
 
 
 def todos(done: int) -> dict[str, Any]:
@@ -70,9 +101,10 @@ async def score_and_rank(run: Run, spec: ScoringSpec) -> tuple[ScoreResponse, li
     """geo /score then /rank on the run's sites (also used by /rescore; no LLM)."""
     profile: PracticeProfile = run.state["profile"]
     geo = get_geo()
-    zones = await geo.score(ScoreRequest(profile=profile, spec=spec, top_n=15))
+    demand = run.state.get("demand")
+    zones = await geo.score(ScoreRequest(profile=profile, spec=spec, top_n=15, demand=demand))
     sites: list[SiteCandidate] = run.state.get("sites", [])
-    ranked = await geo.rank(RankRequest(profile=profile, spec=spec, candidates=sites)) if sites else []
+    ranked = await geo.rank(RankRequest(profile=profile, spec=spec, candidates=sites, demand=demand)) if sites else []
     return zones, ranked
 
 
@@ -93,6 +125,16 @@ async def run_pipeline(run: Run) -> None:
     run.state["profile"] = profile
     await run.emit(S, "tool_result", {"tool": "load_profile", "ok": True,
                                       "summary": " ".join([f"Stock pack {profile.stock_pack}.", *notes])})
+    await run.emit(P, "tool_call", {"tool": "profile_business", "args": {"business": profile.business_type or profile.specialty}})
+    demand, competitor_tags, notes = await profile_business(profile, meter)
+    run.state["demand"] = demand
+    if demand is not None:
+        segments = ", ".join(f"{s.label} ({s.weight:g})" for s in demand.segments)
+        summary = (f"Customers: {segments}. Competitors: {demand.competitor_label} "
+                   f"({', '.join(competitor_tags) or 'none found'}). Space: {', '.join(demand.space_uses)}. {demand.rationale}")
+    else:
+        summary = " ".join(notes)
+    await run.emit(P, "tool_result", {"tool": "profile_business", "ok": True, "summary": summary.strip()})
 
     # 2. factors
     await run.emit(S, "todo", todos(1))
@@ -109,10 +151,19 @@ async def run_pipeline(run: Run) -> None:
     for f in factors:
         await run.emit("factor-analyst", "factor", f.model_dump(mode="json"))
 
-    # 3. scouts, one per factor without data, in parallel
+    # 3. scouts, one per factor without data, in parallel; competitors come from OpenStreetMap
     await run.emit(S, "todo", todos(2))
-    uncovered = [f for f in factors if f.feature_id is None]
-    results = await asyncio.gather(*(run_scout(f, meter, run.emit, run.run_id[:6]) for f in uncovered))
+    competitor: ScoutResult | None = None
+    if demand is not None and competitor_tags:
+        factors, competitor = competitor_scout(factors, demand, competitor_tags, run.run_id[:6])
+        await run.emit("factor-analyst", "factor", next(f for f in factors if f.id == competitor.factor_id).model_dump(mode="json"))
+        await run.emit(f"dataset-scout:{competitor.factor_id}", "tool_result", {
+            "tool": "choose_dataset", "factor_id": competitor.factor_id, "ok": True,
+            "summary": f"OpenStreetMap places tagged {', '.join(competitor_tags)} across Houston."})
+    uncovered = [f for f in factors if f.feature_id is None and (competitor is None or f.id != competitor.factor_id)]
+    results = list(await asyncio.gather(*(run_scout(f, meter, run.emit, run.run_id[:6]) for f in uncovered)))
+    if competitor is not None:
+        results.append(competitor)
     candidates: list[DatasetCandidate] = [r.candidate for r in results if r.candidate]
     by_id = {f.id: f for f in factors}
     for r in results:
@@ -143,6 +194,9 @@ async def run_pipeline(run: Run) -> None:
         if report.ok:
             ingested += 1
             by_id[c.factor_id] = f.model_copy(update={"status": "found", "feature_id": spec.id, "caveat": None})
+            if competitor is not None and c.factor_id == competitor.factor_id and demand is not None:
+                demand = demand.model_copy(update={"competitor_feature": f"{spec.id}_count"})
+                run.state["demand"] = demand
         else:
             by_id[c.factor_id] = f.model_copy(update={
                 "status": "dropped", "caveat": f"Found {c.title}, but it did not pass validation: {'; '.join(report.notes)[:160]}"})
@@ -168,7 +222,7 @@ async def run_pipeline(run: Run) -> None:
         spec = normalize(answer.edited_spec)
     run.state["spec"] = spec
     await run.emit(S, "tool_call", {"tool": "score_grid", "args": {"features": len(spec.weights), "top_n": 15}})
-    zones = await geo.score(ScoreRequest(profile=profile, spec=spec, top_n=15))
+    zones = await geo.score(ScoreRequest(profile=profile, spec=spec, top_n=15, demand=demand))
     run.write_artifact("zones.json", zones.model_dump_json())
     await run.emit(S, "tool_result", {"tool": "score_grid", "ok": True,
                                       "summary": f"Scored {len(zones.zones):,} cells; top {len(zones.top)} zones written."})
@@ -176,7 +230,10 @@ async def run_pipeline(run: Run) -> None:
 
     # 6. real spaces near the best zones
     await run.emit(S, "todo", todos(5))
-    request = SiteSearchRequest(zones=[z.h3 for z in zones.zones[:SEARCH_ZONES]], constraints=profile.constraints,
+    constraints = profile.constraints
+    if not constraints.space_uses and demand is not None:
+        constraints = constraints.model_copy(update={"space_uses": demand.space_uses})
+    request = SiteSearchRequest(zones=[z.h3 for z in zones.zones[:SEARCH_ZONES]], constraints=constraints,
                                 limit=SITE_LIMIT)
     await run.emit("site-scout", "tool_call", {"tool": "search_sites", "args": {"zones": len(request.zones), "limit": SITE_LIMIT}})
     sites = await sites_client.search(request)
@@ -192,7 +249,7 @@ async def run_pipeline(run: Run) -> None:
     # 7. rank
     await run.emit(S, "todo", todos(6))
     await run.emit(S, "tool_call", {"tool": "rank_sites", "args": {"candidates": len(sites)}})
-    ranked = await geo.rank(RankRequest(profile=profile, spec=spec, candidates=sites, with_stability=True))
+    ranked = await geo.rank(RankRequest(profile=profile, spec=spec, candidates=sites, with_stability=True, demand=demand))
     run.write_artifact("ranked.json", TypeAdapter(list[RankedSite]).dump_json(ranked, indent=2).decode())
     excluded = sum(r.excluded_reason is not None for r in ranked)
     await run.emit(S, "tool_result", {"tool": "rank_sites", "ok": True,
@@ -200,12 +257,15 @@ async def run_pipeline(run: Run) -> None:
 
     # 8. report
     await run.emit(S, "todo", todos(7))
-    if geomath.competitor_column(pack_for(profile), None) is None:
+    if geomath.competitor_column(pack_for(profile), demand.competitor_feature if demand else None) is None:
         caveats.append(geomath.NO_COMPETITOR_CAVEAT)
-    if not pack_for(profile).visit_rates:
+    if demand is None and not pack_for(profile).visit_rates:
         caveats.append("Visit rates by age are not sourced yet, so net-new counts residents in reach, not visits.")
     await run.emit("analyst-critic", "tool_call", {"tool": "verify_claims", "args": {"sites": min(10, len(ranked))}})
-    report, problems = await build_report(run.run_id, profile, factors, sites, ranked, geo, meter, caveats)
+    if demand is not None:
+        caveats.append(f"Net-new counts {demand.demand_label} each site would win after competitors and your other "
+                       "locations take their share; it is not a sales forecast.")
+    report, problems = await build_report(run.run_id, profile, factors, sites, ranked, geo, meter, caveats, demand=demand)
     run.write_artifact("report.json", report.model_dump_json(indent=2))
     await run.emit("analyst-critic", "tool_result", {
         "tool": "verify_claims", "ok": report.verified, "usage": meter.snapshot(),

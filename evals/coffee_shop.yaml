@@ -1,0 +1,12 @@
+# EvalCase (contracts/models.py). Non-healthcare: a specialty coffee shop.
+id: coffee_shop
+profile:
+  name: "Example Coffee Shop"
+  business_type: coffee shop
+  customers: "Office workers on weekday mornings and young adults on weekends"
+  services: ["espresso drinks", "pastries", "seating for remote work"]
+  constraints: {min_sqft: 1200, max_sqft: 3000, min_parking_per_1000sf: 2, ground_floor: true}
+  free_text: "Morning commute traffic and nearby offices matter most."
+must_include: ["daytime workers or jobs nearby", "young adults", "cafe competition", "foot traffic or density"]
+must_not_include: []
+sign_checks: {"cafe competition": -1}

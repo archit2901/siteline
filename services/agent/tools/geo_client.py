@@ -42,6 +42,7 @@ GENERAL_STOCK = ROOT / "data" / "derived" / "general_stock.parquet"  # scripts/b
 REGIONS = {"hou"}
 # CoStar-derived grid columns never enter the feature store (repo is public; see docs/HANDOFF.md section 6).
 COSTAR_COLUMNS = ("n_costar", "n_lease_spaces", "n_medical_lease_spaces")
+MAX_FOUND = 60  # agent-found columns kept in memory; the oldest are evicted
 
 
 class GeoClient(Protocol):
@@ -118,6 +119,12 @@ class GridGeo:
                 self.grid._competitors.clear()
             self.found[spec.id] = RegionFeature(id=spec.id, label=spec.label, source=spec.source_id, unit=spec.unit,
                                                 layer="agent_found", provenance_url=spec.provenance_url)
+            while len(self.found) > MAX_FOUND:  # dicts keep insertion order: drop the oldest run's columns
+                old = next(iter(self.found))
+                del self.found[old]
+                self.grid.columns.pop(old, None)
+                self.grid.columns.pop(f"{old}_count", None)
+                self.grid._competitors.clear()
         return report
 
     def feature_meta(self, feature_id: str) -> RegionFeature | None:
