@@ -3,7 +3,7 @@ import { H3HexagonLayer } from '@deck.gl/geo-layers'
 import { ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import type { PickingInfo } from '@deck.gl/core'
 import * as maplibregl from 'maplibre-gl'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { esc } from '../lib/safe'
 import type { Recommendation, ScoreResponse } from '../types/contracts'
 
@@ -38,6 +38,8 @@ const INK: RGB = [0x15, 0x17, 0x1c]
 // Huff catchment by trip type: straight-line km reached in the trip's minutes at 35 mph with a 1.3 detour factor.
 const TRIP_MINUTES: Record<string, number> = { neighborhood: 10, local: 20, destination: 30 }
 const kmForMinutes = (m: number) => (m / 60) * 35 * 1.609 / 1.3
+/** Hex fill fades as the map zooms in, so streets show where sites are compared (full at city scale, light up close). */
+const fadeForZoom = (z: number) => (z <= 9.5 ? 1 : z >= 11.5 ? 0.3 : 1 - ((z - 9.5) / 2) * 0.7)
 
 function ramp(stops: RGB[], t: number): RGB {
   const x = Math.min(1, Math.max(0, t)) * (stops.length - 1)
@@ -77,6 +79,7 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const overlay = useRef<MapboxOverlay | null>(null)
+  const [fade, setFade] = useState(1)
 
   useEffect(() => {
     if (!container.current) return
@@ -90,6 +93,7 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     const o = new MapboxOverlay({ interleaved: false, layers: [] })
     m.addControl(o)
+    m.on('zoomend', () => setFade(Math.round(fadeForZoom(m.getZoom()) * 10) / 10))
     map.current = m
     overlay.current = o
     return () => {
@@ -128,14 +132,14 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
         getFillColor: (d) => {
           const t = scorePct ? scorePct.get(d.h3) ?? 0 : densityPct[cellIndex.get(d.h3) ?? 0] ?? 0
           // Paper stays paper: the lower half fades out, only stronger cells take color.
-          if (scorePct) return t < 0.45 ? [0, 0, 0, 0] : [...ramp(FIT_RAMP, (t - 0.45) / 0.55), Math.round(70 + 150 * ((t - 0.45) / 0.55))]
-          return t < 0.3 ? [0, 0, 0, 0] : [...ramp(POP_RAMP, (t - 0.3) / 0.7), Math.round(40 + 90 * ((t - 0.3) / 0.7))]
+          if (scorePct) return t < 0.45 ? [0, 0, 0, 0] : [...ramp(FIT_RAMP, (t - 0.45) / 0.55), Math.round((70 + 150 * ((t - 0.45) / 0.55)) * fade)]
+          return t < 0.3 ? [0, 0, 0, 0] : [...ramp(POP_RAMP, (t - 0.3) / 0.7), Math.round((40 + 90 * ((t - 0.3) / 0.7)) * fade)]
         },
         stroked: false,
         extruded: false,
         pickable: true,
         highPrecision: false,
-        updateTriggers: { getFillColor: [scorePct, densityPct] },
+        updateTriggers: { getFillColor: [scorePct, densityPct, fade] },
       }),
       new H3HexagonLayer<string>({
         id: 'top-zones',
@@ -206,7 +210,7 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
         return { html: `<b>${esc(cell.county)} County</b><br/>${esc(fmt(cell.pop_density_km2))} people per km²<br/>${esc(fmt(cell.pop_total_within_5km))} people within 5 km<br/>Median income $${esc(fmt(cell.median_hh_income))}`, style }
       },
     })
-  }, [grid, densityPct, scorePct, zoneByCell, topCells, sites, selectedSiteId, featureLabels, onSelectSite, radius, selected, catchmentKm, demandLabel, drawOrder])
+  }, [grid, densityPct, scorePct, zoneByCell, topCells, sites, selectedSiteId, featureLabels, onSelectSite, radius, selected, catchmentKm, demandLabel, drawOrder, fade])
 
   // Fit the three counties when the grid arrives and again whenever a run resets (no ranked sites).
   const hasSites = sites.length > 0

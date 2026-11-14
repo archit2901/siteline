@@ -95,10 +95,7 @@ Example factor (pediatric dentist):
 - `verify_claims` parses every number in the report and matches it to a stored value or model output, within rounding.
 
 ## Two-minute demo
-0:00 the problem: generic location tools treat "retail" or "healthcare" as one category, but a laundromat, a tutoring
-center and an orthopedic group share no customers or competitors; Dr. Deshmukh's quote · 0:15 live laundromat run:
-the profiler picks renter households, a scout pulls competing laundromats from OpenStreetMap, approval · 0:45 switch
-to the orthopedic group's golden run (Dr. Deshmukh's practice: a scout finds CDC PLACES arthritis; different factors,
-different map) · 1:05 real CoStar top 10: customers won, rent per customer, floor, parking, Matterport link, cited
-reasons; click a site: its flyer, catchment ring and sourced claims · 1:35 Dr. Deshmukh's reaction · 1:50 vision:
-every US metro.
+Live laundromat typed into the chat (profiler, OpenStreetMap scout, two approvals with tailored weights) ·
+ranked CoStar spaces with households won and rent per household · flyer and Ask tab ("Which has the most parking?") ·
+recorded orthopedic run (CDC PLACES arthritis, Dr. Deshmukh's practice) · LangSmith trace and run meter · vision: every
+US metro. Full script with timings: docs/HANDOFF.md section 12.
