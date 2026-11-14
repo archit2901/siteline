@@ -11,6 +11,15 @@ interface Props {
 
 const money = (v: number) => `$${v.toFixed(2)}`
 
+function singular(label: string): string {
+  if (label.endsWith('children')) return `${label.slice(0, -'children'.length)}child`
+  return label.endsWith('s') && !label.endsWith('ss') ? label.slice(0, -1) : label
+}
+
+function demandCaption(label: string | undefined): string {
+  return !label || label === 'patients' ? 'net-new patients a year' : `${label} in reach would pick this site`
+}
+
 function availability(rec: Recommendation): string {
   if (rec.site.available === true) return 'For lease'
   if (rec.site.available === false) return 'Lease pending'
@@ -60,7 +69,7 @@ export default function SiteCards({ report, featureLabels, selectedSiteId, onSel
                 </div>
               </div>
               <div className="netnew tabular">{Math.round(rec.net_new_patients).toLocaleString('en-US')}</div>
-              <div className="netnew-label">net-new patients a year</div>
+              <div className="netnew-label">{demandCaption(report.demand_label)}</div>
               <dl className="facts tabular">
                 <dt>Size</dt>
                 <dt>Rent</dt>
@@ -73,6 +82,11 @@ export default function SiteCards({ report, featureLabels, selectedSiteId, onSel
               </dl>
               <div className="badges">
                 <span className="chip">{availability(rec)}</span>
+                {rec.annual_rent_per_customer != null && (
+                  <span className="chip tabular">
+                    ${rec.annual_rent_per_customer.toFixed(2)} rent per {singular(report.demand_label ?? 'patients')} a year
+                  </span>
+                )}
                 {rec.stability != null && (
                   <span className="chip">Top 10 in {Math.round(rec.stability * 100)}% of weightings</span>
                 )}

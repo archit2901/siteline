@@ -1,10 +1,122 @@
 [
   {
+    "id": "laundromat",
+    "label": "Laundromat",
+    "healthcare": false,
+    "profile": {
+      "name": "Example Laundromat",
+      "specialty": "",
+      "business_type": "laundromat",
+      "customers": "Apartment renters without in-unit washers, many families, some without a car",
+      "services": [
+        "self-service washers and dryers",
+        "wash-and-fold"
+      ],
+      "payers_accepted": [],
+      "patient_mix": {},
+      "languages": [
+        "English",
+        "Spanish"
+      ],
+      "existing_offices": [
+        {
+          "name": "Store A (Gulfton area)",
+          "address": null,
+          "lat": 29.721,
+          "lon": -95.476,
+          "clinicians": 1
+        }
+      ],
+      "constraints": {
+        "min_sqft": 2000,
+        "max_sqft": 5000,
+        "max_rent_psf": null,
+        "min_parking_per_1000sf": 3.0,
+        "ground_floor": true,
+        "special_rooms": [],
+        "space_uses": []
+      },
+      "free_text": "Our customers live in apartments nearby and often walk or take the bus.",
+      "stock_pack": null,
+      "region_id": "hou"
+    }
+  },
+  {
+    "id": "coffee_shop",
+    "label": "Coffee shop",
+    "healthcare": false,
+    "profile": {
+      "name": "Example Coffee Shop",
+      "specialty": "",
+      "business_type": "coffee shop",
+      "customers": "Office workers on weekday mornings and young adults on weekends",
+      "services": [
+        "espresso drinks",
+        "pastries",
+        "seating for remote work"
+      ],
+      "payers_accepted": [],
+      "patient_mix": {},
+      "languages": [
+        "English"
+      ],
+      "existing_offices": [],
+      "constraints": {
+        "min_sqft": 1200,
+        "max_sqft": 3000,
+        "max_rent_psf": null,
+        "min_parking_per_1000sf": 2.0,
+        "ground_floor": true,
+        "special_rooms": [],
+        "space_uses": []
+      },
+      "free_text": "Morning commute traffic and nearby offices matter most.",
+      "stock_pack": null,
+      "region_id": "hou"
+    }
+  },
+  {
+    "id": "tutoring_center",
+    "label": "Tutoring center",
+    "healthcare": false,
+    "profile": {
+      "name": "Example Tutoring Center",
+      "specialty": "",
+      "business_type": "tutoring center",
+      "customers": "K-12 students whose parents pay for after-school tutoring and test prep",
+      "services": [
+        "math and reading tutoring",
+        "SAT/ACT prep"
+      ],
+      "payers_accepted": [],
+      "patient_mix": {},
+      "languages": [
+        "English"
+      ],
+      "existing_offices": [],
+      "constraints": {
+        "min_sqft": 1500,
+        "max_sqft": 4000,
+        "max_rent_psf": null,
+        "min_parking_per_1000sf": 3.0,
+        "ground_floor": false,
+        "special_rooms": [],
+        "space_uses": []
+      },
+      "free_text": "Parents drive kids after school; families with higher incomes are our core customers.",
+      "stock_pack": null,
+      "region_id": "hou"
+    }
+  },
+  {
     "id": "orthopedic_group",
     "label": "Orthopedic group",
+    "healthcare": true,
     "profile": {
       "name": "Example Orthopedic Group",
       "specialty": "orthopedics",
+      "business_type": "",
+      "customers": "",
       "services": [
         "sports medicine",
         "joint replacement",
@@ -50,7 +162,8 @@
         "ground_floor": true,
         "special_rooms": [
           "x-ray"
-        ]
+        ],
+        "space_uses": []
       },
       "free_text": "Many patients are older adults and weekend athletes. Most drive; some arrive on crutches.",
       "stock_pack": "healthcare.orthopedics",
@@ -60,9 +173,12 @@
   {
     "id": "pediatric_dentist",
     "label": "Pediatric dentist",
+    "healthcare": true,
     "profile": {
       "name": "Example Pediatric Dental Practice",
       "specialty": "pediatric_dentistry",
+      "business_type": "",
+      "customers": "",
       "services": [
         "pediatric dental exams",
         "cleanings",
@@ -94,7 +210,8 @@
         "max_rent_psf": null,
         "min_parking_per_1000sf": 3.0,
         "ground_floor": true,
-        "special_rooms": []
+        "special_rooms": [],
+        "space_uses": []
       },
       "free_text": "Most families are on Medicaid or CHIP; many parents prefer Spanish and some don't have a car.",
       "stock_pack": "healthcare.pediatric_dentistry",
@@ -104,9 +221,12 @@
   {
     "id": "dialysis_clinic",
     "label": "Dialysis clinic",
+    "healthcare": true,
     "profile": {
       "name": "Example Dialysis Clinic",
       "specialty": "dialysis",
+      "business_type": "",
+      "customers": "",
       "services": [
         "in-center hemodialysis"
       ],
@@ -129,7 +249,8 @@
         "ground_floor": true,
         "special_rooms": [
           "dialysis stations"
-        ]
+        ],
+        "space_uses": []
       },
       "free_text": "Patients come three times a week; many are older and some rely on buses or rides.",
       "stock_pack": "healthcare.dialysis",
@@ -139,9 +260,12 @@
   {
     "id": "physical_therapy",
     "label": "Physical therapy",
+    "healthcare": true,
     "profile": {
       "name": "Example Physical Therapy Clinic",
       "specialty": "physical_therapy",
+      "business_type": "",
+      "customers": "",
       "services": [
         "post-surgical rehab",
         "sports rehab",
@@ -162,7 +286,8 @@
         "max_rent_psf": null,
         "min_parking_per_1000sf": 4.0,
         "ground_floor": true,
-        "special_rooms": []
+        "special_rooms": [],
+        "space_uses": []
       },
       "free_text": "Most referrals come from orthopedic surgeons; many patients are working adults.",
       "stock_pack": "healthcare.physical_therapy",

@@ -19,14 +19,14 @@ export default function FactorList({ factors, report }: Props) {
   if (factors.length === 0) {
     return (
       <section className="section">
-        <h2>What matters for this practice</h2>
-        <p className="hint">Factors appear here as the agent works out what makes a new office succeed for this practice.</p>
+        <h2>What matters for this business</h2>
+        <p className="hint">Factors appear here as the agent works out what makes a new location succeed for this business.</p>
       </section>
     )
   }
   return (
     <section className="section">
-      <h2>What matters for this practice</h2>
+      <h2>What matters for this business</h2>
       <ul className="factors">
         {factors.map((f) => {
           const source = f.feature_id ? safeHref(report?.sources?.[f.feature_id]) : undefined

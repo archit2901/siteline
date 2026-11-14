@@ -195,7 +195,7 @@ export default function MapView({ grid, zones, sites, featureLabels, selectedSit
     <>
       <div ref={container} className="map" aria-label="Map of Houston scored by H3 hexagon" />
       <div className="legend">
-        <strong>{zones ? 'Fit for this practice' : 'People per km²'}</strong>
+        <strong>{zones ? 'Fit for this business' : 'People per km²'}</strong>
         <div className="ramp" />
         <div className="ends">
           <span>Lower</span>

@@ -53,7 +53,7 @@ STEPS = [
     "Approve the data plan",
     "Approve weights and score Houston",
     "Find real spaces in the top zones",
-    "Rank sites by net-new patients",
+    "Rank sites by new customers won",
     "Write and verify the report",
 ]
 SEARCH_ZONES = 400  # zones handed to the site search, best first (CoStar covers inner Harris only)

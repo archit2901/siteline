@@ -8,7 +8,7 @@ SITE_FEATURES = {
     "site:parking": "parking spaces per 1,000 sq ft at the building (CoStar)",
     "site:ground_floor": "ground-floor, step-free space (CoStar floor)",
     "site:rent": "asking rent per sq ft (CoStar)",
-    "site:size": "space size fits the practice's sq ft range (CoStar)",
+    "site:size": "space size fits the business's sq ft range (CoStar)",
 }
 
 
