@@ -30,10 +30,11 @@ Full design: `docs/DESIGN.md`. Each folder has its own `CLAUDE.md` — read it b
 ## Ownership
 | Person | Focus | Branch | Folders they edit |
 |---|---|---|---|
-| Archit | AI agents, contracts, infra | `agent` | `contracts/`, `services/agent/`, `infra/`, `scripts/`, `Makefile`, `docker-compose.yml`, `README.md`, `docs/DESIGN.md`, `fixtures/events.jsonl`, `fixtures/report.json`, `fixtures/zones.json`, `fixtures/golden/`, `fixtures/validate.py` |
+| Archit | AI agents, contracts, infra, geo engine, sites, data | `agent` | everything except `web/` |
 | Gaurav | Web app | `web` | `web/` |
-| Parth | Geo engine | `geo` | `services/geo/`, `connectors/census.py`, `connectors/cms.py`, `fixtures/fake_grid.json`, `fixtures/make_fake_grid.py` |
-| Jayan | Discovery data, real estate, customer | `sites` | `services/sites/`, all other files in `connectors/`, `catalog/`, `packs/`, `evals/`, `fixtures/sites.json`, `docs/devpost.md` |
+
+Only Archit and Gaurav use Claude Code. Parth and Jayan help without Claude Code (research, CoStar and Peri, data
+URLs that Archit pastes in).
 
 At the start of a session the human says who they are. If they don't, ask before editing anything.
 
