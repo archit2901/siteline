@@ -105,6 +105,7 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
     // build zones: a single small hexagon each, so they also get a halo ring and a numbered pin
     const zonePins = highlight.map((h, i) => { const [lat, lon] = cellToLatLng(h); return { h, rank: i + 1, lat, lon } })
     const ORANGE: [number, number, number] = [234, 88, 12]
+    const ON_TOP = { depthCompare: 'always' as const, depthWriteEnabled: false } // pins and numbers above the hexagons
     const layers = [
       new H3HexagonLayer<GridCell>({
         id: 'cells', data: grid, getHexagon: (d) => d.h3, stroked: false, extruded: false, pickable: true, highPrecision: false,
@@ -143,10 +144,12 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
       new ScatterplotLayer<typeof zonePins[number]>({
         id: 'zone-pins', data: zonePins, getPosition: (d) => [d.lon, d.lat], getRadius: 12, radiusUnits: 'pixels',
         getFillColor: [...ORANGE, 255], getLineColor: [255, 255, 255, 255], lineWidthMinPixels: 2, stroked: true,
+        parameters: ON_TOP,
       }),
       new TextLayer<typeof zonePins[number]>({
         id: 'zone-ranks', data: zonePins, getPosition: (d) => [d.lon, d.lat], getText: (d) => String(d.rank), getSize: 12,
         getColor: [255, 255, 255, 255], fontFamily: 'Geist, system-ui, sans-serif', fontWeight: 700,
+        parameters: ON_TOP,
       }),
     ]
     o.setProps({
