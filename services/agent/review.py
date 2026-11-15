@@ -390,4 +390,11 @@ def decision_paths(profile: PracticeProfile, ranked: list[RankedSite], sites: di
                 out[-1].notes.insert(1, f"Wins about {r.net_new_patients - lead.net_new_patients:,.0f} more patients a year than "
                                         "the full-program pick: the smaller footprint fits spaces the full program can't.")
             break
+        else:  # no fitting space sits beside a PT clinic: say so instead of dropping the path silently
+            near = nearest_pt(lead_site.lat, lead_site.lon) if (lead_site := sites.get(lead.site_id) if lead else None) else None
+            out.append(Path(kind="drop_pt", title="Drop PT: no fitting space beside an independent PT clinic", site_id=None,
+                            address="", sqft=None, annual_cost_usd=None, upfront_usd=None, net_new=None, notes=[
+                                f"None of the listed spaces that fit the smaller program is within {PT_WALK_KM:g} km of a "
+                                "free-standing PT clinic (CMS), so keep PT in house for now."]
+                            + ([f"Nearest to the pick: {near[0]}, {near[1]:.1f} km away."] if near else [])))
     return out

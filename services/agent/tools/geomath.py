@@ -377,22 +377,24 @@ def misses(site: SiteCandidate, cons: Constraints) -> list[str]:
     """The search constraints a space fails (only judged on known values), in plain words."""
     out = []
     if site.sqft is not None and site.sqft < cons.min_sqft:
-        out.append(f"{site.sqft:,} sq ft, under your {cons.min_sqft:,} sq ft minimum")
+        out.append(f"{site.sqft:,} sq ft (min {cons.min_sqft:,})")
     elif site.sqft is not None and site.sqft > cons.max_sqft:
-        out.append(f"{site.sqft:,} sq ft, over your {cons.max_sqft:,} sq ft maximum")
+        out.append(f"{site.sqft:,} sq ft (max {cons.max_sqft:,})")
     if cons.ground_floor and site.floor is not None and site.floor > 1:
-        out.append(f"floor {site.floor}; you asked for the ground floor")
+        out.append(f"Floor {site.floor}")
     if cons.max_rent_psf is not None and site.rent_psf is not None and site.rent_psf > cons.max_rent_psf:
-        out.append(f"${site.rent_psf:.2f}/sq ft, over your ${cons.max_rent_psf:.0f} ceiling")
+        out.append(f"${site.rent_psf:.0f}/sq ft rent (max ${cons.max_rent_psf:.0f})")
     return out
 
 
 def strict_first(ranked: list[RankedSite], sites: dict[str, SiteCandidate]) -> list[RankedSite]:
-    """Spaces that meet every search constraint first, then the ones a looser search added, then excluded ones."""
+    """Spaces that meet every search constraint first, then the looser-search ones by how many constraints they miss
+    (one miss before two), then excluded ones."""
     def group(r: RankedSite) -> int:
         if r.excluded_reason is not None:
-            return 2
-        return 1 if (s := sites.get(r.site_id)) is not None and s.checks.get("misses") else 0
+            return 99
+        s = sites.get(r.site_id)
+        return len(s.checks.get("misses") or []) if s is not None else 0
     return sorted(ranked, key=group)  # stable: score order within each group
 
 

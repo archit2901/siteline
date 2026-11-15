@@ -95,6 +95,8 @@ class Rule:
     applies: Callable[[PracticeProfile, dict[str, int]], bool]
     match: str = ""  # regex over a factor's id, name, proxy and feature id
     tier: float = 1.0  # weight multiplier for matching factors (>1 promote, <1 dampen)
+    floor: float = 1.0  # the model's 1-10 importance is raised to at least this
+    cap: float = 10.0  # ... and lowered to at most this
 
 
 def _ortho(p: PracticeProfile, _w: dict[str, int]) -> bool:
@@ -113,7 +115,7 @@ RULES: list[Rule] = [
     Rule("competition_distance", "Distance from other orthopedic centers decides a new office more than any hazard "
          "or amenity: patients and referrers stay with the group that is closer.", _ortho,
          r"ortho\w*.{0,40}(compet|clinician|office|group|practice|surgeon)|compet\w*.{0,40}ortho|other ortho|"
-         r"n_orthopedics|x_ortho_offices", 3.0),
+         r"n_orthopedics|x_ortho_offices", 3.0, floor=10),
     Rule("referral_primary_care", "Being near primary care groups puts the office inside a referral base.", _ortho,
          r"primary care|referr|pcp|n_primary_care|x_primary_care", 2.2),
     Rule("demographics_income", "Demographics and median income decide payer mix: commercial and Medicare patients "
@@ -122,11 +124,15 @@ RULES: list[Rule] = [
     Rule("currently_serving", "Count where you already serve: a new office should not sit on your own patients.", _ortho,
          r"existing|own office|current office|cannibal|already serve", 1.6),
     Rule("high_schools", "Local high schools feed sports injuries: athletic trainers send injured athletes to the "
-         "closest doctor they trust.", _sports, r"high school|school|student|athlet|team|hs_enrollment|u18|youth", 2.0),
+         "closest doctor they trust. School athletes are only part of the patients, so they help but never decide "
+         "the site.", _sports, r"high school|school|student|team|hs_enrollment|u18|youth", 1.2, cap=7),
     Rule("pt_compete", "If physical therapy matters to this office, stay away from free-standing PT clinics: they "
-         "compete for the same post-op and sports patients.", _w("pt", HIGH), r"x_pt_clinics", 1.8),
+         "compete for the same post-op and sports patients.", _w("pt", HIGH),
+         r"x_pt_clinics|physical.therap|n_physical_therapy", 1.8, floor=6),
     Rule("pt_partner", "If physical therapy matters little, a free-standing PT clinic next door is a referral partner; "
-         "you may drop some of your own PT and send patients there.", _w("pt", 0, LOW), r"x_pt_clinics", 1.4),
+         "you may drop some of your own PT and send patients there. PT clinics still count: post-op patients go to "
+         "them, and the ones nearby shape where your rehab patients end up.", _w("pt", 0, LOW),
+         r"x_pt_clinics|physical.therap|n_physical_therapy", 1.4, floor=5),
     Rule("urgent_visible", "Walk-in urgent care must be visible from a busy road so people can come; scheduled care "
          "like PT can be lower cost and tucked away.", _w("urgent", 5), r"traffic|visib|frontage|road|aadt|x_urgent", 2.0),
     Rule("urgent_referrer", "Without your own walk-in care, nearby urgent cares are referrers: they splint fractures "
@@ -139,7 +145,7 @@ RULES: list[Rule] = [
     Rule("hazards_secondary", "Hazards, heat, walkability and transit are secondary for a referral-driven clinic "
          "where nearly everyone drives.", _ortho,
          r"flood|hazard|\bheat\b|tree canopy|walkab|transit|\bbus\b|bike|crime|noise|air quality|green space|"
-         r"language|spanish|limited english", 0.35),
+         r"language|spanish|limited english", 0.35, cap=3),
 ]
 
 
@@ -154,6 +160,19 @@ def _blob(f: Factor) -> str:
 
 def rules_for(profile: PracticeProfile, factor: Factor) -> list[Rule]:
     return [r for r in active_rules(profile) if r.match and re.search(r.match, _blob(factor), re.I)]
+
+
+def bounds(profile: PracticeProfile, factor: Factor) -> tuple[float, float, Rule | None]:
+    """The importance range the expert rules allow a factor (floor, cap) and the rule that sets the tighter side."""
+    lo, hi, lo_rule, hi_rule = 1.0, 10.0, None, None
+    for r in rules_for(profile, factor):
+        if r.floor > lo:
+            lo, lo_rule = r.floor, r
+        if r.cap < hi:
+            hi, hi_rule = r.cap, r
+    if lo > hi:  # a promotion beats a dampen (same rule as tier)
+        return lo, lo, lo_rule
+    return lo, hi, lo_rule or hi_rule
 
 
 def tier(profile: PracticeProfile, factor: Factor) -> float:

@@ -68,3 +68,19 @@ def test_function_scouts_keep_a_factor_another_scout_already_measures() -> None:
     er = Factor(id="urgent_er", factor="Urgent care and ER proximity", why="", proxy="hospital ERs", direction=-1, priority="high")
     factors, _, _ = expert.function_scouts(p, [er], "abc123", keep={"urgent_er"})
     assert "urgent_er" in {f.id for f in factors}
+
+
+def test_expert_floors_and_caps_override_the_models_importance() -> None:
+    from services.agent.tools.weights import WeightAdvice, spec_from_advice
+
+    p = ortho("Clinic visits 10, Physical therapy 3", "[team_coverage] Teams you cover: Memorial High School")
+    p = p.model_copy(update={"specialty": "orthopedics", "free_text": p.free_text + "\n[ortho_focus] Sports medicine"})
+    mk = lambda fid, name, feat, d=1: Factor(id=fid, factor=name, why="w", proxy=name, direction=d, priority="medium",
+                                             feature_id=feat, status="covered")
+    fs = [mk("comp", "Far from other orthopedic offices", "x_ortho_offices"), mk("school", "Covered school teams", "partner_schools"),
+          mk("pt", "Physical therapy competition", "n_physical_therapy_within_5km", -1), mk("flood", "Low flood risk", "flood", -1)]
+    advice = WeightAdvice.model_validate({"weights": [
+        {"factor_id": "comp", "importance": 8, "why": "a"}, {"factor_id": "school", "importance": 10, "why": "b"},
+        {"factor_id": "pt", "importance": 2, "why": "c"}, {"factor_id": "flood", "importance": 8, "why": "d"}]})
+    w = spec_from_advice(fs, advice, p)[0].weights
+    assert w["x_ortho_offices"] > w["partner_schools"] and w["n_physical_therapy_within_5km"] > w["flood"]

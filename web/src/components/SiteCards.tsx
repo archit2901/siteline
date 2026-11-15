@@ -137,7 +137,7 @@ export function ResultsTable({ report, selectedSiteId, onSelect, tune }: TablePr
                   <td className="addr">
                     {s.address}
                     <span>{[s.sqft ? `${s.sqft.toLocaleString('en-US')} sq ft` : null, s.floor != null ? `floor ${s.floor}` : null, availability(rec).text.toLowerCase(), s.matterport_id ? '3D tour' : null].filter(Boolean).join(', ')}</span>
-                    {miss.length > 0 && <span className="miss">Misses: {miss.join('; ')}</span>}
+                    {miss.length > 0 && <span className="miss" title="Misses one of your search constraints"><Icon name="warn" size={12} /> {miss.join(' · ')}</span>}
                   </td>
                   <td className="num won">{whole(rec.net_new_patients)}</td>
                   <td className="num">{rec.annual_rent_per_customer != null ? money(rec.annual_rent_per_customer) : 'Not listed'}</td>
@@ -187,7 +187,7 @@ export function SiteFlyer({ report, rec, featureLabels, onSelect }: FlyerProps) 
       <div className="badges">
         <span className="ranktag">Rank {rec.rank} of {report.recommendations.length}</span>
         <span className={`avail${avail.pending ? ' pending' : ''}`}>{avail.text}</span>
-        {missesOf(rec).length > 0 && <span className="misstag">Misses: {missesOf(rec).join('; ')}</span>}
+        {missesOf(rec).length > 0 && <span className="misstag" title="Misses one of your search constraints"><Icon name="warn" size={13} />{missesOf(rec).join(' · ')}</span>}
       </div>
       <h2 id="flyer-title">{s.address}</h2>
       <p className="where">

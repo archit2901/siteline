@@ -171,10 +171,11 @@ def test_relaxed_sites_say_what_they_miss_and_rank_after_strict_fits() -> None:
     steps = gm.relaxations(cons)
     assert not steps[0].ground_floor and steps[-1].min_sqft == 6_700
     small = SiteCandidate(id="b", address="2 B St", lat=29.7, lon=-95.4, sqft=8_000, floor=3)
-    assert gm.misses(small, cons) == ["8,000 sq ft, under your 11,200 sq ft minimum", "floor 3; you asked for the ground floor"]
+    assert gm.misses(small, cons) == ["8,000 sq ft (min 11,200)", "Floor 3"]
     sites = {"a": SiteCandidate(id="a", address="1 A St", lat=29.7, lon=-95.4, sqft=12_000, floor=1),
              "b": small.model_copy(update={"checks": {"misses": gm.misses(small, cons)}})}
     r = lambda sid, score, ex=None: RankedSite(site_id=sid, net_new_patients=1, captured_patients=1, cannibalized_patients=0,
                                                 zone_score=0, site_quality=0, final_score=score, excluded_reason=ex)
-    order = gm.strict_first([r("b", 0.9), r("x", 0, "outside"), r("a", 0.5)], sites)
-    assert [x.site_id for x in order] == ["a", "b", "x"]
+    sites["c"] = small.model_copy(update={"id": "c", "floor": 1, "checks": {"misses": ["8,000 sq ft (min 11,200)"]}})
+    order = gm.strict_first([r("b", 0.9), r("x", 0, "outside"), r("c", 0.2), r("a", 0.5)], sites)
+    assert [x.site_id for x in order] == ["a", "c", "b", "x"]

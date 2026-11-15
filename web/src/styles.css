@@ -541,7 +541,7 @@ a.source:hover { border-color: #000; color: #000; }
 tr.looser td { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink2); padding: 12px 8px 6px; border-top: 1px dashed var(--line); background: none; cursor: default; }
 td.addr .miss { display: block; color: #b45309; font-size: 12px; margin-top: 2px; }
 tr.misses .rankdot { background: var(--card); color: var(--ink2); border: 1px dashed var(--ink2); }
-.misstag { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: #fef3c7; color: #92400e; }
+.misstag { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: #fef3c7; color: #92400e; }
 
 p.looser { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink2); margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed var(--line); }
 .scard .misstag { align-self: flex-start; margin: 2px 0 4px; }

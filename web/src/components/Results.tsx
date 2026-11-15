@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import { cellToLatLng, gridDistance } from 'h3-js'
 import { aerialUrl } from '../lib/media'
 import { safeHref } from '../lib/safe'
@@ -26,7 +27,7 @@ export function SiteCard({ r, report, featureLabels, active, onHover, onOpen, lo
       <div className="l">
         <span className="num">{r.rank}/10</span>
         <h3>{s.address.split(',')[0]}</h3>
-        {misses.length > 0 && <span className="misstag">Misses: {misses.join('; ')}</span>}
+        {misses.length > 0 && <span className="misstag" title="Misses one of your search constraints"><Icon name="warn" size={13} />{misses.join(' · ')}</span>}
         <span className="meta">{name}{s.building_class ? ` · Class ${s.building_class}` : ''}{s.available === null || s.available === undefined ? ' · candidate building' : ''}</span>
         <div className="stats">
           <div><b>{k(r.net_new_patients)}</b><span>{demandShort(report.demand_label)}</span></div>

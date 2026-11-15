@@ -130,6 +130,11 @@ def spec_from_advice(factors: list[Factor], advice: WeightAdvice | None,
             reason = " ".join(item.why.split())[:MAX_WHY]
             if not reason or re.search(r"\d", reason):
                 reason = f.why
+        if profile is not None:  # expert floors and caps: ortho competition always decides, hazards never do
+            lo, hi, rule = expert.bounds(profile, f)
+            if not lo <= importance <= hi and rule is not None:
+                importance = min(hi, max(lo, importance))
+                reason = rule.text
         fid = f.feature_id
         boost = expert.tier(profile, f) if profile is not None else 1.0
         points[fid] = points.get(fid, 0.0) + points_for(importance) * boost  # type: ignore[index]
