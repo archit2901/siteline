@@ -5,8 +5,8 @@ profile:
   name: The Orthopedic Sports Clinic
   specialty: orthopedics
   business_type: ''
-  customers: Athletes at every level (high school, college, pro, weekend and CrossFit/triathlon) and active adults with knee,
-    shoulder, hand, spine, hip and ankle problems; mostly commercially insured
+  customers: Athletes at every level (youth, high school, college, pro, weekend and CrossFit/triathlon) and active adults
+    with knee, shoulder, hand, spine, hip and ankle problems; mostly commercially insured, some Medicare
   services:
   - Clinic visits
   - X-ray
@@ -15,6 +15,7 @@ profile:
   - Surgery center (ASC)
   payers_accepted:
   - commercial
+  - medicare
   languages:
   - English
   existing_offices:
@@ -57,8 +58,32 @@ profile:
     [best_location] Which current location does best, which struggles, and why do you think so: One office at 950 Campbell
     Rd by I-10 with X-ray, MRI, rehab and outpatient surgery on site; the group has five surgeons and four orthopedic PAs.
 
-    Profile built from the practice''s public website (https://www.orthopedicsports.com/); new-office functions, size and
-    staffing are planning assumptions.'
+    [customer_origin] Where do your customers come from today: Mostly west Houston along I-10: Memorial, Spring Branch, the
+    Memorial Villages, Briar Forest and Energy Corridor (77024, 77055, 77079, 77043, 77080); athletes also travel from across
+    Houston, and pro and college players come for draft and trade evaluations (assumed from the office location and website;
+    the practice publishes no ZIP data)
+
+    [unique] What makes you different from others who do the same thing: Sports-only orthopedic group with everything under
+    one roof: X-ray, open MRI, physical rehab, a spine center and outpatient surgery on site; subspecialty-trained surgeons
+    for shoulder, elbow, hand, spine, hip, knee and ankle plus orthobiologics; confidential pro, college draft and trade evaluations
+
+    [pull] What about a neighborhood would pull people to your door: Large high schools and club sports nearby, active adults
+    (CrossFit, running, triathlon), commercially insured families, primary care groups that refer, and an easy freeway exit
+    with surface parking
+
+    [competitors] Who do you compete with, or who else serves the same people: Memorial Hermann Rockets Sports Medicine Institute
+    at Memorial City (official sponsor of Spring Branch ISD athletics), Houston Methodist Orthopedics & Sports Medicine (9090
+    Katy Fwy), UT Physicians IRONMAN Sports Medicine Institute Memorial City, Athletic Orthopedics & Knee Center (9180 Katy
+    Fwy), and Houston Methodist''s walk-in orthopedic injury clinics
+
+    [tenure] Would you lease, buy or build: Open to building new
+
+    Profile built from public sources: the practice''s website (https://www.orthopedicsports.com/), its jocktodoc.com page
+    (on-site X-ray, open MRI, rehab, spine center, outpatient surgery; Mon-Fri 8-5) and WebMD''s practice listing (six surgeons;
+    23 plans including Aetna, BCBS of Texas, Cigna, Humana, UnitedHealthcare and Medicare, though the same listing also says
+    Medicare is not accepted, so verify). Competitors from Memorial Hermann, Houston Methodist and UT Physicians pages. New-office
+    functions, size, staffing, weekday hours (as the current office, Mon-Fri 8-5) and openness to building new (to compare
+    leasing with a build-to-suit for the surgery center and MRI) are planning assumptions.'
   region_id: hou
 must_include:
 - distance from other orthopedic offices
