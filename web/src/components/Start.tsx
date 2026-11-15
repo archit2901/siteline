@@ -85,11 +85,12 @@ const kindOf = (p: PracticeProfile) => (isHealthcare(p) ? (p.specialty ?? '').re
 
 interface Props {
   live: boolean
+  demo?: boolean // presenter mode: the live form, but a preset plays its recording (see demo.ts)
   hasRecording: (presetId: string) => boolean
   onRun: (profile: PracticeProfile, recorded?: string) => void
 }
 
-export default function Start({ live, hasRecording, onRun }: Props) {
+export default function Start({ live, demo = false, hasRecording, onRun }: Props) {
   const [p, setP] = useState<PracticeProfile>(PRESETS[0].profile)
   const [answers, setAnswers] = useState<Record<string, string>>(() => parseAnswers(PRESETS[0].profile.free_text).answers)
   const [notes, setNotes] = useState(() => parseAnswers(PRESETS[0].profile.free_text).notes)
@@ -264,7 +265,7 @@ export default function Start({ live, hasRecording, onRun }: Props) {
             {mode === 'chat' && live && track === 'other'
               ? <Chat onUse={(draft) => { const parsed = parseAnswers(draft.free_text); setP(draft); setAnswers(parsed.answers); setNotes(parsed.notes); setPicked(null); setMode('form') }} />
               : (
-          <form className="form" onSubmit={(e) => { e.preventDefault(); if (!live && hasRecording(from)) { const pr = PRESETS.find((x) => x.id === from); if (pr) return onRun(pr.profile, from) } submit() }}>
+          <form className="form" onSubmit={(e) => { e.preventDefault(); if ((!live || demo) && hasRecording(from)) { const pr = PRESETS.find((x) => x.id === from); if (pr) return onRun(pr.profile, from) } submit() }}>
             <section className="step">
               <span className="sn">1/6</span>
               <div className="sb">
@@ -385,11 +386,11 @@ export default function Start({ live, hasRecording, onRun }: Props) {
             </section>
 
             <div className="form-foot">
-              {hasRecording(from)
+              {hasRecording(from) && !demo
                 ? <button type="button" className="replaybtn" onClick={() => { const pr = PRESETS.find((x) => x.id === from); if (pr) onRun(pr.profile, from) }}>
                     ▶ Play the recorded run{picked ? '' : ` of “${PRESETS.find((x) => x.id === from)?.label ?? from}” (your edits need a live run)`}</button>
                 : <span className={`foot-note ${tried && missing.length ? 'warn' : ''}`}>
-                    {missing.length && live ? `Still needed: ${missing.join(', ')}.` : live ? 'Runs the live agent.' : 'Replays a recorded run.'}</span>}
+                    {missing.length && live ? `Still needed: ${missing.join(', ')}.` : demo ? '' : live ? 'Runs the live agent.' : 'Replays a recorded run.'}</span>}
               <button className="cta big" type="submit" disabled={live && missing.length > 0}><span className="arrow">↗</span>
                 <span className="label">{live ? 'Find sites' : 'Replay a recorded run'}</span></button>
             </div>

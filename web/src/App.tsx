@@ -14,7 +14,9 @@ import Start, { PRESETS } from './components/Start'
 import { initialRunState, runReducer, type RunStatus } from './state/runReducer'
 import type { ApproveRequest, PracticeProfile, ScoringSpec } from './types/contracts'
 
-const DEFAULT_MODE: Mode = (import.meta.env.VITE_FIXTURE_MODE ?? '1') === '1' ? 'fixture' : 'live'
+import { DEMO } from './demo'
+
+const DEFAULT_MODE: Mode = DEMO ? 'live' : (import.meta.env.VITE_FIXTURE_MODE ?? '1') === '1' ? 'fixture' : 'live'
 type Mode = 'fixture' | 'live'
 type View = 'start' | 'agent' | 'results'
 type Tab = 'decision' | 'lease' | 'build' | 'space' | 'proof' | 'ask'
@@ -165,7 +167,7 @@ export default function App() {
           <button className={view === 'results' ? 'on' : ''} disabled={!report} onClick={() => setView('results')}>Results</button>
         </div>
         <div className="nav-r">
-          {state.status === 'idle'
+          {DEMO ? null : state.status === 'idle'
             ? <div className="mode" role="radiogroup" aria-label="Data source">
                 <button className={fixtureMode ? 'on' : ''} onClick={() => setMode('fixture')}>Recorded</button>
                 <button className={!fixtureMode ? 'on' : ''} onClick={() => setMode('live')}>Live agent</button>
@@ -175,7 +177,7 @@ export default function App() {
         </div>
       </nav>
 
-      {view === 'start' && <Start live={!fixtureMode} hasRecording={(id) => golden.includes(id)} onRun={start} />}
+      {view === 'start' && <Start live={!fixtureMode} demo={DEMO} hasRecording={(id) => golden.includes(id)} onRun={start} />}
 
       {view !== 'start' && (
         <main className={`work ${view === 'results' ? 'results' : ''}`}>
