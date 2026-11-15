@@ -82,7 +82,7 @@ Parth and Jayan send files and URLs to Archit, who commits them.
     current data covers it fully except arthritis rates. Use the pediatric dentist only if NPPES dentists and METRO
     bus stops are ingested.
 11. **Cuts:** Photon iMessage; OpenRouteService; arbitrary ingestion; Vexcel parking counts (parking now comes from
-    CoStar property data). Matterport is back in: 1,734 CoStar properties have Matterport model ids.
+    the sponsor's property data). Matterport is back in for properties that have a model id.
 12. **Tracks:** Business + Enterprise (main, changed from Healthcare on Nov 14), CoStar, LangChain deepagents, Peri,
     Amazon, ChatOverflow leaderboard.
 13. **Free-tier hygiene still applies:** LLM response cache, per-run call budget, token/cost logging, golden runs for
@@ -110,27 +110,21 @@ Place these in `data/raw/` (gitignored). Rename the GeoJSONs as shown.
 | `houston_tracts.parquet` (+ `FILE_8341.geojson` → `houston_tracts.geojson`) | 1,381 | Polygons + same attributes |
 | `houston_clinicians.parquet` / `.csv` | 58,193 rows / 30,019 clinicians | `npi`, `primary_specialty`, `specialty_group`, `lat`, `lon`, `geocode_quality` |
 | `houston_hospitals.parquet` (+ `FILE_0011.geojson` → `houston_hospitals.geojson`) | 69 | type, ER, rating |
-| `houston_costar_properties.parquet` (+ `FILE_3415.geojson` → `houston_costar_properties.geojson`) | 1,758 | `property_id`, type, class, parking, Matterport ids, lease roll-ups, `is_clinic_candidate_type` |
-| `houston_costar_lease_spaces.parquet` / `.csv` | 2,431 | One row per active space: `space_id`, `property_id`, `floor`, `sqft_min/max`, `rent_low/high_usd_sf_yr`, `space_use`, `listing_type`, `is_lease_pending` |
+| CoStar property and lease-space files | | Sponsor data under the hackathon data agreement: event use only, never committed, deleted after the event. Schema and counts are confidential and not documented here. |
 | `README.md` → `data/raw/README.md` | | Build notes and caveats from whoever prepared the data |
 Python needs `pyarrow` and `h3` for these.
 
 **Quality check results:** keys unique; all WGS84; no Census sentinel values; no negative counts; population totals
 match exactly between tracts and grid (6,416,502); age bands sum to totals in every tract. Good to build on.
 
-**CoStar coverage:** 1,753 of 1,758 properties are in Harris, 5 in Fort Bend, 0 in Montgomery; 77% are apartments.
-Clinic-fit spaces (Office / OfficeMedical / Medical / Retail, 2,000–10,000 sq ft, coworking excluded): **772 spaces in
-152 buildings** (142 first floor, 112 medical). Those buildings are within 5 km of 20% of grid cells (49% of people).
-CoStar's lease data answers the availability question: real active listings with rent on 62%.
+**CoStar coverage:** the sponsor's property data covers inner Harris County, so site ranking only searches zones with
+a clinic-fit listing nearby (details are confidential under the data agreement).
 
 **Issues to handle in code:**
 - Grid undercounts clinicians vs the clinician file (grid: 939 orthopedic / 50,377 all; file: ~1,015 / 53,600 unique
   locations). Likely points not landing in a cell. Recompute counts from `houston_clinicians` or ask the data builder.
-- Exclude `listing_type == "PropertyCoworking"` (483 spaces, median $138/sq ft/yr).
-- `floor` is words ("FirstFloor", "SecondFloor", ...) — parse to int.
-- 69 lease rows repeat (property_id, suite, floor); 24 property addresses repeat — de-duplicate.
-- `rba_sqft` missing for 79% of properties — use lease-space sqft.
-- Some listings on market since 2000 — show the date or filter.
+- Sponsor listing data: exclude coworking, parse floors, de-duplicate repeated spaces, prefer space sqft over
+  building sqft, and show listing age (see services/sites).
 - Income top-coded at $250,001; growth ranges −43% to +243% (percentile normalization handles it); 154 empty cells;
   17% of clinician rows are ZIP-approximate (fine for 5–10 km counts); ring sums stop at the county edge.
 - Only 39 dentists in the CMS file — pediatric dentistry needs NPPES.
@@ -192,10 +186,8 @@ Do Task 3 from docs/HANDOFF.md. The real files are in data/raw/ (see HANDOFF sec
    implementations chosen by AGENT_BACKEND.
    LocalGeo: list features, score, rank, sensitivity on the real grid with the docs/DESIGN.md math and decision 6 in
    HANDOFF; recompute clinician counts from houston_clinicians if the grid undercounts.
-   LocalSites: lease spaces joined to properties -> SiteCandidate (id=space_id, sqft=sqft_max, rent_psf=rent_low,
-   floor parsed from words, available = not is_lease_pending, parking from the property, building_class,
-   matterport_id = first model id, submarket), excluding coworking, de-duplicated on (property_id, suite, floor),
-   filtered by Constraints; only zones with a clinic-fit listing within 2 km are searched.
+   LocalSites: lease spaces joined to properties -> SiteCandidate, excluding coworking, de-duplicated, filtered by
+   Constraints; only zones with a clinic-fit listing within 2 km are searched.
 4. Tests: tract/grid totals match; every lease space joins a property; coworking excluded; floors parse; LocalGeo and
    LocalSites return valid contract shapes; same input gives same output.
 Commit. Never commit anything from data/.
