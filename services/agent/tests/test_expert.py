@@ -84,3 +84,26 @@ def test_expert_floors_and_caps_override_the_models_importance() -> None:
         {"factor_id": "pt", "importance": 2, "why": "c"}, {"factor_id": "flood", "importance": 8, "why": "d"}]})
     w = spec_from_advice(fs, advice, p)[0].weights
     assert w["x_ortho_offices"] > w["partner_schools"] and w["n_physical_therapy_within_5km"] > w["flood"]
+
+
+def test_own_offices_become_a_capped_distance_feature_that_replaces_cannibalization() -> None:
+    import asyncio
+
+    import numpy as np
+
+    from contracts.models import Office
+    from services.agent.tools import geomath, ingest, own_offices
+
+    p = ortho("Clinic visits 10").model_copy(update={"existing_offices": [Office(name="A", address="x", lat=29.78, lon=-95.51)]})
+    cannibal = Factor(id="cannibal", factor="Cannibalization risk from existing offices", why="", proxy="", direction=1,
+                      priority="medium")
+    factors, results, _ = expert.function_scouts(p, [cannibal], "abc123")
+    ids = {f.id for f in factors}
+    assert "x_own_offices" in ids and "cannibal" not in ids
+    spec = next(r.spec for r in results if r.factor_id == "x_own_offices")
+    assert own_offices.points_of(str(spec.source_url)) == [(29.78, -95.51)]
+    assert own_offices.points_of("https://example.com/?offices=29.7,-95.5") is None
+    grid = geomath.Grid(h3=["a", "b"], lat=np.array([29.78, 30.5]), lon=np.array([-95.51, -95.51]), columns={})
+    report, values, counts = asyncio.run(ingest.ingest(spec, grid))
+    assert report.ok and counts is None and values[0] < 1 and values[1] == own_offices.CAP_KM
+    assert {r.factor_id: r.source for r in expert.provenance(p, factors).factors}["x_own_offices"] == "expert"

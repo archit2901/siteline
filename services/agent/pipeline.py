@@ -66,7 +66,8 @@ STEPS = [
     "Inspect the top spaces from above and inside",
     "Write and verify the report",
 ]
-SEARCH_ZONES = 400  # zones handed to the site search, best first (CoStar covers inner Harris only)
+SEARCH_ZONES = 3000  # zones handed to the site search, best first (CoStar covers inner Harris only, and
+# the best-scoring zones are often outside it, so the search must reach about the top quarter of cells)
 SITE_LIMIT = 40
 
 
@@ -295,9 +296,6 @@ async def run_pipeline(run: Run) -> None:
                                 limit=SITE_LIMIT)
     await run.emit("site-scout", "tool_call", {"tool": "search_sites", "args": {"zones": len(request.zones), "limit": SITE_LIMIT}})
     sites = await sites_client.search(request)
-    if not sites:
-        caveats.append("No listed spaces fit near the top zones; showing zone centroids instead of buildings.")
-        sites = await MockSites().search(request.model_copy(update={"zones": zones.top}))
     # too few buildings fit: loosen the search step by step to fill the top 10, and say what each added space misses
     rank_profile, strict = profile, len(sites)
     for relaxed in geomath.relaxations(constraints):
@@ -309,6 +307,10 @@ async def run_pipeline(run: Run) -> None:
         sites += [s.model_copy(update={"checks": {**s.checks, "misses": geomath.misses(s, constraints)}}) for s in more]
         rank_profile = profile.model_copy(update={"constraints": relaxed.model_copy(
             update={"space_uses": profile.constraints.space_uses})})
+    if not sites:
+        caveats.append("No listed spaces fit near the top zones; showing zone centroids instead of buildings.")
+        sites = await MockSites().search(request.model_copy(update={"zones": zones.top}))
+        rank_profile, strict = profile, len(sites)
     if len(sites) > strict:
         caveats.append(f"Only {len(buildings(sites[:strict]))} buildings meet every search constraint; the rest of the "
                        "list comes from a looser search, and each of those cards says which constraint it misses.")

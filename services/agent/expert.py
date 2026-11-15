@@ -122,7 +122,7 @@ RULES: list[Rule] = [
          "keep an orthopedic office full.", _ortho,
          r"income|median|commercial|medicare|insur|payer|pop_45|pop_65|45\+|65\+|\bage[sd]?\b|demograph", 1.6),
     Rule("currently_serving", "Count where you already serve: a new office should not sit on your own patients.", _ortho,
-         r"existing|own office|current office|cannibal|already serve", 1.6),
+         r"existing|own office|current office|cannibal|already serve|x_own_offices", 1.6, floor=6),
     Rule("high_schools", "Local high schools feed sports injuries: athletic trainers send injured athletes to the "
          "closest doctor they trust. School athletes are only part of the patients, so they help but never decide "
          "the site.", _sports, r"high school|school|student|team|hs_enrollment|u18|youth", 1.2, cap=7),
@@ -266,7 +266,35 @@ def function_scouts(profile: PracticeProfile, factors: list[Factor], run_tag: st
                                 geo_level="point", why=s.why, status="valid")
         results.append(ScoutResult(f.id, cand, 1, spec=spec))
         notes.append(f"{label}: found by grouping CMS clinicians by practice address.")
+    factors, results, notes = own_office_scout(profile, factors, run_tag, keep, results, notes)
     return factors, results, notes
+
+
+OWN = r"cannibal|own (office|location|clinic)|existing (office|location|clinic)|already serve|current (office|location)"
+
+
+def own_office_scout(profile: PracticeProfile, factors: list[Factor], run_tag: str, keep: set[str] | None,
+                     results: list[ScoutResult], notes: list[str]) -> tuple[list[Factor], list[ScoutResult], list[str]]:
+    """Distance from the business's own offices (any business with located offices): replaces the analyst's
+    unmeasured cannibalization factor."""
+    from services.agent.tools import own_offices
+
+    if not own_offices.located(profile.existing_offices) or "x_own_offices" in {f.id for f in factors}:
+        return factors, results, notes
+    factors = [f for f in factors if f.feature_id is not None or f.id in (keep or set()) or not re.search(OWN, _blob(f), re.I)]
+    why = "A new office near one you already have mostly moves the same patients between buildings."
+    f = Factor(id="x_own_offices", factor="Far from your own offices", why=why,
+               proxy=f"Straight-line distance to your nearest existing office (capped at {own_offices.CAP_KM:g} km)",
+               direction=1, priority="high")
+    url = own_offices.offices_url(profile.existing_offices)
+    spec = FeatureSpec(id=f"x_own_offices_{run_tag}", label=f.factor, source_id="intake.existing_offices",
+                       source_url=url, format="json", geo_level="point", geo_key="_lat,_lon",  # type: ignore[arg-type]
+                       agg="distance_to_nearest", direction=1, unit="km", layer="agent_found",  # type: ignore[arg-type]
+                       provenance_url=url)  # type: ignore[arg-type]
+    cand = DatasetCandidate(id="cand_x_own_offices", factor_id=f.id, url=url, title="Your existing offices",  # type: ignore[arg-type]
+                            publisher="Your intake answers", format="json", geo_level="point", why=why, status="valid")
+    return ([*factors, f], [*results, ScoutResult(f.id, cand, 1, spec=spec)],
+            [*notes, "Your existing offices: distance from each neighborhood to the nearest one."])
 
 
 # ---------------------------------------------------------------------------
@@ -294,7 +322,8 @@ PARTNER_RULE = {"partner_schools_": "high_schools", "partner_hospitals_": "asc_h
 
 def provenance(profile: PracticeProfile, factors: list[Factor]) -> ExpertReport:
     w = functions_of(profile)
-    scouts = {s.factor_id: s.rule for s in scouts_for(profile)}
+    scouts = {s.factor_id: s.rule for s in scouts_for(profile)} | ({"x_own_offices": "currently_serving"}
+                                                                   if is_orthopedic(profile) else {})
     rows = []
     for f in factors:
         fixed = scouts.get(f.id) or next((rule for prefix, rule in PARTNER_RULE.items()

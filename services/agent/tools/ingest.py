@@ -27,7 +27,7 @@ import httpx
 import numpy as np
 
 from contracts.models import DatasetPreview, FeatureSpec, PreviewRequest, ValidationReport
-from services.agent.tools import cms_points, geomath
+from services.agent.tools import cms_points, geomath, own_offices
 from services.agent.tools.allowlist import BlockedURL, safe_request
 
 log = logging.getLogger(__name__)
@@ -160,6 +160,9 @@ def _features_to_rows(features: list[dict[str, Any]]) -> list[dict[str, Any]]:
 async def fetch_rows(url: str, fmt: str, *, tract_key: str | None = None, preview: bool = False) -> Rows:
     if fmt in ("gtfs", "census_api"):
         raise ValueError(f"{fmt} sources need a connector, not the generic reader")
+    offices = own_offices.points_of(url)
+    if offices is not None:  # the business's own offices from the intake (services/agent/tools/own_offices.py)
+        return Rows(own_offices.rows(offices), "intake", ["your existing offices from the intake"])
     layer = cms_points.layer_of(url)
     if layer is not None:  # practices derived from CMS Doctors and Clinicians (services/agent/tools/cms_points.py)
         return Rows(cms_points.rows(layer), "cms", [f"{cms_points.LAYERS[layer]} from CMS Doctors and Clinicians, "
@@ -361,6 +364,8 @@ def validate(values: np.ndarray, spec: FeatureSpec, rows_read: int, notes: list[
     ok_vals = values[~np.isnan(values)]
     coverage = float(len(ok_vals) / len(values)) if len(values) else 0.0
     ok = (point_count or 0) >= 5 if spec.geo_level == "point" else coverage >= 0.8
+    if spec.id.startswith("x_own_offices"):  # one office is enough: it is the business's own
+        ok = rows_read >= 1 and coverage >= 0.8
     if spec.id.startswith("partner_") and spec.agg == "distance_to_nearest":  # named partners (services/agent/partners.py):
         ok = (point_count or 0) >= len(spec.filter_values) and coverage >= 0.8  # every named place found, all cells
     if not ok:
@@ -382,8 +387,13 @@ async def ingest(spec: FeatureSpec, grid: geomath.Grid) -> tuple[ValidationRepor
         fetched = await fetch_rows(url, fmt, tract_key=spec.geo_key if spec.geo_level == "tract" else None)
         rows = _apply_filter(fetched.rows, spec)
         values, counts, notes = aggregate(rows, spec, grid)
+        if spec.id.startswith("x_own_offices"):  # beyond the cap the offices no longer share patients
+            values = np.minimum(values, own_offices.CAP_KM)
+            notes.append(f"capped at {own_offices.CAP_KM:g} km")
     except (BlockedURL, httpx.HTTPError, ValueError, json.JSONDecodeError) as exc:
         return ValidationReport(feature_id=spec.id, ok=False, coverage_pct=0, null_pct=1,
                                 notes=[f"could not ingest: {str(exc)[:200]}"]), None, None
     report = validate(values, spec, len(rows), fetched.notes + notes, None if counts is None else float(counts.sum()))
+    if spec.id.startswith("x_own_offices"):
+        counts = None  # own offices are not competitors (no Huff count column)
     return report, values, counts
