@@ -44,6 +44,7 @@ export default function App() {
   const [expert, setExpert] = useState<ExpertReport | null>(null)
   const [options, setOptions] = useState<ProgramOption[]>([])
   const pendingWeights = useRef<Record<string, number> | null>(null) // tuned weights carried into a re-run
+  const replayEdit = useRef<ScoringSpec | null>(null) // weights edited during a recorded run, applied by re-rank at the end
   const replay = useRef<Replay | null>(null)
   const live = useRef<Subscription | null>(null)
   const fixtureMode = mode === 'fixture'
@@ -94,7 +95,11 @@ export default function App() {
   const answer = useCallback(async (decision: ApproveRequest) => {
     const approval = state.approval
     if (!approval) return
-    if (approval.kind === 'weights' && approval.spec) { setSpec(decision.edited_spec ?? approval.spec); pendingWeights.current = null }
+    if (approval.kind === 'weights' && approval.spec) {
+      // a recorded run scores with its recorded weights; edits are re-ranked in (no model call) once it finishes
+      setSpec(replaying ? approval.spec : decision.edited_spec ?? approval.spec); pendingWeights.current = null
+      replayEdit.current = replaying ? decision.edited_spec ?? null : null
+    }
     if (replay.current) { replay.current.answer(approval.approval_id); return } // bundled sample run (no agent-api)
     try {
       await approve(state.runId!, decision)
@@ -102,7 +107,7 @@ export default function App() {
     } catch (e) {
       setLoadError((e as Error).message)
     }
-  }, [fixtureMode, state.approval, state.runId])
+  }, [fixtureMode, replaying, state.approval, state.runId])
 
   const reset = useCallback(() => {
     replay.current?.stop(); replay.current = null
@@ -124,10 +129,9 @@ export default function App() {
   const zones = useMemo(() => (state.zones ? topZones(state.zones, grid) : []), [state.zones, grid])
   const offices = report?.profile.existing_offices ?? profile.existing_offices ?? []
   const name = report?.profile.name ?? profile.name
-  const recorded = fixtureMode || replaying
   const open = sites.find((r) => r.site.id === sheet) ?? null
   const step = `${Math.max(1, state.todos.findIndex((t) => t.status === 'in_progress') + 1)}/${state.todos.length || 1}`
-  const canTune = !recorded && Boolean(spec) && Boolean(state.runId)
+  const canTune = Boolean(spec) && Boolean(state.runId) && state.runId !== 'fixture-replay' // re-rank is math only, recorded runs too
 
   const retune = useCallback(async (weights: Record<string, number>) => {
     if (!spec || !state.runId || !report) return
@@ -138,12 +142,18 @@ export default function App() {
       const res = await rescore(state.runId, next)
       dispatch({ type: 'artifact', name: 'zones.json', data: res.zones })
       dispatch({ type: 'artifact', name: 'report.json', data: { ...report, recommendations: res.recommendations } })
+      setSpec(next)
     } catch (e) {
       setLoadError((e as Error).message)
     } finally {
       setTuning(false)
     }
   }, [spec, state.runId, report])
+
+  useEffect(() => { // weights edited during a recorded run: re-rank with them once the report is in
+    const edit = replayEdit.current
+    if (edit && canTune && report && state.status === 'done') { replayEdit.current = null; retune(edit.weights) }
+  }, [canTune, report, state.status, retune])
 
   return (
     <ExpertContext.Provider value={expert}>
@@ -160,7 +170,7 @@ export default function App() {
                 <button className={fixtureMode ? 'on' : ''} onClick={() => setMode('fixture')}>Recorded</button>
                 <button className={!fixtureMode ? 'on' : ''} onClick={() => setMode('live')}>Live agent</button>
               </div>
-            : <span className="chip-mode">{recorded ? 'Recorded run' : 'Live agent'}</span>}
+            : <span className="chip-mode">Agent</span>}
           <button className="cta" onClick={reset}><span className="arrow">↗</span><span className="label">New search</span></button>
         </div>
       </nav>
@@ -171,9 +181,8 @@ export default function App() {
         <main className={`work ${view === 'results' ? 'results' : ''}`}>
           {view === 'agent' && (
             <aside className="panel">
-              <span className="hand">{recorded && fixtureMode ? 'Recorded run' : name}</span>
+              <span className="hand">{name}</span>
               <h2 className="h2">{HEADLINE[state.status]}</h2>
-              <p className="sub">{recorded ? 'Replaying a recorded run' : 'Live agent'}</p>
               <Plan todos={state.todos} ideas={state.trace.filter((l) => l.tool === 'brainstorm' && l.kind === 'result')} />
               <Factors factors={factors} scouts={state.scouts} />
               {(loadError || state.error) && <div className="err">{loadError ?? state.error}</div>}

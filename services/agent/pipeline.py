@@ -7,6 +7,7 @@ Every step streams RunEvents (payload table in services/agent/CLAUDE.md) and wri
 
 import asyncio
 import json
+import logging
 import os
 import re
 from typing import Any
@@ -44,11 +45,13 @@ from services.agent.scout import ScoutResult, run_scout
 from services.agent.tools import geomath
 from services.agent.tools.backends import get_geo, get_sites
 from services.agent.tools.ingest import overpass_url
-from services.agent import strategy
+from services.agent import snapshot, strategy
 from services.agent.tools.packs import pack_for
 from services.agent.tools.profile import load_profile
 from services.agent.tools.sites_client import MockSites
 from services.agent.tools.weights import advise_weights, scorable
+
+log = logging.getLogger(__name__)
 
 MAX_SCOUTS = int(os.environ.get("MAX_SCOUTS_PER_RUN", "10"))  # each scout costs ~2-3 model calls
 
@@ -428,5 +431,9 @@ async def run_pipeline(run: Run) -> None:
         else f"{len(problems)} numbers did not match; those claims were removed."})
     await run.emit("analyst-critic", "file", {"name": "report.json", "path": "/report.json"})
     await run.emit(S, "todo", todos(len(STEPS)))
+    try:  # lets a recording of this run be re-ranked later (no LLM)
+        snapshot.save(run.artifacts_dir, run.run_id, run.state, geo)
+    except Exception:
+        log.exception("could not save the rescore snapshot for %s", run.run_id)
     await run.emit(S, "done", {"report": "report.json", "usage": meter.snapshot()})
     (run.artifacts_dir / "usage.json").write_text(json.dumps(meter.snapshot()))

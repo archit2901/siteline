@@ -113,7 +113,6 @@ export function Approval({ approval, featureLabels, readOnly, step, businessName
           <p className="count">These public datasets would measure what our stock data can’t. Nothing is downloaded until you approve.</p>
           <button ref={ref} className="cta" onClick={approve}><span className="arrow">✓</span><span className="label">Approve</span></button>
           {onReject && !readOnly && <button className="linkbtn" onClick={onReject}>Skip these datasets</button>}
-          {readOnly && <p className="count" style={{ marginTop: 10 }}>Recorded run: approving continues the replay.</p>}
         </div>
         <div>
           {(approval.candidates ?? []).map((c) => {
@@ -141,11 +140,6 @@ export function Approval({ approval, featureLabels, readOnly, step, businessName
         <button ref={ref} className="cta" onClick={approve} disabled={total <= 0}>
           <span className="arrow">✓</span><span className="label">{edited ? 'Use my weights' : 'Looks right'}</span></button>
         {edited && <button className="linkbtn" onClick={() => setW(proposed)}>Reset to my suggestion</button>}
-        {readOnly && (
-          <p className="count" style={{ marginTop: 10 }}>
-            {edited ? 'Recorded run: the replay continues with its recorded weights. Live runs use yours.' : 'Recorded run: approving continues the replay.'}
-          </p>
-        )}
       </div>
       <div>
         <SourceLegend />

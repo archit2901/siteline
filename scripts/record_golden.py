@@ -39,7 +39,8 @@ def main() -> int:
     for name in sorted(files):
         shutil.copyfile(src / name, dest / name)
     # strategy.json (space and lease/buy/build plan) is not a contract artifact, so it is copied without validation.
-    for name in ("strategy.json", "ranked.json", "review.json", "expert.json", "options.json"):
+    for name in ("strategy.json", "ranked.json", "review.json", "expert.json", "options.json",
+                 "rescore_state.json", "features.npz"):  # the last two let /rescore re-rank the replay
         if (src / name).exists() and name not in files:
             shutil.copyfile(src / name, dest / name)
             files.add(name)

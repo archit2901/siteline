@@ -14,7 +14,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from contracts.models import (ApproveRequest, PracticeProfile, AskRequest, AskResponse, Health, IntakeRequest, IntakeResponse,
                              RescoreRequest, RescoreResponse, RunCreate, RunCreated)
-from services.agent import concierge, intake, questions, website
+from services.agent import concierge, intake, questions, snapshot, website
 from services.agent.critic import build_report
 from services.agent.pipeline import normalize, run_pipeline, score_and_rank
 from services.agent.runs import BadRequest, Run, RunNotFound, RunStore, TooBusy, list_golden
@@ -192,6 +192,8 @@ async def approve(run_id: str, response: ApproveRequest) -> dict[str, str]:
 async def rescore(run_id: str, request: RescoreRequest) -> RescoreResponse:
     """New weights -> geo score + rank -> recommendations. No LLM call."""
     run = get_run(run_id)
+    if "sites" not in run.state and not run.live:  # a recorded run: load what its live run saved
+        snapshot.hydrate(run.artifacts_dir, run.state, get_geo())
     if "profile" not in run.state or "sites" not in run.state:
         raise HTTPException(409, "this run has no scored sites yet")
     spec = normalize(request.spec)
