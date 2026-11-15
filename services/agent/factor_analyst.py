@@ -5,6 +5,7 @@ Used directly in AGENT_MODE=scripted and by the evals; graph.py wraps the same p
 
 import json
 import re
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
@@ -141,17 +142,48 @@ def request_text(profile: PracticeProfile, candidates: list[Candidate] | None = 
     )
 
 
-async def brainstorm(profile: PracticeProfile, chat: BaseChatModel) -> list[Candidate]:
-    """Stage one: a wide list of candidate factors and derivatives (empty if the model fails; stage two still runs)."""
+OnIdea = Callable[[Candidate], Awaitable[None]]
+
+
+async def brainstorm(profile: PracticeProfile, chat: BaseChatModel, on_idea: OnIdea | None = None) -> list[Candidate]:
+    """Stage one: a wide list of candidate factors and derivatives (empty if the model fails; stage two still runs).
+
+    With on_idea, the answer is streamed and each candidate is reported as soon as the model has finished writing it,
+    so the run shows its ideas as they form instead of all at once."""
     intake = profile.model_dump(mode="json", exclude={"stock_pack", "region_id"})
+    messages = [SystemMessage(BRAINSTORM),
+                HumanMessage(f"BUSINESS:\n{json.dumps(intake, indent=2)}\n\nDOMAIN PLAYBOOK:\n{playbook_text(profile)}")]
+    structured = chat.with_structured_output(Brainstorm)
+    items: list[Candidate] = []
     try:
-        out = await chat.with_structured_output(Brainstorm).ainvoke([
-            SystemMessage(BRAINSTORM),
-            HumanMessage(f"BUSINESS:\n{json.dumps(intake, indent=2)}\n\nDOMAIN PLAYBOOK:\n{playbook_text(profile)}"),
-        ])
+        if on_idea is None:
+            out = await structured.ainvoke(messages)
+            items = out.candidates if isinstance(out, Brainstorm) else []
+        else:
+            told = 0
+            async for part in structured.astream(messages):
+                if not isinstance(part, Brainstorm):
+                    continue
+                items = part.candidates
+                for c in items[told:-1]:  # the last one may still be mid-sentence
+                    await on_idea(c)
+                told = max(told, len(items) - 1)
+            for c in items[told:]:
+                await on_idea(c)
     except Exception:
-        return []
-    items = out.candidates if isinstance(out, Brainstorm) else []
+        if on_idea is None or items:
+            return _unique(items)
+        try:  # streaming not supported here: one plain call, then report every idea
+            out = await structured.ainvoke(messages)
+            items = out.candidates if isinstance(out, Brainstorm) else []
+        except Exception:
+            return []
+        for c in items:
+            await on_idea(c)
+    return _unique(items)
+
+
+def _unique(items: list[Candidate]) -> list[Candidate]:
     seen: set[str] = set()
     unique = []
     for c in items:
@@ -189,10 +221,11 @@ def repair(factors: list[Factor], profile: PracticeProfile) -> tuple[list[Factor
 
 
 async def analyze(profile: PracticeProfile, meter: llm.UsageMeter | None = None,
-                  model: BaseChatModel | None = None, think: bool = True) -> tuple[list[Factor], list[str]]:
+                  model: BaseChatModel | None = None, think: bool = True,
+                  on_idea: OnIdea | None = None) -> tuple[list[Factor], list[str]]:
     """The factor list for one practice, plus notes about repairs. Retries once on a validation error."""
     chat = model or llm.get_chat_model("factor_analyst", meter)
-    candidates = await brainstorm(profile, chat) if think else []
+    candidates = await brainstorm(profile, chat, on_idea) if think else []
     structured = chat.with_structured_output(FactorList, include_raw=True)
     messages: list[BaseMessage] = [SystemMessage(PROMPT), HumanMessage(request_text(profile, candidates))]
     error: str | None = None

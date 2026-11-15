@@ -9,13 +9,28 @@ const SCOUT: Record<Scout['status'], string> = {
   running: 'searching', retrying: 'trying another source', ready: 'dataset ready', found: 'found', proxy: 'using a proxy', dropped: 'dropped',
 }
 
-export function Plan({ todos }: { todos: Todo[] }) {
+/** The run's steps. Under "Reason about what makes a location succeed", the analyst's ideas appear as it writes them. */
+export function Plan({ todos, ideas = [] }: { todos: Todo[]; ideas?: TraceLine[] }) {
+  const listRef = useRef<HTMLOListElement>(null)
+  useEffect(() => { listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' }) }, [ideas.length])
   return (
     <div>
       {todos.map((t, i) => (
-        <div key={t.content} className={`todo ${t.status}`}>
-          <span className="n">{i + 1}/{todos.length}</span>
-          <span className="t">{t.content}</span>
+        <div key={t.content}>
+          <div className={`todo ${t.status}`}>
+            <span className="n">{i + 1}/{todos.length}</span>
+            <span className="t">{t.content}</span>
+          </div>
+          {/^reason/i.test(t.content) && ideas.length > 0 && (t.status === 'in_progress' ? (
+            <ol className="ideas" ref={listRef} aria-live="polite">
+              {ideas.map((l) => <li key={l.seq} title={l.text}>{l.text.split(':')[0]}</li>)}
+            </ol>
+          ) : (
+            <details className="ideas-done">
+              <summary>Considered {ideas.length} ideas</summary>
+              <ol className="ideas">{ideas.map((l) => <li key={l.seq} title={l.text}>{l.text.split(':')[0]}</li>)}</ol>
+            </details>
+          ))}
         </div>
       ))}
     </div>

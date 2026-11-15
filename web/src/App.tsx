@@ -174,7 +174,7 @@ export default function App() {
               <span className="hand">{recorded && fixtureMode ? 'Recorded run' : name}</span>
               <h2 className="h2">{HEADLINE[state.status]}</h2>
               <p className="sub">{recorded ? 'Replaying a recorded run' : 'Live agent'}</p>
-              <Plan todos={state.todos} />
+              <Plan todos={state.todos} ideas={state.trace.filter((l) => l.tool === 'brainstorm' && l.kind === 'result')} />
               <Factors factors={factors} scouts={state.scouts} />
               {(loadError || state.error) && <div className="err">{loadError ?? state.error}</div>}
             </aside>

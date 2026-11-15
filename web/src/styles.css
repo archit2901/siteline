@@ -545,3 +545,12 @@ tr.misses .rankdot { background: var(--card); color: var(--ink2); border: 1px da
 
 p.looser { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink2); margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed var(--line); }
 .scard .misstag { align-self: flex-start; margin: 2px 0 4px; }
+
+.ideas { list-style: none; margin: 4px 0 6px 44px; padding: 0; max-height: 210px; overflow-y: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink2); display: grid; gap: 3px; }
+.ideas li { padding: 0 12px 0 14px; position: relative; overflow-wrap: anywhere; animation: idea-in .35s ease-out both; }
+.ideas li::before { content: "→"; position: absolute; left: 0; color: var(--ink3); }
+.ideas-done { margin: 2px 0 6px 44px; font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+.ideas-done summary { cursor: pointer; }
+.ideas-done .ideas { margin-left: 0; }
+@keyframes idea-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ideas li { animation: none; } }

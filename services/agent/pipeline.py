@@ -67,6 +67,7 @@ STEPS = [
     "Write and verify the report",
 ]
 SEARCH_ZONES = 400  # zones handed to the site search, best first (CoStar covers inner Harris only)
+SEARCH_ZONES_WIDE = 3000  # last-resort search depth when fewer than 10 buildings fit near the best zones
 SITE_LIMIT = 40
 
 
@@ -161,7 +162,12 @@ async def run_pipeline(run: Run) -> None:
         planned = await planned_factors(profile, run.run_id, run.artifacts_dir / "agent", meter)
         factors, notes = (planned.factors, planned.notes) if planned.ok else await analyze(profile, meter)
     else:
-        factors, notes = await analyze(profile, meter)
+        async def idea(c: Any) -> None:  # each brainstormed idea shows up in the run as soon as it is written
+            await run.emit("factor-analyst", "tool_result", {"tool": "brainstorm", "ok": True, "idea": c.factor,
+                                                             "summary": f"{c.factor}: {c.mechanism}"})
+
+        await run.emit("factor-analyst", "tool_call", {"tool": "brainstorm", "args": {"business": profile.name}})
+        factors, notes = await analyze(profile, meter, on_idea=idea)
     await run.emit("factor-analyst", "tool_result", {"tool": "analyze_factors", "ok": True, "usage": meter.snapshot(),
                                                      "summary": f"{len(factors)} factors. " + " ".join(notes)})
     for f in factors:
@@ -295,22 +301,30 @@ async def run_pipeline(run: Run) -> None:
                                 limit=SITE_LIMIT)
     await run.emit("site-scout", "tool_call", {"tool": "search_sites", "args": {"zones": len(request.zones), "limit": SITE_LIMIT}})
     sites = await sites_client.search(request)
-    if not sites:
-        caveats.append("No listed spaces fit near the top zones; showing zone centroids instead of buildings.")
-        sites = await MockSites().search(request.model_copy(update={"zones": zones.top}))
-    # too few buildings fit: loosen the search step by step to fill the top 10, and say what each added space misses
+    # too few buildings fit: loosen the search step by step to fill the top 10, and say what each added space misses;
+    # last resort, look further down the zone list (CoStar covers inner Harris only)
     rank_profile, strict = profile, len(sites)
-    for relaxed in geomath.relaxations(constraints):
+    wide = [z.h3 for z in zones.zones[:SEARCH_ZONES_WIDE]]
+    steps = [(c, request.zones) for c in geomath.relaxations(constraints)] + \
+            [(c, wide) for c in [constraints, *geomath.relaxations(constraints)]]
+    for relaxed, near in steps:
         if len(buildings(sites)) >= TOP:
             break
         seen = {s.id for s in sites}
-        more = [s for s in await sites_client.search(request.model_copy(update={"constraints": relaxed}))
+        more = [s for s in await sites_client.search(request.model_copy(update={"constraints": relaxed, "zones": near}))
                 if s.id not in seen]
-        sites += [s.model_copy(update={"checks": {**s.checks, "misses": geomath.misses(s, constraints)}}) for s in more]
-        rank_profile = profile.model_copy(update={"constraints": relaxed.model_copy(
-            update={"space_uses": profile.constraints.space_uses})})
+        sites += [s.model_copy(update={"checks": {**s.checks, "misses": geomath.misses(s, constraints)}})
+                  if geomath.misses(s, constraints) else s for s in more]
+        if relaxed is not constraints:
+            rank_profile = profile.model_copy(update={"constraints": relaxed.model_copy(
+                update={"space_uses": profile.constraints.space_uses})})
+    if not sites:
+        caveats.append("No listed spaces fit near the top zones; showing zone centroids instead of buildings.")
+        sites = await MockSites().search(request.model_copy(update={"zones": zones.top}))
+        rank_profile = profile
+    strict = sum(not s.checks.get("misses") for s in sites)
     if len(sites) > strict:
-        caveats.append(f"Only {len(buildings(sites[:strict]))} buildings meet every search constraint; the rest of the "
+        caveats.append(f"Only {len(buildings([s for s in sites if not s.checks.get('misses')]))} buildings meet every search constraint; the rest of the "
                        "list comes from a looser search, and each of those cards says which constraint it misses.")
     run.state["rank_profile"] = rank_profile
     run.state["sites"] = sites
