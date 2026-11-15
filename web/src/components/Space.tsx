@@ -1,4 +1,4 @@
-import type { Strategy } from '../api/client'
+import type { ProgramOption, Strategy } from '../api/client'
 
 const usd = (v: number) => (v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${Math.round(v / 1000).toLocaleString('en-US')}k`)
 const LINE: Record<string, string> = {
@@ -7,10 +7,34 @@ const LINE: Record<string, string> = {
 }
 
 /** Space program, visibility need and lease / buy / build per top space (Python, planning assumptions). */
-export default function Space({ s, onOpen }: { s: Strategy; onOpen: (siteId: string) => void }) {
+export default function Space({ s, options = [], onOpen }: { s: Strategy; options?: ProgramOption[]; onOpen: (siteId: string) => void }) {
   const p = s.program
   return (
     <div className="space">
+      {options.length > 1 && (
+        <div className="callout">
+          <div className="kicker"><span>Program options</span></div>
+          <p>Smaller offices that leave some functions elsewhere, each searched with its own size range. Divisible listings show the part that fits.</p>
+          {options.map((o) => (
+            <div className="option" key={o.id}>
+              <p><b>{o.label}</b> · {o.min_sqft.toLocaleString('en-US')}–{o.max_sqft.toLocaleString('en-US')} sq ft · {o.parking_per_1000sf} parking / 1,000 sf</p>
+              {Object.keys(o.left_out).length > 0 && <ul className="changes">{Object.entries(o.left_out).map(([f, where]) => <li key={f}>{f}: {where}</li>)}</ul>}
+              {o.sites.length ? (
+                <table className="tenure">
+                  <thead><tr><th>Best lease spaces</th><th>Sq ft</th><th>Rent /yr</th><th>Net-new /yr</th></tr></thead>
+                  <tbody>{o.sites.map((x) => (
+                    <tr key={x.site_id}>
+                      <td><button className="linkbtn" style={{ margin: 0 }} onClick={() => onOpen(x.site_id)}>{x.address}</button></td>
+                      <td>{x.sqft ? x.sqft.toLocaleString('en-US') : '—'}</td>
+                      <td>{x.annual_rent ? usd(x.annual_rent) : 'ask'}</td>
+                      <td>{Math.round(x.net_new).toLocaleString('en-US')}</td>
+                    </tr>))}</tbody>
+                </table>
+              ) : <p className="why">No listed space this size near the top zones.</p>}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="callout">
         <div className="kicker"><span>Space program</span></div>
         <p><b>{p.recommended_sqft[0].toLocaleString('en-US')}–{p.recommended_sqft[1].toLocaleString('en-US')} sq ft</b>

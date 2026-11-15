@@ -100,7 +100,7 @@ def test_same_input_same_output() -> None:
 
 
 def test_packs_without_competitor_data_are_flagged() -> None:
-    assert geomath.competitor_column(load_pack("healthcare.orthopedics"), None) == "n_orthopedics"
+    assert geomath.competitor_column(load_pack("healthcare.orthopedics"), None) == "_supply_healthcare.orthopedics"
     assert geomath.competitor_column(load_pack("healthcare.pediatric_dentistry"), None) is None
     assert geomath.competitor_column(load_pack("healthcare.pediatric_dentistry"), "peds_dentists") == "peds_dentists"
 
@@ -141,3 +141,23 @@ def test_singular_handles_qualified_labels() -> None:
     assert singular("adults 18-44") == "adult 18-44"
     assert singular("renter households") == "renter household"
     assert singular("patients") == "patient"
+
+
+def test_new_site_is_sized_in_physicians_like_the_competitor_count() -> None:
+    """CMS counts PAs/NPs under their own specialty, so '2 surgeons and 2 PAs' is 2 in the orthopedic supply unit."""
+    from contracts.models import Office
+
+    p = PracticeProfile(name="O", specialty="orthopedics", existing_offices=[Office(name="A", lat=29.7, lon=-95.4, clinicians=5)],
+                        free_text="[capacity] How many surgeons: 2 surgeons and 2 PAs, 12 exam rooms")
+    assert geomath.site_providers(p) == 2.0
+    assert geomath.site_providers(p.model_copy(update={"free_text": ""})) == 5.0
+
+
+def test_orthopedic_supply_counts_physiatrists_and_podiatrists() -> None:
+    grid = small_grid()
+    pack = load_pack("healthcare.orthopedics.foot_ankle")
+    for k in ("n_orthopedics", "n_podiatry"):
+        grid.columns.setdefault(k, np.ones(len(grid)))
+    geomath.ensure_supply(grid, pack)
+    col = grid.columns["_supply_healthcare.orthopedics.foot_ankle"]
+    assert np.allclose(col, np.nan_to_num(grid.columns["n_orthopedics"]) + np.nan_to_num(grid.columns["n_podiatry"]))

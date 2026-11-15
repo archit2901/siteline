@@ -41,18 +41,20 @@ def _norm(text: str, drop: str) -> str:
 
 
 def match_names(said: str, names: list[str], drop: str) -> list[str]:
-    """The official names the owner's words refer to. Longest names match first and their words are used up, so
-    'Klein Cain and Klein Oak' finds KLEIN CAIN H S and KLEIN OAK H S but not KLEIN H S."""
-    text = f" {_norm(said, drop)} "
-    cores = sorted({(_norm(n, drop), n) for n in names if _norm(n, drop)}, key=lambda c: -len(c[0]))
+    """The official names the owner's words refer to. The words are split into one place per segment ("Klein Cain
+    and Klein Oak", "A, B; C"); in each segment the official name whose words are all there and that uses the most
+    of them wins, so 'Klein Cain' is KLEIN CAIN H S, not KLEIN H S, and 'Memorial Hermann Memorial City' is
+    MEMORIAL HOSPITAL - MEMORIAL CITY, not MEMORIAL HERMANN HOSPITAL downtown."""
+    cores = [(set(_norm(n, drop).split()), n) for n in names]
+    cores = [(w, n) for w, n in cores if len(" ".join(sorted(w))) >= 4]  # too short to tell apart ("ST", "AIM")
     found: list[str] = []
-    for core, name in cores:
-        if len(core) < 4:  # too short to tell apart ("ST", "AIM")
-            continue
-        hit = f" {core} "
-        if hit in text:
-            found.append(name)
-            text = text.replace(hit, " | ")
+    for segment in re.split(r",|;|/|\band\b|&|\(|\)", said, flags=re.I):
+        words = set(_norm(segment, drop).split())
+        hits = [(len(w), len(n), n) for w, n in cores if w and w <= words]
+        if hits:
+            best = max(hits)[2]
+            if best not in found:
+                found.append(best)
     return found
 
 

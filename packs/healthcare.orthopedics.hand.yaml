@@ -6,7 +6,7 @@ specialty: orthopedics
 demand_age_bands: ["18-44", "45-64", "65+"]
 visit_rates: {"18-44": 0.025, "45-64": 0.04, "65+": 0.04}
 features: []
-site_rules: {min_parking_per_1000sf: 4, ground_floor: false, special_rooms: ["x-ray", "procedure room"], competitor_feature: n_orthopedics, variant: hand}
+site_rules: {min_parking_per_1000sf: 4, ground_floor: false, special_rooms: ["x-ray", "procedure room"], competitor_feature: n_orthopedics, competitor_mix: {n_orthopedics: 1, n_pm_and_r: 0.25}, variant: hand}
 factor_hints:
   - "manual and industrial jobs nearby (workers' comp hand injuries)"
   - "certified hand therapists and occupational therapy nearby"

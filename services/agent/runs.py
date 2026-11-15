@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "fixtures"
 GOLDEN = Path(os.environ.get("GOLDEN_DIR", ROOT / "data" / "golden"))
 GOLDEN_NAME = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
-ARTIFACTS = {"factors.json", "zones.json", "sites.json", "ranked.json", "report.json", "strategy.json", "review.json"}
+ARTIFACTS = {"factors.json", "zones.json", "sites.json", "ranked.json", "report.json", "strategy.json", "review.json", "expert.json", "options.json"}
 
 
 def max_gap_seconds() -> float:

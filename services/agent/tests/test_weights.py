@@ -23,8 +23,8 @@ def test_advice_becomes_normalized_weights_with_reasons() -> None:
                                    FactorWeight(factor_id="growth", importance=5, why="New suburbs bring young families.")])
     spec, notes = spec_from_advice(FACTORS, advice)
     assert notes == []
-    assert spec.weights == {"pop_u18_within_5km": 0.5, "found_transit": 0.25, "pop_growth_pct": 0.25}
-    assert abs(sum(spec.weights.values()) - 1) < 1e-9
+    assert spec.weights == {"pop_u18_within_5km": 0.7915, "found_transit": 0.1042, "pop_growth_pct": 0.1042}  # convex
+    assert abs(sum(spec.weights.values()) - 1) < 1e-3
     assert spec.rationale["found_transit"] == "Many of your families ride the bus."
     assert spec.directions["found_transit"] == -1
     assert "unmeasured" not in str(spec.weights)  # dropped factors are never scored
@@ -44,3 +44,17 @@ def test_model_failure_uses_priorities() -> None:
     spec, notes = asyncio.run(advise_weights(PracticeProfile(name="x", specialty="pediatric_dentistry"), FACTORS, model=broken))
     assert notes and "priorities" in notes[0]
     assert spec.weights["pop_u18_within_5km"] == spec.weights["found_transit"] > spec.weights["pop_growth_pct"]
+
+
+def test_expert_rules_put_orthopedic_distance_far_above_flood() -> None:
+    """Same importance from the model; the expert rules still make competition distance dominate flood risk."""
+    from contracts.models import PracticeProfile
+
+    p = PracticeProfile(name="O", specialty="orthopedics", free_text="[functions] Office functions: Clinic visits 10")
+    fs = [factor("comp", "n_orthopedics_within_10km", "high"), factor("flood", "flood_share", "medium")]
+    fs[0] = fs[0].model_copy(update={"factor": "Few orthopedic competitors nearby"})
+    fs[1] = fs[1].model_copy(update={"factor": "Low flood hazard"})
+    advice = WeightAdvice(weights=[FactorWeight(factor_id="comp", importance=8, why="Your referrals stay local."),
+                                   FactorWeight(factor_id="flood", importance=6, why="Your patients drive in storms.")])
+    spec, _ = spec_from_advice(fs, advice, p)
+    assert spec.weights["n_orthopedics_within_10km"] > 10 * spec.weights["flood_share"]

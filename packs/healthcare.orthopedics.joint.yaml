@@ -9,7 +9,7 @@ visit_rates: {"45-64": 0.09, "65+": 0.16}
 features:
   - {id: pop_65p_within_10km, source: acs, value: pop_65p_within_10km, label: "Adults 65+ within 10 km", agg: sum, direction: 1, unit: "people"}
   - {id: medicare_within_10km, source: acs, value: ins_any_medicare_within_10km, label: "Residents with Medicare within 10 km", agg: sum, direction: 1, unit: "people"}
-site_rules: {min_parking_per_1000sf: 6, ground_floor: true, special_rooms: ["x-ray"], competitor_feature: n_orthopedics, variant: joint}
+site_rules: {min_parking_per_1000sf: 6, ground_floor: true, special_rooms: ["x-ray"], competitor_feature: n_orthopedics, competitor_mix: {n_orthopedics: 1, n_pm_and_r: 0.25}, variant: joint}
 factor_hints:
   - "arthritis and obesity burden in adults 50+ (CDC PLACES), Medicare and Medicare Advantage share"
   - "drive time to the hospital or surgery center where the surgeons operate (same-day clinic and OR)"

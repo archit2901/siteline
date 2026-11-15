@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { AGENT_URL, approve, createRun, listGolden, loadRunArtifact, rescore, loadStrategy, loadReview, type Review, type Strategy } from './api/client'
+import { AGENT_URL, approve, createRun, listGolden, loadRunArtifact, rescore, loadStrategy, loadReview, loadExpert, loadOptions, type ProgramOption, type Review, type Strategy } from './api/client'
+import { ExpertContext, type ExpertReport } from './lib/expert'
 import { FIXTURE_BASE, loadFixtureEvents, startReplay, type Replay } from './api/replay'
 import { subscribeToRun, type Subscription } from './api/sse'
 import { Approval, Factors, LogDrawer, Plan } from './components/Agent'
@@ -38,6 +39,8 @@ export default function App() {
   const [tuning, setTuning] = useState(false)
   const [strategy, setStrategy] = useState<Strategy | null>(null)
   const [review, setReview] = useState<Review | null>(null)
+  const [expert, setExpert] = useState<ExpertReport | null>(null)
+  const [options, setOptions] = useState<ProgramOption[]>([])
   const pendingWeights = useRef<Record<string, number> | null>(null) // tuned weights carried into a re-run
   const replay = useRef<Replay | null>(null)
   const live = useRef<Subscription | null>(null)
@@ -59,7 +62,7 @@ export default function App() {
   const start = useCallback(async (p: PracticeProfile, recorded?: string) => {
     replay.current?.stop()
     live.current?.close()
-    setProfile(p); setSelected(null); setSheet(null); setFocus(null); setTab('lease'); setLoadError(null); setSpec(null); setStrategy(null); setReview(null)
+    setProfile(p); setSelected(null); setSheet(null); setFocus(null); setTab('lease'); setLoadError(null); setSpec(null); setStrategy(null); setReview(null); setExpert(null); setOptions([])
     setReplaying(Boolean(recorded)); setView('agent')
     try {
       if (fixtureMode) {
@@ -73,6 +76,8 @@ export default function App() {
         dispatch({ type: 'event', event })
         if (event.type === 'file' && event.payload?.name === 'strategy.json') loadStrategy(runId).then(setStrategy).catch(() => setStrategy(null))
         if (event.type === 'file' && event.payload?.name === 'review.json') loadReview(runId).then(setReview).catch(() => setReview(null))
+        if (event.type === 'file' && event.payload?.name === 'options.json') loadOptions(runId).then(setOptions).catch(() => setOptions([]))
+        if (event.type === 'file' && event.payload?.name === 'expert.json') loadExpert(runId).then(setExpert).catch(() => setExpert(null))
         if (event.type === 'file') {
           loadRunArtifact(runId, String(event.payload?.name ?? ''))
             .then((action) => action && dispatch(action))
@@ -139,7 +144,7 @@ export default function App() {
   }, [spec, state.runId, report])
 
   return (
-    <>
+    <ExpertContext.Provider value={expert}>
       <nav className="nav">
         <button className="logo" onClick={reset} aria-label="Siteline home"><i aria-hidden="true" />SITELINE</button>
         <div className="steps">
@@ -223,7 +228,7 @@ export default function App() {
               )}
               {tab === 'proof' && <Proof report={report} spec={spec} />}
               {tab === 'decision' && review && <Decision r={review} onOpen={(id) => { setSelected(id); setSheet(id) }} />}
-              {tab === 'space' && strategy && <Space s={strategy} onOpen={(id) => { setSelected(id); setSheet(id) }} />}
+              {tab === 'space' && strategy && <Space s={strategy} options={options} onOpen={(id) => { setSelected(id); setSheet(id) }} />}
               {tab === 'ask' && <Ask report={report} onSelect={(id) => { setSelected(id); setSheet(id) }} />}
             </aside>
           )}
@@ -232,6 +237,6 @@ export default function App() {
 
       {log && <LogDrawer trace={state.trace} onClose={() => setLog(false)} />}
       {open && report && <PropertySheet rec={open} report={report} featureLabels={featureLabels} onClose={() => setSheet(null)} />}
-    </>
+    </ExpertContext.Provider>
   )
 }

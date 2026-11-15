@@ -5,6 +5,7 @@ final score F -> Dirichlet sensitivity. geo-service will import this module unch
 """
 
 import math
+import re
 from dataclasses import dataclass, field
 
 import h3
@@ -203,7 +204,40 @@ def competitor_column(pack: StockPack, competitor_feature: str | None) -> str | 
 
     None means net-new has no competition term; callers must show NO_COMPETITOR_CAVEAT (never invent a cap).
     """
-    return competitor_feature or pack.site_rules.get("competitor_feature")
+    if competitor_feature:
+        return competitor_feature
+    if pack.site_rules.get("competitor_mix"):
+        return f"_supply_{pack.id}"
+    return pack.site_rules.get("competitor_feature")
+
+
+def ensure_supply(grid: "Grid", pack: StockPack) -> None:
+    """Competitor supply as a weighted clinician count (site_rules.competitor_mix), e.g. orthopedic surgeons 1.0 plus
+    physiatrists 0.5 and podiatrists 0.25: musculoskeletal patients also see non-surgeons, so counting orthopedists
+    alone overstates what a new office can win."""
+    mix = pack.site_rules.get("competitor_mix") or {}
+    name = f"_supply_{pack.id}"
+    if mix and name not in grid.columns:
+        supply = np.zeros(len(grid))
+        for k, w in mix.items():
+            if k in grid.columns:
+                supply += np.nan_to_num(grid.columns[k], nan=0.0) * float(w)
+        grid.columns[name] = supply
+
+
+PHYSICIANS = re.compile(r"(\d+)\s*(?:orthopa?edic\s+|spine\s+|hand\s+|sports\s+(?:medicine\s+)?)?"
+                        r"(?:surgeons?|physicians?|doctors?|md'?s?|dos?)\b", re.I)
+
+
+def site_providers(profile: PracticeProfile) -> float:
+    """How big the new site is, in the competitor column's unit. For healthcare that is physicians: CMS lists PAs and
+    NPs under their own specialty, so competitors' APPs are not in the count and ours must not be either. Read from
+    the intake's capacity answer ("2 surgeons and 2 PAs"), else the average existing office."""
+    m = re.search(r"^\[capacity\][^:]*: (.+)$", profile.free_text or "", re.M)
+    found = PHYSICIANS.findall(m.group(1)) if m else []
+    if found:
+        return max(1.0, float(sum(int(n) for n in found)))
+    return max(1.0, float(np.mean([o.clinicians for o in profile.existing_offices]))) if profile.existing_offices else 1.0
 
 
 def competitor_attraction(grid: Grid, column: str | None, beta: float, max_minutes: float = MAX_MINUTES) -> np.ndarray:
@@ -267,6 +301,7 @@ def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
     d = demand(grid, pack, profile, model.model_copy(update={"segments": [core.model_copy(update={"weight": 1.0})]})
                if model is not None and core is not None else model)
     column = competitor_feature or (model.competitor_feature if model else None)
+    ensure_supply(grid, pack)
     column = column if column is None or column in grid.columns else None
     reach = TRIP_MINUTES[model.trip] if model is not None else MAX_MINUTES
     competitors = competitor_attraction(grid, competitor_column(pack, column), spec.beta, reach)
@@ -276,7 +311,7 @@ def huff(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
     competitors = without_own_sites(grid, competitors, competitor_column(pack, column), offices, pack, spec.beta, reach)
     office_attr = sum((_reach(grid, o.lat, o.lon, max(1, o.clinicians), spec.beta, reach) for o in offices),  # type: ignore[arg-type]
                       np.zeros(len(grid)))
-    site_size = max(1.0, float(np.mean([o.clinicians for o in profile.existing_offices]))) if profile.existing_offices else 1.0
+    site_size = site_providers(profile)
     before_denom = competitors + office_attr
     before_share = np.divide(office_attr, before_denom, out=np.zeros(len(grid)), where=before_denom > 0)
 

@@ -11,12 +11,13 @@ from __future__ import annotations
 from typing import Literal
 
 import h3
+import numpy as np
 from pydantic import BaseModel, Field
 
 from contracts.models import Factor, PracticeProfile, RankedSite, SiteCandidate, StockPack
 from services.agent.tools import geomath
 from services.agent.tools.geo_client import GeoClient
-from services.agent.tools.packs import orthopedic_focus
+from services.agent.tools.packs import is_orthopedic, orthopedic_focus
 
 Status = Literal["supports", "risk", "open", "not_applicable"]
 TRANSFER_RISK = 0.30  # more than 30% of what a site captures coming from your own offices is mostly a move, not growth
@@ -147,6 +148,10 @@ async def notes_for(site: SiteCandidate, r: RankedSite, profile: PracticeProfile
     transfer = r.cannibalized_patients / r.captured_patients if r.captured_patients else 0.0
     owner = (f"About {_fmt(r.net_new_patients)} net-new {label} a year; {transfer:.0%} of what it captures would move "
              "from your own offices.")
+    per, market = _per_physician(r, profile, pack, geo)
+    if per is not None:
+        owner += f" That is about {_fmt(per)} a year per surgeon"
+        owner += f" (Houston average about {_fmt(market)} per orthopedic-equivalent clinician)." if market else "."
     if r.stability is not None:
         owner += f" Stays in the top 10 in {r.stability:.0%} of 200 alternative weightings."
     notes.append(Note(perspective="Practice owner", question="Does it add patients across the network, or mostly move them?",
@@ -239,6 +244,21 @@ async def notes_for(site: SiteCandidate, r: RankedSite, profile: PracticeProfile
                           finding="Not material to this decision: the practice does not take Medicaid or CHIP, so the "
                                   "site choice does not change public-program access.", status="not_applicable"))
     return notes
+
+
+def _per_physician(r: RankedSite, profile: PracticeProfile, pack: StockPack, geo: GeoClient) -> tuple[float | None, float | None]:
+    """Net-new per planned surgeon, and the market's patients per unit of competitor supply (same units), so the
+    headline number can be checked against Houston as a whole. Healthcare packs with a clinician supply only."""
+    if not is_orthopedic(profile):
+        return None, None
+    per = r.net_new_patients / geomath.site_providers(profile)
+    grid = getattr(geo, "grid", None)
+    column = geomath.competitor_column(pack, None)
+    if grid is None or column is None:
+        return per, None
+    geomath.ensure_supply(grid, pack)
+    supply = float(np.nansum(grid.columns.get(column, np.zeros(1))))
+    return per, (float(geomath.demand(grid, pack, profile).sum()) / supply if supply else None)
 
 
 async def review(profile: PracticeProfile, pack: StockPack, ranked: list[RankedSite], sites: dict[str, SiteCandidate],

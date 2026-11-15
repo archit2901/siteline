@@ -73,7 +73,7 @@ export interface IntakeQuestion {
   id: string
   text: string
   why: string
-  kind: 'text' | 'long' | 'choice' | 'multi' | 'locations'
+  kind: 'text' | 'long' | 'choice' | 'multi' | 'locations' | 'weights'
   options: string[]
   placeholder: string
   required: boolean
@@ -119,4 +119,16 @@ export function loadReview(runId: string): Promise<Review> {
 }
 export function loadStrategy(runId: string): Promise<Strategy> {
   return request(`/runs/${runId}/artifacts/strategy.json`)
+}
+
+/** expert.json (services/agent/expert.py): expert-rule vs AI provenance per factor. Not a contract type. */
+export function loadExpert(runId: string): Promise<import('../lib/expert').ExpertReport> {
+  return request(`/runs/${runId}/artifacts/expert.json`)
+}
+
+/** options.json (services/agent/expert.py program_options): smaller programs and their best lease spaces. */
+export interface OptionSite { site_id: string; address: string; sqft: number | null; rent_psf: number | null; annual_rent: number | null; net_new: number; final_score: number }
+export interface ProgramOption { id: string; label: string; functions: Record<string, number>; left_out: Record<string, string>; min_sqft: number; max_sqft: number; parking_per_1000sf: number; sites: OptionSite[] }
+export function loadOptions(runId: string): Promise<ProgramOption[]> {
+  return request(`/runs/${runId}/artifacts/options.json`)
 }

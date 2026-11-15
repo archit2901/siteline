@@ -11,7 +11,7 @@ features:
   - {id: pop_45plus_within_5km, source: acs, value: "pop_45_64_within_5km+pop_65p_within_5km", label: "People 45+ within 5 km", agg: sum, direction: 1, unit: "people"}
   - {id: n_physical_therapy_within_5km, source: cms.doctors, value: n_physical_therapy_within_5km, label: "Physical therapists within 5 km (referral partners or PT competition)", agg: sum, direction: 1, unit: "clinicians"}
   - {id: n_orthopedics_within_10km, source: cms.doctors, value: n_orthopedics_within_10km, label: "Orthopedic clinicians within 10 km (competition)", agg: sum, direction: -1, unit: "clinicians"}
-site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray"], competitor_feature: n_orthopedics}
+site_rules: {min_parking_per_1000sf: 5, ground_floor: true, special_rooms: ["x-ray"], competitor_feature: n_orthopedics, competitor_mix: {n_orthopedics: 1, n_pm_and_r: 0.5, n_podiatry: 0.25}}
 factor_hints:
   - "degenerative joint demand: adults 45+, arthritis and obesity burden, Medicare share"
   - "youth and high school sports injuries: high schools with athletic programs (City of Houston schools, Grade_Range 09-12), sports fields"

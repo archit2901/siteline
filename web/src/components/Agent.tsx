@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { SourceBadge, SourceLegend, useSource } from '../lib/expert'
 import { safeHref } from '../lib/safe'
 import type { Scout, Todo, TraceLine } from '../state/runReducer'
 import type { ApprovalRequest, ApproveRequest, Factor } from '../types/contracts'
@@ -28,7 +29,7 @@ function FactorRow({ f, scout }: { f: Factor; scout?: Scout }) {
     <div className={`factor st-${status}`}>
       <button onClick={() => setOpen(!open)} aria-expanded={open}>
         <span className="sq" />
-        <span>{f.factor} <span className="dirm">{f.direction > 0 ? '↑' : '↓'}</span></span>
+        <span>{f.factor} <span className="dirm">{f.direction > 0 ? '↑' : '↓'}</span> <SourceBadge factorId={f.id} featureId={f.feature_id} /></span>
         <span className="stt">{scout && !['found', 'proxy', 'dropped'].includes(scout.status) ? SCOUT[scout.status] : STATUS[status]}</span>
       </button>
       {open && (
@@ -121,7 +122,7 @@ export function Approval({ approval, featureLabels, readOnly, step, businessName
       <div>
         <span className="hand">{step}</span>
         <h3 id="approval-title">Here’s what I think will contribute to success</h3>
-        <p className="count">Personalized for {businessName}. I weighed each factor against your profile, and my reasoning is under each one.</p>
+        <p className="count">Weighed for {businessName}. Drag to change what each factor is worth.</p>
         <button ref={ref} className="cta" onClick={approve} disabled={total <= 0}>
           <span className="arrow">✓</span><span className="label">{edited ? 'Use my weights' : 'Looks right'}</span></button>
         {edited && <button className="linkbtn" onClick={() => setW(proposed)}>Reset to my suggestion</button>}
@@ -132,26 +133,32 @@ export function Approval({ approval, featureLabels, readOnly, step, businessName
         )}
       </div>
       <div>
-        <p className="wintro">Change how much each one is worth, based on your expertise.</p>
+        <SourceLegend />
         {order.map((fid) => {
           const f = factorFor(fid)
           const label = f?.factor ?? featureLabels[fid] ?? fid
           const changed = Math.abs(share(fid) - proposed[fid]) > 0.005
-          const why = rationale[fid]
           return (
             <div className={`wrow edit ${changed ? 'changed' : ''}`} key={fid}>
-              <span title={label}>{label}{f && <span className={`prio p-${f.priority}`}>{f.priority}</span>}</span>
+              <span title={label}>{label} <SourceBadge factorId={f?.id} featureId={fid} /></span>
               <input type="range" min={0} max={top} step={0.005} value={w[fid] ?? 0} aria-label={`Weight for ${label}`}
                 onChange={(e) => setW({ ...w, [fid]: Number(e.target.value) })} />
               <span className="pct">{Math.round(share(fid) * 100)}%
                 {changed && <em className="was">was {Math.round(proposed[fid] * 100)}%</em>}</span>
-              {why && <span className="wwhy">{why}</span>}
+              <WhyLine fid={fid} factorId={f?.id} why={rationale[fid]} />
             </div>
           )
         })}
       </div>
     </div>
   )
+}
+
+/** Under a weight: the expert rule that backs it, else the model's reason. */
+function WhyLine({ fid, factorId, why }: { fid: string; factorId?: string; why?: string }) {
+  const s = useSource({ factorId, featureId: fid })
+  if (s?.source === 'expert' && s.rule) return <span className="wwhy expert">{s.rule}</span>
+  return why ? <span className="wwhy">{why}</span> : null
 }
 
 export function LogDrawer({ trace, onClose }: { trace: TraceLine[]; onClose: () => void }) {

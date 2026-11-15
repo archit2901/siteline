@@ -1,4 +1,5 @@
 import type { Review } from '../api/client'
+import { RuleBox } from '../lib/expert'
 
 const MARK: Record<string, string> = { met: '✓', failed: '✕', unknown: '?', supports: '✓', risk: '!', open: '?', not_applicable: '–' }
 const STATUS: Record<string, string> = { confirmed: 'Confirmed', provisional: 'Provisional', ineligible: 'Not eligible' }
@@ -14,6 +15,7 @@ export default function Decision({ r, onOpen }: { r: Review; onOpen: (siteId: st
         {r.why && <p>{r.why}</p>}
         <p className="sub">Objective: {r.objective} Compared with: {r.baseline}</p>
       </div>
+      <RuleBox title="Expert rules behind this pick" />
       {(r.alternative || r.what_could_change.length > 0) && (
         <div className="callout">
           <div className="kicker"><span>What could change it</span></div>

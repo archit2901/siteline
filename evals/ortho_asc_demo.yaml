@@ -1,0 +1,74 @@
+# EvalCase (contracts/models.py). SYNTHETIC orthopedic + ASC + MRI demo practice inspired by a Houston sports
+# orthopedic group; not a real practice. Same profile as the web preset ortho_sports_asc.
+id: ortho_asc_demo
+profile:
+  name: Bayou City Orthopedics & Sports (synthetic)
+  specialty: orthopedics
+  business_type: ''
+  customers: Active adults and weekend athletes with knee, shoulder and spine injuries; high school athletes; adults 50+ with
+    hip and knee arthritis
+  services:
+  - Clinic visits
+  - X-ray
+  - MRI / imaging
+  - Physical therapy
+  - Surgery center (ASC)
+  payers_accepted:
+  - commercial
+  - medicare
+  - workers_comp
+  languages:
+  - English
+  - Spanish
+  existing_offices:
+  - name: Memorial Village (synthetic)
+    address: null
+    lat: 29.7745
+    lon: -95.5285
+    clinicians: 4
+  - name: Sugar Land (synthetic)
+    address: null
+    lat: 29.5985
+    lon: -95.622
+    clinicians: 2
+  constraints:
+    min_sqft: 12300
+    max_sqft: 22900
+    max_rent_psf: null
+    min_parking_per_1000sf: 5.0
+    ground_floor: true
+    special_rooms:
+    - x-ray
+    - MRI suite
+    - 2 operating rooms
+    space_uses: []
+  free_text: '[org_type] What kind of organization is opening it: Private practice
+
+    [functions] Which functions will this office have, and how much does each matter: Clinic visits 10, Surgery center (ASC)
+    8, X-ray 8, MRI / imaging 7, Physical therapy 3
+
+    [ortho_focus] Which orthopedic care leads here: Sports medicine, Joint replacement (hip, knee, shoulder), Spine
+
+    [capacity] How many surgeons and APPs (PAs/NPs) will work here: 3 surgeons and 2 PAs
+
+    [surgery_site] Where do your surgeons operate: Memorial Hermann Memorial City
+
+    [team_coverage] Do you cover any high school, college or club teams: Memorial and Stratford high school football; Friday
+    sideline coverage
+
+    [referrals] Where do new patients come from today: primary care groups, urgent cares, athletic trainers, self-referral
+
+    [hours] When will the office be open: Weekdays, Early mornings, Saturday injury clinic
+
+    [best_location] Which current location does best, which struggles, and why do you think so: Memorial Village is full:
+    commercial patients, close to primary care groups and the hospital. Sugar Land is slower; it sits near two other orthopedic
+    groups.'
+  region_id: hou
+must_include:
+- distance from other orthopedic offices
+- primary care referral base
+- hospital where surgeons operate
+- high schools with athletic programs
+- commercial and Medicare payer mix
+- parking and step-free access
+must_not_include: []

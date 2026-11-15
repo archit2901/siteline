@@ -72,7 +72,7 @@ def test_intake_routes_orthopedics_to_its_own_questions() -> None:
 
 def test_names_match_longest_first_without_false_hits() -> None:
     assert match_names("Klein Cain and Klein Oak football", SCHOOLS, SCHOOL_WORDS) == ["KLEIN CAIN H S", "KLEIN OAK H S"]
-    assert match_names("Katy High School, Tompkins", SCHOOLS, SCHOOL_WORDS) == ["TOMPKINS H S", "KATY H S"]
+    assert match_names("Katy High School, Tompkins", SCHOOLS, SCHOOL_WORDS) == ["KATY H S", "TOMPKINS H S"]
     assert match_names("we cover Klein HS", SCHOOLS, SCHOOL_WORDS) == ["KLEIN H S"]
     assert match_names("Texas Orthopedic Hospital and Methodist", HOSPITALS, HOSPITAL_WORDS) == [
         "TEXAS ORTHOPEDIC HOSPITAL", "METHODIST HOSPITAL"]

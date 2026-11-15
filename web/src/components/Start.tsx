@@ -24,10 +24,48 @@ const TILE = [
 const SPECIALTIES = ['community health center', 'orthopedics', 'pediatric dentistry', 'dialysis', 'physical therapy', 'primary care', 'urgent care',
   'cardiology', 'dermatology', 'optometry', 'behavioral health', 'chiropractic']
 const PACKED = new Set(['orthopedics', 'pediatric_dentistry', 'dialysis', 'physical_therapy', 'community_health'])
+/** Healthcare mode: who is opening the office and which specialty (orthopedics is the deep track). */
+const ORG_TYPES = ['Private practice', 'Physician group (multi-site)', 'Hospital / health system outpatient', 'Academic medical center', 'Private equity-backed platform']
+const HEALTH_SPECIALTIES: [string, string][] = [['orthopedics', 'Orthopedics'], ['physical_therapy', 'Physical therapy'], ['primary_care', 'Primary care'],
+  ['urgent_care', 'Urgent care'], ['community_health', 'Community health center'], ['pediatric_dentistry', 'Pediatric dentistry'], ['dialysis', 'Dialysis'],
+  ['cardiology', 'Cardiology'], ['dermatology', 'Dermatology']]
+/** Office functions -> planning sq ft and parking per 1,000 sf (mirrors services/agent/expert.py SPACE). Clinic is per physician. */
+const SPACE: Record<string, [number, number]> = {
+  'Clinic visits': [1600, 5], 'X-ray': [300, 5], 'MRI / imaging': [1000, 4], 'Physical therapy': [2500, 5], 'Surgery center (ASC)': [9000, 5], 'Urgent care / walk-in': [3000, 6],
+}
+const parseWeights = (v: string, options: string[]) => Object.fromEntries(options.map((o) => {
+  const m = new RegExp(`${o.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}\\s*(\\d+)`).exec(v)
+  return [o, m ? Number(m[1]) : 0]
+}))
+const weightsText = (w: Record<string, number>) => Object.entries(w).filter(([, n]) => n > 0).map(([o, n]) => `${o} ${n}`).join(', ')
+const physiciansIn = (capacity: string | undefined, offices: Office[]) => {
+  const n = [...(capacity ?? '').matchAll(/(\d+)\s*(?:orthopa?edic\s+|spine\s+|sports\s+)?(?:surgeons?|physicians?|doctors?|mds?)\b/gi)].reduce((s, m) => s + Number(m[1]), 0)
+  return n || Math.max(1, Math.round(offices.reduce((s, o) => s + (o.clinicians ?? 1), 0) / Math.max(1, offices.length)))
+}
+export function suggestSpace(w: Record<string, number>, physicians: number) {
+  const on = Object.keys(w).filter((k) => w[k] > 0 && SPACE[k])
+  if (!on.length) return null
+  const total = on.reduce((s, k) => s + SPACE[k][0] * (k === 'Clinic visits' ? Math.max(1, physicians) : 1), 0)
+  const round = (x: number) => Math.round(x / 100) * 100
+  return { min: round(total * 0.7), max: round(total * 1.3), parking: Math.max(...on.map((k) => SPACE[k][1])), parts: on.map((k) => `${k.split(' (')[0]} ${(SPACE[k][0] * (k === 'Clinic visits' ? Math.max(1, physicians) : 1)).toLocaleString('en-US')}`) }
+}
+
+/** A textarea that grows with its text, so long answers stay visible without scrolling. */
+function AutoText(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight + 2}px` }
+  }, [props.value])
+  return <textarea ref={ref} rows={1} {...props} style={{ overflow: 'hidden', resize: 'none', ...props.style }} />
+}
+
 const LANGS = ['English', 'Spanish', 'Vietnamese', 'Chinese', 'Arabic']
 const KIND_HINTS = ['food pantry', 'laundromat', 'pediatric dentist', 'daycare', 'coffee shop', 'boxing gym', 'nonprofit youth center']
 const AREA_HINTS = ['On a bus line', 'Near schools', 'Near churches', 'Next to a grocery store', 'Near large employers',
   'Visible from a main road', 'Walkable, busy street', 'Lots of apartments', 'Growing new suburbs', 'Near a hospital']
+const CARE_HINTS = ['Near primary care groups', 'Near a hospital', 'Near large high schools', 'Easy parking at the door',
+  'Commercially insured families', 'Away from other orthopedic groups']
 /** Shown when the agent-api is unreachable (recorded mode): the questions every business gets. */
 const OFFLINE: QuestionSet = {
   sector: 'general.base', label: 'Any business', sector_questions: [],
@@ -58,6 +96,7 @@ export default function Start({ live, hasRecording, onRun }: Props) {
   const [picked, setPicked] = useState<string | null>(PRESETS[0].id)
   const [qs, setQs] = useState<QuestionSet>(OFFLINE)
   const [mode, setMode] = useState<'form' | 'chat'>('form')
+  const [track, setTrack] = useState<'health' | 'other'>(PRESETS[0].healthcare ? 'health' : 'other')
   const [tried, setTried] = useState(false)
   const [site, setSite] = useState('')
   const [siteMsg, setSiteMsg] = useState<string | null>(null)
@@ -109,6 +148,23 @@ export default function Start({ live, hasRecording, onRun }: Props) {
     const parsed = parseAnswers(preset.profile.free_text)
     setP(preset.profile); setAnswers(parsed.answers); setNotes(parsed.notes); setPicked(preset.id)
   }
+  const switchTrack = (next: 'health' | 'other') => {
+    if (next === track) return
+    setTrack(next); setMode('form')
+    const first = PRESETS.find((x) => x.healthcare === (next === 'health'))
+    if (first) use(first)
+  }
+  const shown = PRESETS.filter((x) => x.healthcare === (track === 'health'))
+  const fnQ = qs.sector_questions.find((q) => q.kind === 'weights')
+  const fnWeights = fnQ ? parseWeights(answers[fnQ.id] ?? '', fnQ.options) : {}
+  const suggestion = fnQ ? suggestSpace(fnWeights, physiciansIn(answers.capacity, offices)) : null
+  const setWeights = (w: Record<string, number>) => {
+    if (!fnQ) return
+    setA(fnQ.id, weightsText(w))
+    const on = fnQ.options.filter((o) => w[o] > 0)
+    const s = suggestSpace(w, physiciansIn(answers.capacity, offices))
+    setP((cur) => ({ ...cur, services: on, ...(s ? { constraints: { ...(cur.constraints ?? cons), min_sqft: s.min, max_sqft: s.max, min_parking_per_1000sf: s.parking } } : {}) }))
+  }
   const profile = (): PracticeProfile => ({
     ...p,
     services: (p.services ?? []).map((s) => s.trim()).filter(Boolean),
@@ -119,10 +175,38 @@ export default function Start({ live, hasRecording, onRun }: Props) {
 
   /** One question, rendered by kind; answers land in the contract field the question names. */
   const field = (q: IntakeQuestion) => {
-    const value = q.field === 'customers' ? p.customers ?? '' : q.field === 'services' ? (p.services ?? []).join(', ') : answers[q.id] ?? ''
+    const value = q.kind === 'weights' ? answers[q.id] ?? '' : q.field === 'customers' ? p.customers ?? '' : q.field === 'services' ? (p.services ?? []).join(', ') : answers[q.id] ?? ''
     const write = (v: string) => (q.field === 'customers' ? set({ customers: v })
       : q.field === 'services' ? set({ services: v.split(',').map((s) => s.trimStart()) }) : setA(q.id, v))
-    const head = <span>{q.text}{q.required && <em className="req"> required</em>}</span>
+    const text = track === 'health' ? q.text.replace(/\bcustomers\b/g, 'patients').replace(/\bCustomers\b/g, 'Patients') : q.text
+    const head = <span>{text}{q.required && <em className="req"> required</em>}</span>
+    if (q.kind === 'weights') {
+      const w = parseWeights(value, q.options)
+      return (
+        <div className="fl q fns" key={q.id}>{head}
+          {q.options.map((o) => (
+            <div className={`fnrow ${w[o] > 0 ? 'on' : ''}`} key={o}>
+              <button type="button" className={`pill ${w[o] > 0 ? 'on' : ''}`} aria-pressed={w[o] > 0} onClick={() => setWeights({ ...w, [o]: w[o] > 0 ? 0 : 5 })}>{o}</button>
+              <input type="range" min={0} max={10} value={w[o]} aria-label={`${o} importance`} onChange={(e) => setWeights({ ...w, [o]: Number(e.target.value) })} />
+              <b className="mono">{w[o] > 0 ? w[o] : '–'}</b>
+            </div>
+          ))}
+          {suggestion && <p className="suggest"><b>{suggestion.min.toLocaleString('en-US')}–{suggestion.max.toLocaleString('en-US')} sq ft · {suggestion.parking} parking / 1,000 sf</b>
+            <span>{suggestion.parts.join(' + ')} sq ft planned; searching 70–130%. Applied below.</span>
+            {w['Surgery center (ASC)'] > 0 && (() => {
+              const lite = suggestSpace({ ...w, 'Surgery center (ASC)': 0 }, physiciansIn(answers.capacity, offices))
+              return lite && <span>Most ASCs are their own building: without it, {lite.min.toLocaleString('en-US')}–{lite.max.toLocaleString('en-US')} sq ft. The run also ranks smaller programs.</span>
+            })()}</p>}
+        </div>
+      )
+    }
+    if (q.kind === 'choice' && q.options.length > 4 && track === 'health') {
+      return (
+        <label className="fl q" key={q.id}>{head}
+          <select value={value} onChange={(e) => write(e.target.value)}><option value="">Choose…</option>{q.options.map((o) => <option key={o}>{o}</option>)}</select>
+        </label>
+      )
+    }
     if (q.kind === 'choice' || q.kind === 'multi') {
       const chosen = q.field === 'payers' ? (p.payers_accepted ?? []).map((x) => PAYER_LABELS[x] ?? x)
         : q.kind === 'choice' ? (value ? [value] : [])
@@ -138,21 +222,17 @@ export default function Start({ live, hasRecording, onRun }: Props) {
         <div className="fl q" key={q.id}>{head}
           <div className="pills">{q.options.map((o) => (
             <button type="button" key={o} className={`pill ${chosen.includes(o) ? 'on' : ''}`} aria-pressed={chosen.includes(o)} onClick={() => toggle(o)}>{o}</button>))}</div>
-          <small className="why">{q.why}</small>
         </div>
       )
     }
     return (
       <label className="fl q" key={q.id}>{head}
-        {q.kind === 'long'
-          ? <textarea rows={2} value={value} placeholder={q.placeholder} onChange={(e) => write(e.target.value)} />
-          : <input value={value} placeholder={q.placeholder} onChange={(e) => write(e.target.value)} />}
-        <small className="why">{q.why}</small>
+        <AutoText value={value} placeholder={q.placeholder} onChange={(e) => write(e.target.value)} />
       </label>
     )
   }
   const pullHints = (
-    <div className="hints" key="pull-hints">{AREA_HINTS.map((h) => (
+    <div className="hints" key="pull-hints">{(track === 'health' ? CARE_HINTS : AREA_HINTS).map((h) => (
       <button type="button" key={h} onClick={() => setA('pull', answers.pull?.trim() ? `${answers.pull.trim().replace(/[.]?$/, '.')} ${h}.` : `${h}.`)}>+ {h}</button>))}</div>
   )
   const inStep = (step: string) => qs.base.filter((q) => STEP_OF[q.id] === step && q.kind !== 'locations')
@@ -163,14 +243,16 @@ export default function Start({ live, hasRecording, onRun }: Props) {
     <div className="page">
       <div className="wrap">
         <section className="hero">
-          <h1>Where should your next location open?</h1>
-          <p>Tell us about your business. An agent works out what makes it succeed here, finds the data, and ranks real Houston spaces by the {who} they’d win.</p>
+          <h1>{track === 'health' ? <>Where should your next <em className="hl">clinic</em> open?</> : 'Where should your next location open?'}</h1>
+          <p>{track === 'health'
+            ? 'Siteline Health ranks real Houston spaces by the patients they’d win, using orthopedic expert rules and public health data.'
+            : `An agent works out what makes your business succeed here, finds the data, and ranks real Houston spaces by the ${who} they’d win.`}</p>
         </section>
       </div>
       <div className="frame">
         <span className="tag" style={{ left: 'calc(6% + 10px)', top: 10 }}>Houston</span>
         <span className="tag" style={{ right: 'calc(6% + 10px)', top: 10 }}>11,720 cells</span>
-        <span className="tag" style={{ left: 'calc(6% + 10px)', bottom: 10 }}>Census · CMS · CDC · USDA · City of Houston</span>
+        <span className="tag" style={{ left: 'calc(6% + 10px)', bottom: 10 }}>{track === 'health' ? 'CMS · Census · TEA · City of Houston' : 'Census · CMS · CDC · USDA · City of Houston'}</span>
         <span className="tag" style={{ right: 'calc(6% + 10px)', bottom: 10 }}>CoStar · Vexcel · Matterport</span>
         <span className="dot" style={{ left: '6%', top: 0 }} />
         <span className="dot" style={{ right: '6%', top: 0, transform: 'translate(50%,-50%)' }} />
@@ -179,20 +261,21 @@ export default function Start({ live, hasRecording, onRun }: Props) {
 
         <div className="composer">
           <div>
-            {live && (
-              <div className="tabs intake-mode" role="tablist">
-                <button role="tab" aria-selected={mode === 'form'} className={mode === 'form' ? 'on' : ''} onClick={() => setMode('form')}>Guided questions</button>
-                <button role="tab" aria-selected={mode === 'chat'} className={mode === 'chat' ? 'on' : ''} onClick={() => setMode('chat')}>Talk it through</button>
-              </div>
+            <div className="tabs intake-mode" role="tablist">
+              <button role="tab" aria-selected={track === 'health'} className={track === 'health' ? 'on' : ''} onClick={() => switchTrack('health')}><span className="cross" aria-hidden>+</span> Healthcare</button>
+              <button role="tab" aria-selected={track === 'other'} className={track === 'other' ? 'on' : ''} onClick={() => switchTrack('other')}>Other</button>
+            </div>
+            {track === 'other' && live && (
+              <button type="button" className="linkbtn chatlink" onClick={() => setMode(mode === 'chat' ? 'form' : 'chat')}>{mode === 'chat' ? 'Back to the questions' : 'Or describe it in a chat'}</button>
             )}
-            {mode === 'chat' && live
+            {mode === 'chat' && live && track === 'other'
               ? <Chat onUse={(draft) => { const parsed = parseAnswers(draft.free_text); setP(draft); setAnswers(parsed.answers); setNotes(parsed.notes); setPicked(null); setMode('form') }} />
               : (
           <form className="form" onSubmit={(e) => { e.preventDefault(); submit() }}>
             <section className="step">
               <span className="sn">1/6</span>
               <div className="sb">
-                <h3>Your business</h3>
+                <h3>{track === 'health' ? 'Your practice' : 'Your business'}</h3>
                 {live && (
                   <div className="fl siteread"><span>Start from your website</span>
                     <div className="siterow">
@@ -200,18 +283,29 @@ export default function Start({ live, hasRecording, onRun }: Props) {
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); readSite() } }} />
                       <button type="button" className="pillbtn dark" disabled={reading || !site.trim()} onClick={readSite}>{reading ? 'Reading…' : 'Fill from website'}</button>
                     </div>
-                    <small className="why">{siteMsg ?? 'The agent reads your site (locations, services, insurance, who you serve) and fills in what it states. You check every answer.'}</small>
+                    {siteMsg && <small className="why">{siteMsg}</small>}
                   </div>
                 )}
                 <div className="grid2">
                   <label className="fl"><span>Name</span>
                     <input value={p.name} required onChange={(e) => set({ name: e.target.value })} placeholder="Eastside Community Pantry" /></label>
-                  <label className="fl"><span>What kind of business is it?</span>
-                    <input value={kind} required list="kinds" placeholder="food pantry, laundromat, pediatric dentist…" onChange={(e) => setKind(e.target.value)} />
-                    <datalist id="kinds">{[...SPECIALTIES, ...KIND_HINTS].map((k) => <option key={k} value={k} />)}</datalist></label>
+                  {track === 'health'
+                    ? <label className="fl"><span>Specialty</span>
+                        <select value={p.specialty ?? ''} onChange={(e) => set({ specialty: e.target.value, business_type: '', stock_pack: null })}>
+                          {!HEALTH_SPECIALTIES.some(([v]) => v === p.specialty) && <option value={p.specialty ?? ''}>{kind || 'Choose…'}</option>}
+                          {HEALTH_SPECIALTIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+                    : <label className="fl"><span>What kind of business is it?</span>
+                        <input value={kind} required list="kinds" placeholder="food pantry, laundromat, coffee shop…" onChange={(e) => setKind(e.target.value)} />
+                        <datalist id="kinds">{KIND_HINTS.map((k) => <option key={k} value={k} />)}</datalist></label>}
                 </div>
-                {live && kind.trim() && (
-                  <p className="sector" aria-live="polite"><b>{qs.label}</b> questions loaded{healthcare && !PACKED.has(p.specialty ?? '') ? ' · general healthcare data (no specialty pack yet)' : ''}</p>
+                {track === 'health' && (
+                  <label className="fl"><span>Organization type</span>
+                    <select value={answers.org_type ?? ''} onChange={(e) => setA('org_type', e.target.value)}>
+                      <option value="">Choose…</option>{ORG_TYPES.map((o) => <option key={o}>{o}</option>)}</select></label>
+                )}
+                {fnQ && field(fnQ)}
+                {live && kind.trim() && track === 'other' && (
+                  <p className="sector" aria-live="polite"><b>{qs.label}</b> questions loaded</p>
                 )}
                 {!qs.sector_questions.some((q) => q.field === 'services') && (
                   <label className="fl"><span>Services</span>
@@ -225,14 +319,13 @@ export default function Start({ live, hasRecording, onRun }: Props) {
               <span className="sn">2/6</span>
               <div className="sb">
                 <h3>Where you are today</h3>
-                <p className="lead">The most useful thing you can give the agent. Your own sites show what a good neighborhood looks like for you, and their customers are subtracted so a new site isn’t just stealing from them.</p>
                 <div className="fl"><span>Current locations<em className="req"> required</em></span>
                   {offices.map((o, i) => (
                     <div className="orow" key={i}>
                       <input value={o.name} placeholder="Name" onChange={(e) => setOffice(i, { name: e.target.value })} />
                       <input value={o.address ?? ''} placeholder={o.lat != null ? 'Pinned on map' : 'Street address'}
                         onChange={(e) => setOffice(i, { address: e.target.value, lat: null, lon: null })} />
-                      <input type="number" min={1} value={o.clinicians ?? 1} title={healthcare ? 'Clinicians' : 'Staff'} onChange={(e) => setOffice(i, { clinicians: Number(e.target.value) })} />
+                      <input type="number" min={1} value={o.clinicians ?? 1} title={healthcare ? 'Physicians' : 'Staff'} aria-label={healthcare ? 'Physicians' : 'Staff'} onChange={(e) => setOffice(i, { clinicians: Number(e.target.value) })} />
                       <button type="button" className="x" aria-label="Remove location" onClick={() => set({ existing_offices: offices.filter((_, j) => j !== i) })}>×</button>
                     </div>
                   ))}
@@ -263,9 +356,8 @@ export default function Start({ live, hasRecording, onRun }: Props) {
               <section className="step sector-step">
                 <span className="sn">4/6</span>
                 <div className="sb">
-                  <h3>For a {qs.label.toLowerCase()}</h3>
-                  <p className="lead">Picked from what you typed. These are the details that separate a site that works for this kind of business from one that doesn’t.</p>
-                  {sectorQs.map(field)}
+                  <h3>{track === 'health' ? `${qs.label} details` : `For a ${qs.label.toLowerCase()}`}</h3>
+                  {sectorQs.filter((q) => q.kind !== 'weights' && !(track === 'health' && q.id === 'org_type')).map(field)}
                 </div>
               </section>
             )}
@@ -274,10 +366,9 @@ export default function Start({ live, hasRecording, onRun }: Props) {
               <span className="sn">5/6</span>
               <div className="sb">
                 <h3>What makes you different</h3>
-                <p className="lead">This turns a generic search into yours. The agent turns each detail into a factor, then goes looking for public data to measure it in every Houston neighborhood.</p>
                 {inStep('edge')}
                 <label className="fl"><span>Anything else?</span>
-                  <textarea rows={2} value={notes} onChange={(e) => { setNotes(e.target.value); setPicked(null) }} placeholder="Grant service areas, a site you already tried, a landlord you trust…" /></label>
+                  <AutoText value={notes} onChange={(e) => { setNotes(e.target.value); setPicked(null) }} placeholder="A site you already tried, a landlord you trust…" /></label>
               </div>
             </section>
 
@@ -314,7 +405,7 @@ export default function Start({ live, hasRecording, onRun }: Props) {
 
           <div className="templates">
             <div className="tpl-label">Or start from</div>
-            {PRESETS.map((preset, i) => (
+            {shown.map((preset, i) => (
               <button key={preset.id} className={`tpl ${picked === preset.id ? 'on' : ''}`} style={{ background: TILE[i % TILE.length].bg }} onClick={() => { use(preset); setMode('form') }}>
                 <span className="shape" style={TILE[i % TILE.length].shape} /><b>{preset.label}</b>
               </button>

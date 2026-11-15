@@ -35,6 +35,8 @@ from services.agent.critic import build_report
 from services.agent.factor_analyst import analyze
 from services.agent.runs import Run
 from services.agent.profiler import profile_business
+from services.agent.expert import ProgramOption, function_scouts, option_sites, provenance
+from services.agent.expert import program_options as expert_options
 from services.agent.partners import partner_scouts
 from services.agent.review import review
 from services.agent.scout import ScoutResult, run_scout
@@ -175,6 +177,14 @@ async def run_pipeline(run: Run) -> None:
         await run.emit(f"dataset-scout:{r.factor_id}", "tool_result", {
             "tool": "choose_dataset", "factor_id": r.factor_id, "ok": True, "summary": r.candidate.title if r.candidate else ""})
     caveats += [n for n in partner_notes if n.startswith("Could not")]
+    # expert rules: the practices that matter for the office's functions (PT clinics, urgent cares, imaging,
+    # primary care groups, other orthopedic offices), found in CMS clinician records; no model call
+    factors, found, _ = function_scouts(profile, factors, run.run_id[:6])
+    for r in found:
+        await run.emit("factor-analyst", "factor", next(f for f in factors if f.id == r.factor_id).model_dump(mode="json"))
+        await run.emit(f"dataset-scout:{r.factor_id}", "tool_result", {
+            "tool": "choose_dataset", "factor_id": r.factor_id, "ok": True, "summary": r.candidate.title if r.candidate else ""})
+    partners = partners + found
     taken = {r.factor_id for r in partners} | ({competitor.factor_id} if competitor else set())
     uncovered = [f for f in factors if f.feature_id is None and f.id not in taken]
     uncovered.sort(key=lambda f: {"high": 0, "medium": 1, "low": 2}[f.priority])
@@ -233,6 +243,8 @@ async def run_pipeline(run: Run) -> None:
     run.state["factors"] = factors
     run.write_artifact("factors.json", TypeAdapter(list[Factor]).dump_json(factors, indent=2).decode())
     await run.emit(S, "file", {"name": "factors.json", "path": "/factors.json"})
+    run.write_artifact("expert.json", provenance(profile, factors).model_dump_json(indent=2))
+    await run.emit(S, "file", {"name": "expert.json", "path": "/expert.json"})
 
     # 5. weights approval, then score
     await run.emit(S, "todo", todos(4))
@@ -295,6 +307,23 @@ async def run_pipeline(run: Run) -> None:
     run.write_artifact("strategy.json", plan.model_dump_json(indent=2))
     caveats.append(strategy.caveat(plan))
     await run.emit(S, "file", {"name": "strategy.json", "path": "/strategy.json"})
+    # smaller programs (leave the ASC, PT or MRI elsewhere): their own size range, search and best lease spaces
+    options = expert_options(profile)
+    for opt in options[1:]:
+        c = profile.constraints.model_copy(update={"min_sqft": opt.min_sqft, "max_sqft": opt.max_sqft,
+                                                    "min_parking_per_1000sf": opt.parking_per_1000sf})
+        found_sites = await sites_client.search(request.model_copy(update={"constraints": c.model_copy(
+            update={"space_uses": constraints.space_uses})}))
+        if not found_sites:
+            continue
+        sized = profile.model_copy(update={"constraints": c})
+        opt_ranked = await geo.rank(RankRequest(profile=sized, spec=spec, candidates=found_sites, with_stability=False,
+                                                demand=demand))
+        opt.sites = option_sites(opt_ranked, {s.id: s for s in found_sites})
+    if options:
+        options[0].sites = option_sites(ranked, {s.id: s for s in sites})
+        run.write_artifact("options.json", TypeAdapter(list[ProgramOption]).dump_json(options, indent=2).decode())
+        await run.emit(S, "file", {"name": "options.json", "path": "/options.json"})
     label = demand.demand_label if demand is not None else "patients"
     decision = await review(profile, pack_for(profile), ranked, {s.id: s for s in sites}, factors, geo, label)
     run.write_artifact("review.json", decision.model_dump_json(indent=2))

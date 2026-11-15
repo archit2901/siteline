@@ -64,7 +64,8 @@ Rules:
 - Rate every factor listed, once, by its factor_id.
 - Base importance on this business's own details: who its customers are, which insurance it takes, its services,
   how people get there, and anything in its notes. Two businesses of the same type can need different weights.
-- Demand and payer fit usually outweigh nice-to-haves. Competition matters more when customers travel short distances.
+- Use the whole scale. Give the one or two factors that decide success 9 or 10 and true nice-to-haves 2 or 3;
+  do not rate everything 5 to 7. Demand, payer fit and competition usually outweigh hazards and amenities.
 - why: one plain sentence, written to the owner ("Your ..."), that names the specific detail of this business that
   makes the factor matter this much. Do not repeat the factor's name. Do not use any digits or numbers."""
 
@@ -96,9 +97,21 @@ def _factor_lines(factors: list[Factor]) -> str:
                      + (" | measured by a proxy" if f.status == "proxy" else "") for f in factors)
 
 
-def spec_from_advice(factors: list[Factor], advice: WeightAdvice | None) -> tuple[ScoringSpec, list[str]]:
+GROWTH = 1.5  # importance is convex: each step up is worth half again, so a 9 counts ~11x a 3, not 3x
+
+
+def points_for(importance: float) -> float:
+    return GROWTH ** (importance - 1)
+
+
+def spec_from_advice(factors: list[Factor], advice: WeightAdvice | None,
+                     profile: PracticeProfile | None = None) -> tuple[ScoringSpec, list[str]]:
     """Validated advice -> ScoringSpec. Missing or invalid items fall back to the analyst's priority, and a
-    justification with digits (or empty) falls back to the factor's own why. Returns the spec and notes."""
+    justification with digits (or empty) falls back to the factor's own why. Returns the spec and notes.
+
+    Importance maps to points convexly (points_for), then expert rules (services/agent/expert.py) multiply: an
+    orthopedic office's distance from other orthopedic offices is promoted, flood and transit are dampened."""
+    from services.agent import expert
     usable = scorable(factors)
     if not usable:
         raise ValueError("no factor has a zone feature to score")
@@ -118,7 +131,8 @@ def spec_from_advice(factors: list[Factor], advice: WeightAdvice | None) -> tupl
             if not reason or re.search(r"\d", reason):
                 reason = f.why
         fid = f.feature_id
-        points[fid] = points.get(fid, 0.0) + importance  # type: ignore[index]
+        boost = expert.tier(profile, f) if profile is not None else 1.0
+        points[fid] = points.get(fid, 0.0) + points_for(importance) * boost  # type: ignore[index]
         why[fid] = reason if fid not in why else f"{why[fid]} {reason}"  # type: ignore[index]
     total = sum(points.values())
     return ScoringSpec(
@@ -145,7 +159,7 @@ async def advise_weights(profile: PracticeProfile, factors: list[Factor], meter:
         advice = result if isinstance(result, WeightAdvice) else None
         if advice is None or not advice.weights:
             raise ValueError("no weight advice returned")
-        return spec_from_advice(factors, advice)
+        return spec_from_advice(factors, advice, profile)
     except Exception as exc:  # the run must go on: priorities are a sound default
-        spec, _ = spec_from_advice(factors, None)
+        spec, _ = spec_from_advice(factors, None, profile)
         return spec, [f"Weight advice unavailable ({type(exc).__name__}); weights follow the analyst's priorities."]

@@ -1,3 +1,5 @@
+import { SourceBadge } from '../lib/expert'
+
 /** Factor weights as shares of 100%, with the market-modeler's reason under each. Editable unless readOnly. */
 interface Props {
   weights: Record<string, number>
@@ -29,7 +31,7 @@ export default function WeightSliders({ weights, proposed, rationale = {}, featu
         return (
           <li className="weight" key={fid}>
             <span className="wname">
-              {label}
+              {label} <SourceBadge featureId={fid} />
               {rationale[fid] && <small>{rationale[fid]}</small>}
             </span>
             {readOnly || !onChange ? (

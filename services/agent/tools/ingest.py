@@ -27,7 +27,7 @@ import httpx
 import numpy as np
 
 from contracts.models import DatasetPreview, FeatureSpec, PreviewRequest, ValidationReport
-from services.agent.tools import geomath
+from services.agent.tools import cms_points, geomath
 from services.agent.tools.allowlist import BlockedURL, safe_request
 
 log = logging.getLogger(__name__)
@@ -160,6 +160,10 @@ def _features_to_rows(features: list[dict[str, Any]]) -> list[dict[str, Any]]:
 async def fetch_rows(url: str, fmt: str, *, tract_key: str | None = None, preview: bool = False) -> Rows:
     if fmt in ("gtfs", "census_api"):
         raise ValueError(f"{fmt} sources need a connector, not the generic reader")
+    layer = cms_points.layer_of(url)
+    if layer is not None:  # practices derived from CMS Doctors and Clinicians (services/agent/tools/cms_points.py)
+        return Rows(cms_points.rows(layer), "cms", [f"{cms_points.LAYERS[layer]} from CMS Doctors and Clinicians, "
+                                                    "clinicians grouped by practice address"])
     cap = PREVIEW_BYTES if preview else MAX_BYTES
     async with httpx.AsyncClient(headers=HEADERS, trust_env=False) as client:
         if urlparse(url).hostname == "overpass-api.de":

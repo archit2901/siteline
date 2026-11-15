@@ -1,444 +1,504 @@
 [
-  {
-    "id": "hope_clinic",
-    "label": "HOPE Clinic",
-    "healthcare": true,
-    "profile": {
-      "name": "HOPE Clinic",
-      "specialty": "community_health",
-      "business_type": "",
-      "customers": "Everyone regardless of ability to pay, in particular the uninsured, the underinsured, people with limited English and low-income families: immigrant families from 90 countries (many Asian, Hispanic, Arab and Burmese), all ages from newborns to seniors, with many pregnant women, children on Medicaid or CHIP, and adults managing diabetes, high blood pressure and depression.",
-      "services": [
-        "Primary care",
-        "Pediatrics",
-        "Women's health / OB",
-        "Behavioral health",
-        "Dental",
-        "Vision",
-        "Pharmacy (340B)",
-        "Lab",
-        "Enabling services (eligibility, interpreters, transport)"
-      ],
-      "payers_accepted": [
-        "medicaid",
-        "chip",
-        "medicare",
-        "commercial",
-        "self_pay"
-      ],
-      "patient_mix": {},
-      "languages": [
-        "English",
-        "Spanish",
-        "Mandarin",
-        "Cantonese",
-        "Vietnamese",
-        "Korean",
-        "Burmese",
-        "Arabic"
-      ],
-      "existing_offices": [
-        {
-          "name": "HOPE Beltway",
-          "address": "7001 Corporate Dr. #120, Houston, TX 77036",
-          "lat": 29.70334959,
-          "lon": -95.55085859,
-          "clinicians": 6
-        },
-        {
-          "name": "HOPE West",
-          "address": "12121 Westheimer Rd. #205, Houston, TX 77077",
-          "lat": 29.73622916,
-          "lon": -95.59385062,
-          "clinicians": 3
-        },
-        {
-          "name": "HOPE Alief",
-          "address": "13930 Bellaire Blvd., Houston, TX 77083",
-          "lat": 29.70444817,
-          "lon": -95.62841952,
-          "clinicians": 8
-        },
-        {
-          "name": "HOPE Aldine",
-          "address": "3000 Aldine Mail Rd. Building C #200, Houston, TX 77039",
-          "lat": 29.90198142,
-          "lon": -95.34323692,
-          "clinicians": 3
-        },
-        {
-          "name": "HOPE Aldine Meadows",
-          "address": "2112 Aldine Meadows Rd., Houston, TX 77032",
-          "lat": 29.93464,
-          "lon": -95.35286001,
-          "clinicians": 2
-        }
-      ],
-      "constraints": {
-        "min_sqft": 6000,
-        "max_sqft": 15000,
-        "max_rent_psf": 30.0,
-        "min_parking_per_1000sf": 4.0,
-        "ground_floor": false,
-        "special_rooms": [
-          "dental operatories",
-          "eye exam lane",
-          "counseling rooms",
-          "pharmacy"
-        ],
-        "space_uses": []
-      },
-      "free_text": "[best_location] Which current location does best, which struggles, and why do you think so: HOPE Alief (HHWC, 13930 Bellaire Blvd) does best: the newly built T.T. and W.F. Chao Foundation Health and Wellness Center has every service line (adult medicine, pediatrics, OB/GYN, behavioral health, dental, vision, lab and our only in-house pharmacy), evening hours Mon-Thu until 7pm and Saturdays 9-5, and sits in the middle of Alief's dense, multilingual immigrant neighborhoods. HOPE Beltway (Sharpstown, near the Bellaire Blvd Chinatown corridor) is our original home and has the longest hours, but is under temporary construction. HOPE West (Westchase, a second-floor suite on Westheimer) struggles: patients say you can miss it if you blink, it is weekdays only and has no vision or pharmacy. The Aldine sites in north Houston have shorter, split hours and fewer services; Aldine Meadows is a school-based clinic beside Aldine Middle School. Full-service, extended-hours sites in dense immigrant areas work best.\n[customer_origin] Where do your customers come from today: Mostly southwest Houston around our first four sites: Alief (77072, 77082, 77083, 77099), Sharpstown and Gulfton (77036, 77074, 77081) and Westchase (77042, 77077); and north Houston around East Aldine and Greenspoint (77032, 77039, 77060, 77093). Patients come from 90 birth countries. Most live within a 15-20 minute drive or bus ride of a site; the pharmacy delivers up to 50 miles. (ZIP codes are where our sites draw from, not a patient-origin report.)\n[unique] What makes you different from others who do the same thing: Language access and cultural competence: care in 30+ languages in-house (72 languages served, patients from 90 birth countries), most often Spanish, Mandarin, Cantonese, Vietnamese, Korean, Burmese and Arabic, with interpreters for the rest. Roots in the Asian American community (founded by the Asian American Health Coalition, first clinic in a Chinese Baptist Church in 2002), now serving Hispanic, Arab, Burmese and African immigrant families too. One-stop integrated care: primary care, pediatrics, OB with Centering Pregnancy, behavioral health in patients' own languages, dental, vision, lab and a 340B pharmacy. Sliding fee for anyone regardless of income, insurance or immigration status. Recognized Patient-Centered Medical Home. Programs beyond the exam room: FoodRx produce with the Houston Food Bank, Bite of HOPE cooking for diabetes, Walk with HOPE, maternal and child health.\n[pull] What about a neighborhood would pull people to your door: Large immigrant and limited-English households (Asian, Hispanic, Arab, Burmese, African communities); people below 200% of poverty and uninsured adults; young families, pregnant women and children on Medicaid or CHIP; high diabetes, high blood pressure and obesity rates; METRO bus lines on the main roads (patients ride the bus); apartment complexes; ethnic grocery and shopping centers where our communities already go; churches, temples, mosques and community centers that refer people; schools for school-based care; food pantries; and no other community health center close by.\n[competitors] Who do you compete with, or who else serves the same people: Other Houston FQHCs (HRSA list): Legacy Community Health (largest, 60+ sites), Harris Health's community clinics, Spring Branch Community Health Center, Fort Bend Family Health Center, Houston Community Health Centers, Lone Star Community Health Center, St. Hope Foundation, Avenue 360 / Houston Area Community Services and Bee Busy Wellness Center. Also free and charity clinics, urgent cares, retail clinics and freestanding ERs that uninsured patients use for primary care. Other health centers are also partners: we want gaps, not overlap.\n[visibility] How much does being seen from the road matter: Helps, not essential\n[tenure] Would you lease, buy or build: Open to building new\n[space] Anything else the space must have: A full-service site like HOPE Alief (estimates): 8,000-12,000 sq ft medical buildout with 12-16 exam rooms (2-3 per clinician), 4-6 dental operatories (plumbing, compressor, vacuum), an eye exam lane, lab and phlebotomy, 2-3 private counseling rooms, a group room for Centering Pregnancy and nutrition classes, eligibility and interpreter workstations, a pharmacy pickup counter, and a waiting room for families with strollers. Ground floor or elevator, accessible entrance and restrooms, drop-off at the door, about 4-5 parking spaces per 1,000 sq ft, a bus stop within a short walk. Hours Mon-Thu 8am-7pm, Fri 8-5, Sat 9-5. Signage visible from the main road; a retail center or medical office building both work. Rent screening ceiling about $30/sq ft/yr.\n[hc_status] What kind of health center are you: Federally Qualified Health Center (FQHC)\n[service_area] Is the new site part of a grant or HRSA service area: Yes: HRSA Health Center Program awardee (grant H80CS24153), Greater Houston. Harris County first, Fort Bend acceptable. The new site should reach neighborhoods our five sites don't already cover and should not sit on top of another health center's service area; medically underserved areas and primary care shortage areas are a plus.\n[volume] How many patients does a site see a year, and with how many clinicians: 31,061 unique patients across five sites (website), over 100,000 visits a year. A new full-service site should plan for about 5,000-8,000 patients a year with 6-8 clinicians (estimate).\n[client_travel] How do patients reach you: Mix\n[partners] Which partners refer patients or share space: Houston Food Bank (FoodRx produce for food-insecure patients with diabetes); Cities Changing Diabetes (Bite of HOPE); Houston Methodist (pulmonology at our sites); Aldine ISD (school-based clinic at Aldine Middle School); the Chinese Baptist Church and Chinese Community Center (where HOPE began); Hogg Foundation for Mental Health (AAPI mental health program); T.T. and W.F. Chao Foundation (HOPE Alief building). We want churches, schools, food pantries and hospital emergency rooms nearby for referrals.\nPayers: Medicaid (incl. Medicaid MCO plans and Medicaid for Pregnant Women), CHIP, Medicare, ACA Marketplace and most major commercial plans; uninsured and underinsured patients on a sliding fee by income and family size. Shares by payer are not published on our website.",
-      "stock_pack": null,
-      "region_id": "hou"
+ {
+  "id": "ortho_sports_asc",
+  "label": "Ortho + ASC (synthetic)",
+  "healthcare": true,
+  "profile": {
+   "name": "Bayou City Orthopedics & Sports (synthetic)",
+   "specialty": "orthopedics",
+   "business_type": "",
+   "customers": "Active adults and weekend athletes with knee, shoulder and spine injuries; high school athletes; adults 50+ with hip and knee arthritis",
+   "services": [
+    "Clinic visits",
+    "X-ray",
+    "MRI / imaging",
+    "Physical therapy",
+    "Surgery center (ASC)"
+   ],
+   "payers_accepted": [
+    "commercial",
+    "medicare",
+    "workers_comp"
+   ],
+   "patient_mix": {},
+   "languages": [
+    "English",
+    "Spanish"
+   ],
+   "existing_offices": [
+    {
+     "name": "Memorial Village (synthetic)",
+     "address": null,
+     "lat": 29.7745,
+     "lon": -95.5285,
+     "clinicians": 4
+    },
+    {
+     "name": "Sugar Land (synthetic)",
+     "address": null,
+     "lat": 29.5985,
+     "lon": -95.622,
+     "clinicians": 2
     }
-  },
-  {
-    "id": "laundromat",
-    "label": "Laundromat",
-    "healthcare": false,
-    "profile": {
-      "name": "Example Laundromat",
-      "specialty": "",
-      "business_type": "laundromat",
-      "customers": "Apartment renters without in-unit washers, many families, some without a car",
-      "services": [
-        "self-service washers and dryers",
-        "wash-and-fold"
-      ],
-      "payers_accepted": [],
-      "patient_mix": {},
-      "languages": [
-        "English",
-        "Spanish"
-      ],
-      "existing_offices": [
-        {
-          "name": "Store A (Gulfton area)",
-          "address": null,
-          "lat": 29.721,
-          "lon": -95.476,
-          "clinicians": 1
-        }
-      ],
-      "constraints": {
-        "min_sqft": 2000,
-        "max_sqft": 5000,
-        "max_rent_psf": null,
-        "min_parking_per_1000sf": 3.0,
-        "ground_floor": true,
-        "special_rooms": [],
-        "space_uses": []
-      },
-      "free_text": "Our customers live in apartments nearby and often walk or take the bus.",
-      "stock_pack": null,
-      "region_id": "hou"
-    }
-  },
-  {
-    "id": "coffee_shop",
-    "label": "Coffee shop",
-    "healthcare": false,
-    "profile": {
-      "name": "Example Coffee Shop",
-      "specialty": "",
-      "business_type": "coffee shop",
-      "customers": "Office workers on weekday mornings and young adults on weekends",
-      "services": [
-        "espresso drinks",
-        "pastries",
-        "seating for remote work"
-      ],
-      "payers_accepted": [],
-      "patient_mix": {},
-      "languages": [
-        "English"
-      ],
-      "existing_offices": [],
-      "constraints": {
-        "min_sqft": 1200,
-        "max_sqft": 3000,
-        "max_rent_psf": null,
-        "min_parking_per_1000sf": 2.0,
-        "ground_floor": true,
-        "special_rooms": [],
-        "space_uses": []
-      },
-      "free_text": "Morning commute traffic and nearby offices matter most.",
-      "stock_pack": null,
-      "region_id": "hou"
-    }
-  },
-  {
-    "id": "tutoring_center",
-    "label": "Tutoring center",
-    "healthcare": false,
-    "profile": {
-      "name": "Example Tutoring Center",
-      "specialty": "",
-      "business_type": "tutoring center",
-      "customers": "K-12 students whose parents pay for after-school tutoring and test prep",
-      "services": [
-        "math and reading tutoring",
-        "SAT/ACT prep"
-      ],
-      "payers_accepted": [],
-      "patient_mix": {},
-      "languages": [
-        "English"
-      ],
-      "existing_offices": [],
-      "constraints": {
-        "min_sqft": 1500,
-        "max_sqft": 4000,
-        "max_rent_psf": null,
-        "min_parking_per_1000sf": 3.0,
-        "ground_floor": false,
-        "special_rooms": [],
-        "space_uses": []
-      },
-      "free_text": "Parents drive kids after school; families with higher incomes are our core customers.",
-      "stock_pack": null,
-      "region_id": "hou"
-    }
-  },
-  {
-    "id": "baylor_orthopedics",
-    "label": "Baylor orthopedics",
-    "healthcare": true,
-    "profile": {
-      "name": "Baylor College of Medicine",
-      "specialty": "orthopedics",
-      "business_type": "",
-      "customers": "Adults 18-44, 45-64 and 65+",
-      "services": [
-        "preventive examinations",
-        "vaccinations",
-        "acute visits",
-        "diabetes and hypertension management",
-        "medication follow-up",
-        "geriatric care",
-        "behavioral-health consultations",
-        "nutrition/weight-management support"
-      ],
-      "payers_accepted": [],
-      "patient_mix": {},
-      "languages": [
-        "English"
-      ],
-      "existing_offices": [
-        {
-          "name": "Upper Kirby",
-          "address": "3701 Kirby Drive, Suite 100, Houston, TX 77098",
-          "lat": null,
-          "lon": null,
-          "clinicians": 6
-        },
-        {
-          "name": "River Oaks",
-          "address": "3743 Westheimer Road, Houston, TX 77027",
-          "lat": null,
-          "lon": null,
-          "clinicians": 6
-        },
-        {
-          "name": "Texas Medical Center",
-          "address": "6624 Fannin Street, Suite 2000, Houston, TX 77030",
-          "lat": null,
-          "lon": null,
-          "clinicians": 6
-        }
-      ],
-      "constraints": {
-        "min_sqft": 6000,
-        "max_sqft": 10000,
-        "max_rent_psf": 35.0,
-        "min_parking_per_1000sf": 4.0,
-        "ground_floor": false,
-        "special_rooms": [
-          "procedure room"
-        ],
-        "space_uses": []
-      },
-      "free_text": "[customer_origin] Where do your customers come from today: Our offices are in Upper Kirby (77098), River Oaks (77027), and the Texas Medical Center (77030). These are office ZIP codes, not verified patient-origin ZIP codes. Patient origins and travel times are unknown. Proposed planning catchment: approximately 15–20 minutes for routine primary care, with a separate transit-access analysis. Search Harris, Fort Bend, and Montgomery counties and account for overlap with our existing practices.\n[referrals] Where do referrals come from: Actual referral shares are unknown. Proposed acquisition channels to evaluate: patients scheduling directly, recommendations from existing patients, Baylor specialty practices referring patients for ongoing primary care, and hospital-discharge follow-up. Map Baylor affiliates as potential care-coordination relationships, while verifying actual referral arrangements\n[clinicians] How many clinicians per location: 6\n[competitors] Who do you compete with, or who else serves the same people: Evaluate nearby Kelsey-Seybold primary-care clinics, Houston Methodist Primary Care Group, and independent family-medicine/internal-medicine practices. Compare their services and accepted plans before treating them as interchangeable alternatives. Kelsey-Seybold offers family medicine, internal medicine, and pediatrics; Houston Methodist operates a primary-care network. Also map community health centers as existing access points and potential coordination partners. Identify Baylor’s own relevant clinics separately when estimating overlap.\n[space] Anything else the space must have: Proposed neighborhood outpatient clinic of 6,000–10,000 square feet, preferably an existing medical buildout with approximately 12 exam rooms, phlebotomy/specimen space, a small procedure room, private counseling space, reception, and staff support areas. Require accessible entrances and restrooms, convenient drop-off, and patient parking. Use $35/sf/year as a provisional base-rent screening ceiling; show operating expenses, tenant improvements, and other occupancy costs separately. Proposed operating hours: Monday–Friday, 7:30 a.m.–6:30 p.m., with staggered staffing. Confirm medical use and buildout feasibility before treating any listing as suitable.",
-      "stock_pack": null,
-      "region_id": "hou"
-    }
-  },
-  {
-    "id": "sports_orthopedics",
-    "label": "Sports ortho (synthetic)",
-    "healthcare": true,
-    "profile": {
-      "name": "Example Sports Orthopedics (synthetic)",
-      "specialty": "orthopedics",
-      "business_type": "",
-      "customers": "High school and club athletes, active adults 18-44, and their parents",
-      "services": [
-        "sports medicine",
-        "fracture care",
-        "x-ray",
-        "casting and bracing"
-      ],
-      "payers_accepted": [
-        "commercial",
-        "medicaid",
-        "chip",
-        "medicare"
-      ],
-      "patient_mix": {},
-      "languages": [
-        "English",
-        "Spanish"
-      ],
-      "existing_offices": [
-        {
-          "name": "Galleria (synthetic)",
-          "address": "",
-          "lat": 29.739,
-          "lon": -95.463,
-          "clinicians": 3
-        }
-      ],
-      "constraints": {
-        "min_sqft": 4000,
-        "max_sqft": 9000,
-        "max_rent_psf": 35.0,
-        "min_parking_per_1000sf": 5.0,
-        "ground_floor": true,
-        "special_rooms": [
-          "x-ray",
-          "casting room"
-        ],
-        "space_uses": []
-      },
-      "free_text": "[ortho_focus] What kind of orthopedic care will this clinic focus on: Sports medicine, General orthopedics and fracture care\n[team_coverage] Do you cover any high school, college or club teams: Klein Cain and Klein Oak football; two athletic trainers and Friday sideline coverage, Saturday injury clinic\n[surgery_site] Where do your surgeons operate: Texas Orthopedic Hospital for ACL reconstruction and arthroscopy; X-ray, casting and bracing stay at the clinic\n[referrals] Where do new patients come from today: Athletic trainers at the two schools, urgent cares on 249 and the Grand Parkway, pediatricians, and parents searching after a game\n[capacity] How many providers, exam rooms and new patients a week: 2 surgeons and 2 PAs, 12 exam rooms, about 60 new patients a week\n[hours] When will the clinic be open: Weekdays, Evenings, Saturday injury clinic\n[visibility] How much does being seen from the road matter: Helps, not essential\n[tenure] Lease, buy or build: Lease only",
-      "stock_pack": null,
-      "region_id": "hou"
-    }
-  },
-  {
-    "id": "pediatric_dentist",
-    "label": "Pediatric dentist",
-    "healthcare": true,
-    "profile": {
-      "name": "Example Pediatric Dental Practice",
-      "specialty": "pediatric_dentistry",
-      "business_type": "",
-      "customers": "",
-      "services": [
-        "pediatric dental exams",
-        "cleanings",
-        "sealants",
-        "fillings"
-      ],
-      "payers_accepted": [
-        "medicaid",
-        "chip",
-        "commercial"
-      ],
-      "patient_mix": {},
-      "languages": [
-        "English",
-        "Spanish"
-      ],
-      "existing_offices": [
-        {
-          "name": "Office A (Gulfton area)",
-          "address": null,
-          "lat": 29.721,
-          "lon": -95.476,
-          "clinicians": 2
-        }
-      ],
-      "constraints": {
-        "min_sqft": 2000,
-        "max_sqft": 4500,
-        "max_rent_psf": null,
-        "min_parking_per_1000sf": 3.0,
-        "ground_floor": true,
-        "special_rooms": [],
-        "space_uses": []
-      },
-      "free_text": "Most families are on Medicaid or CHIP; many parents prefer Spanish and some don't have a car.",
-      "stock_pack": "healthcare.pediatric_dentistry",
-      "region_id": "hou"
-    }
-  },
-  {
-    "id": "dialysis_clinic",
-    "label": "Dialysis clinic",
-    "healthcare": true,
-    "profile": {
-      "name": "Example Dialysis Clinic",
-      "specialty": "dialysis",
-      "business_type": "",
-      "customers": "",
-      "services": [
-        "in-center hemodialysis"
-      ],
-      "payers_accepted": [
-        "medicare",
-        "medicaid",
-        "commercial"
-      ],
-      "patient_mix": {},
-      "languages": [
-        "English",
-        "Spanish"
-      ],
-      "existing_offices": [],
-      "constraints": {
-        "min_sqft": 6000,
-        "max_sqft": 12000,
-        "max_rent_psf": null,
-        "min_parking_per_1000sf": 4.0,
-        "ground_floor": true,
-        "special_rooms": [
-          "dialysis stations"
-        ],
-        "space_uses": []
-      },
-      "free_text": "Patients come three times a week; many are older and some rely on buses or rides.",
-      "stock_pack": "healthcare.dialysis",
-      "region_id": "hou"
-    }
-  },
-  {
-    "id": "physical_therapy",
-    "label": "Physical therapy",
-    "healthcare": true,
-    "profile": {
-      "name": "Example Physical Therapy Clinic",
-      "specialty": "physical_therapy",
-      "business_type": "",
-      "customers": "",
-      "services": [
-        "post-surgical rehab",
-        "sports rehab",
-        "work injury rehab"
-      ],
-      "payers_accepted": [
-        "commercial",
-        "workers_comp"
-      ],
-      "patient_mix": {},
-      "languages": [
-        "English"
-      ],
-      "existing_offices": [],
-      "constraints": {
-        "min_sqft": 2500,
-        "max_sqft": 5000,
-        "max_rent_psf": null,
-        "min_parking_per_1000sf": 4.0,
-        "ground_floor": true,
-        "special_rooms": [],
-        "space_uses": []
-      },
-      "free_text": "Most referrals come from orthopedic surgeons; many patients are working adults.",
-      "stock_pack": "healthcare.physical_therapy",
-      "region_id": "hou"
-    }
+   ],
+   "constraints": {
+    "min_sqft": 12300,
+    "max_sqft": 22900,
+    "max_rent_psf": null,
+    "min_parking_per_1000sf": 5.0,
+    "ground_floor": true,
+    "special_rooms": [
+     "x-ray",
+     "MRI suite",
+     "2 operating rooms"
+    ],
+    "space_uses": []
+   },
+   "free_text": "[org_type] What kind of organization is opening it: Private practice\n[functions] Which functions will this office have, and how much does each matter: Clinic visits 10, Surgery center (ASC) 8, X-ray 8, MRI / imaging 7, Physical therapy 3\n[ortho_focus] Which orthopedic care leads here: Sports medicine, Joint replacement (hip, knee, shoulder), Spine\n[capacity] How many surgeons and APPs (PAs/NPs) will work here: 3 surgeons and 2 PAs\n[surgery_site] Where do your surgeons operate: Memorial Hermann Memorial City\n[team_coverage] Do you cover any high school, college or club teams: Memorial and Stratford high school football; Friday sideline coverage\n[referrals] Where do new patients come from today: primary care groups, urgent cares, athletic trainers, self-referral\n[hours] When will the office be open: Weekdays, Early mornings, Saturday injury clinic\n[best_location] Which current location does best, which struggles, and why do you think so: Memorial Village is full: commercial patients, close to primary care groups and the hospital. Sugar Land is slower; it sits near two other orthopedic groups.",
+   "stock_pack": null,
+   "region_id": "hou"
   }
+ },
+ {
+  "id": "hope_clinic",
+  "label": "HOPE Clinic",
+  "healthcare": true,
+  "profile": {
+   "name": "HOPE Clinic",
+   "specialty": "community_health",
+   "business_type": "",
+   "customers": "Everyone regardless of ability to pay, in particular the uninsured, the underinsured, people with limited English and low-income families: immigrant families from 90 countries (many Asian, Hispanic, Arab and Burmese), all ages from newborns to seniors, with many pregnant women, children on Medicaid or CHIP, and adults managing diabetes, high blood pressure and depression.",
+   "services": [
+    "Primary care",
+    "Pediatrics",
+    "Women's health / OB",
+    "Behavioral health",
+    "Dental",
+    "Vision",
+    "Pharmacy (340B)",
+    "Lab",
+    "Enabling services (eligibility, interpreters, transport)"
+   ],
+   "payers_accepted": [
+    "medicaid",
+    "chip",
+    "medicare",
+    "commercial",
+    "self_pay"
+   ],
+   "patient_mix": {},
+   "languages": [
+    "English",
+    "Spanish",
+    "Mandarin",
+    "Cantonese",
+    "Vietnamese",
+    "Korean",
+    "Burmese",
+    "Arabic"
+   ],
+   "existing_offices": [
+    {
+     "name": "HOPE Beltway",
+     "address": "7001 Corporate Dr. #120, Houston, TX 77036",
+     "lat": 29.70334959,
+     "lon": -95.55085859,
+     "clinicians": 6
+    },
+    {
+     "name": "HOPE West",
+     "address": "12121 Westheimer Rd. #205, Houston, TX 77077",
+     "lat": 29.73622916,
+     "lon": -95.59385062,
+     "clinicians": 3
+    },
+    {
+     "name": "HOPE Alief",
+     "address": "13930 Bellaire Blvd., Houston, TX 77083",
+     "lat": 29.70444817,
+     "lon": -95.62841952,
+     "clinicians": 8
+    },
+    {
+     "name": "HOPE Aldine",
+     "address": "3000 Aldine Mail Rd. Building C #200, Houston, TX 77039",
+     "lat": 29.90198142,
+     "lon": -95.34323692,
+     "clinicians": 3
+    },
+    {
+     "name": "HOPE Aldine Meadows",
+     "address": "2112 Aldine Meadows Rd., Houston, TX 77032",
+     "lat": 29.93464,
+     "lon": -95.35286001,
+     "clinicians": 2
+    }
+   ],
+   "constraints": {
+    "min_sqft": 6000,
+    "max_sqft": 15000,
+    "max_rent_psf": 30.0,
+    "min_parking_per_1000sf": 4.0,
+    "ground_floor": false,
+    "special_rooms": [
+     "dental operatories",
+     "eye exam lane",
+     "counseling rooms",
+     "pharmacy"
+    ],
+    "space_uses": []
+   },
+   "free_text": "[best_location] Which current location does best, which struggles, and why do you think so: HOPE Alief (HHWC, 13930 Bellaire Blvd) does best: the newly built T.T. and W.F. Chao Foundation Health and Wellness Center has every service line (adult medicine, pediatrics, OB/GYN, behavioral health, dental, vision, lab and our only in-house pharmacy), evening hours Mon-Thu until 7pm and Saturdays 9-5, and sits in the middle of Alief's dense, multilingual immigrant neighborhoods. HOPE Beltway (Sharpstown, near the Bellaire Blvd Chinatown corridor) is our original home and has the longest hours, but is under temporary construction. HOPE West (Westchase, a second-floor suite on Westheimer) struggles: patients say you can miss it if you blink, it is weekdays only and has no vision or pharmacy. The Aldine sites in north Houston have shorter, split hours and fewer services; Aldine Meadows is a school-based clinic beside Aldine Middle School. Full-service, extended-hours sites in dense immigrant areas work best.\n[customer_origin] Where do your customers come from today: Mostly southwest Houston around our first four sites: Alief (77072, 77082, 77083, 77099), Sharpstown and Gulfton (77036, 77074, 77081) and Westchase (77042, 77077); and north Houston around East Aldine and Greenspoint (77032, 77039, 77060, 77093). Patients come from 90 birth countries. Most live within a 15-20 minute drive or bus ride of a site; the pharmacy delivers up to 50 miles. (ZIP codes are where our sites draw from, not a patient-origin report.)\n[unique] What makes you different from others who do the same thing: Language access and cultural competence: care in 30+ languages in-house (72 languages served, patients from 90 birth countries), most often Spanish, Mandarin, Cantonese, Vietnamese, Korean, Burmese and Arabic, with interpreters for the rest. Roots in the Asian American community (founded by the Asian American Health Coalition, first clinic in a Chinese Baptist Church in 2002), now serving Hispanic, Arab, Burmese and African immigrant families too. One-stop integrated care: primary care, pediatrics, OB with Centering Pregnancy, behavioral health in patients' own languages, dental, vision, lab and a 340B pharmacy. Sliding fee for anyone regardless of income, insurance or immigration status. Recognized Patient-Centered Medical Home. Programs beyond the exam room: FoodRx produce with the Houston Food Bank, Bite of HOPE cooking for diabetes, Walk with HOPE, maternal and child health.\n[pull] What about a neighborhood would pull people to your door: Large immigrant and limited-English households (Asian, Hispanic, Arab, Burmese, African communities); people below 200% of poverty and uninsured adults; young families, pregnant women and children on Medicaid or CHIP; high diabetes, high blood pressure and obesity rates; METRO bus lines on the main roads (patients ride the bus); apartment complexes; ethnic grocery and shopping centers where our communities already go; churches, temples, mosques and community centers that refer people; schools for school-based care; food pantries; and no other community health center close by.\n[competitors] Who do you compete with, or who else serves the same people: Other Houston FQHCs (HRSA list): Legacy Community Health (largest, 60+ sites), Harris Health's community clinics, Spring Branch Community Health Center, Fort Bend Family Health Center, Houston Community Health Centers, Lone Star Community Health Center, St. Hope Foundation, Avenue 360 / Houston Area Community Services and Bee Busy Wellness Center. Also free and charity clinics, urgent cares, retail clinics and freestanding ERs that uninsured patients use for primary care. Other health centers are also partners: we want gaps, not overlap.\n[visibility] How much does being seen from the road matter: Helps, not essential\n[tenure] Would you lease, buy or build: Open to building new\n[space] Anything else the space must have: A full-service site like HOPE Alief (estimates): 8,000-12,000 sq ft medical buildout with 12-16 exam rooms (2-3 per clinician), 4-6 dental operatories (plumbing, compressor, vacuum), an eye exam lane, lab and phlebotomy, 2-3 private counseling rooms, a group room for Centering Pregnancy and nutrition classes, eligibility and interpreter workstations, a pharmacy pickup counter, and a waiting room for families with strollers. Ground floor or elevator, accessible entrance and restrooms, drop-off at the door, about 4-5 parking spaces per 1,000 sq ft, a bus stop within a short walk. Hours Mon-Thu 8am-7pm, Fri 8-5, Sat 9-5. Signage visible from the main road; a retail center or medical office building both work. Rent screening ceiling about $30/sq ft/yr.\n[hc_status] What kind of health center are you: Federally Qualified Health Center (FQHC)\n[service_area] Is the new site part of a grant or HRSA service area: Yes: HRSA Health Center Program awardee (grant H80CS24153), Greater Houston. Harris County first, Fort Bend acceptable. The new site should reach neighborhoods our five sites don't already cover and should not sit on top of another health center's service area; medically underserved areas and primary care shortage areas are a plus.\n[volume] How many patients does a site see a year, and with how many clinicians: 31,061 unique patients across five sites (website), over 100,000 visits a year. A new full-service site should plan for about 5,000-8,000 patients a year with 6-8 clinicians (estimate).\n[client_travel] How do patients reach you: Mix\n[partners] Which partners refer patients or share space: Houston Food Bank (FoodRx produce for food-insecure patients with diabetes); Cities Changing Diabetes (Bite of HOPE); Houston Methodist (pulmonology at our sites); Aldine ISD (school-based clinic at Aldine Middle School); the Chinese Baptist Church and Chinese Community Center (where HOPE began); Hogg Foundation for Mental Health (AAPI mental health program); T.T. and W.F. Chao Foundation (HOPE Alief building). We want churches, schools, food pantries and hospital emergency rooms nearby for referrals.\nPayers: Medicaid (incl. Medicaid MCO plans and Medicaid for Pregnant Women), CHIP, Medicare, ACA Marketplace and most major commercial plans; uninsured and underinsured patients on a sliding fee by income and family size. Shares by payer are not published on our website.",
+   "stock_pack": null,
+   "region_id": "hou"
+  }
+ },
+ {
+  "id": "laundromat",
+  "label": "Laundromat",
+  "healthcare": false,
+  "profile": {
+   "name": "Example Laundromat",
+   "specialty": "",
+   "business_type": "laundromat",
+   "customers": "Apartment renters without in-unit washers, many families, some without a car",
+   "services": [
+    "self-service washers and dryers",
+    "wash-and-fold"
+   ],
+   "payers_accepted": [],
+   "patient_mix": {},
+   "languages": [
+    "English",
+    "Spanish"
+   ],
+   "existing_offices": [
+    {
+     "name": "Store A (Gulfton area)",
+     "address": null,
+     "lat": 29.721,
+     "lon": -95.476,
+     "clinicians": 1
+    }
+   ],
+   "constraints": {
+    "min_sqft": 2000,
+    "max_sqft": 5000,
+    "max_rent_psf": null,
+    "min_parking_per_1000sf": 3.0,
+    "ground_floor": true,
+    "special_rooms": [],
+    "space_uses": []
+   },
+   "free_text": "Our customers live in apartments nearby and often walk or take the bus.",
+   "stock_pack": null,
+   "region_id": "hou"
+  }
+ },
+ {
+  "id": "coffee_shop",
+  "label": "Coffee shop",
+  "healthcare": false,
+  "profile": {
+   "name": "Example Coffee Shop",
+   "specialty": "",
+   "business_type": "coffee shop",
+   "customers": "Office workers on weekday mornings and young adults on weekends",
+   "services": [
+    "espresso drinks",
+    "pastries",
+    "seating for remote work"
+   ],
+   "payers_accepted": [],
+   "patient_mix": {},
+   "languages": [
+    "English"
+   ],
+   "existing_offices": [],
+   "constraints": {
+    "min_sqft": 1200,
+    "max_sqft": 3000,
+    "max_rent_psf": null,
+    "min_parking_per_1000sf": 2.0,
+    "ground_floor": true,
+    "special_rooms": [],
+    "space_uses": []
+   },
+   "free_text": "Morning commute traffic and nearby offices matter most.",
+   "stock_pack": null,
+   "region_id": "hou"
+  }
+ },
+ {
+  "id": "tutoring_center",
+  "label": "Tutoring center",
+  "healthcare": false,
+  "profile": {
+   "name": "Example Tutoring Center",
+   "specialty": "",
+   "business_type": "tutoring center",
+   "customers": "K-12 students whose parents pay for after-school tutoring and test prep",
+   "services": [
+    "math and reading tutoring",
+    "SAT/ACT prep"
+   ],
+   "payers_accepted": [],
+   "patient_mix": {},
+   "languages": [
+    "English"
+   ],
+   "existing_offices": [],
+   "constraints": {
+    "min_sqft": 1500,
+    "max_sqft": 4000,
+    "max_rent_psf": null,
+    "min_parking_per_1000sf": 3.0,
+    "ground_floor": false,
+    "special_rooms": [],
+    "space_uses": []
+   },
+   "free_text": "Parents drive kids after school; families with higher incomes are our core customers.",
+   "stock_pack": null,
+   "region_id": "hou"
+  }
+ },
+ {
+  "id": "baylor_orthopedics",
+  "label": "Baylor orthopedics",
+  "healthcare": true,
+  "profile": {
+   "name": "Baylor College of Medicine",
+   "specialty": "orthopedics",
+   "business_type": "",
+   "customers": "Adults 18-44, 45-64 and 65+",
+   "services": [
+    "preventive examinations",
+    "vaccinations",
+    "acute visits",
+    "diabetes and hypertension management",
+    "medication follow-up",
+    "geriatric care",
+    "behavioral-health consultations",
+    "nutrition/weight-management support"
+   ],
+   "payers_accepted": [],
+   "patient_mix": {},
+   "languages": [
+    "English"
+   ],
+   "existing_offices": [
+    {
+     "name": "Upper Kirby",
+     "address": "3701 Kirby Drive, Suite 100, Houston, TX 77098",
+     "lat": null,
+     "lon": null,
+     "clinicians": 6
+    },
+    {
+     "name": "River Oaks",
+     "address": "3743 Westheimer Road, Houston, TX 77027",
+     "lat": null,
+     "lon": null,
+     "clinicians": 6
+    },
+    {
+     "name": "Texas Medical Center",
+     "address": "6624 Fannin Street, Suite 2000, Houston, TX 77030",
+     "lat": null,
+     "lon": null,
+     "clinicians": 6
+    }
+   ],
+   "constraints": {
+    "min_sqft": 6000,
+    "max_sqft": 10000,
+    "max_rent_psf": 35.0,
+    "min_parking_per_1000sf": 4.0,
+    "ground_floor": false,
+    "special_rooms": [
+     "procedure room"
+    ],
+    "space_uses": []
+   },
+   "free_text": "[customer_origin] Where do your customers come from today: Our offices are in Upper Kirby (77098), River Oaks (77027), and the Texas Medical Center (77030). These are office ZIP codes, not verified patient-origin ZIP codes. Patient origins and travel times are unknown. Proposed planning catchment: approximately 15–20 minutes for routine primary care, with a separate transit-access analysis. Search Harris, Fort Bend, and Montgomery counties and account for overlap with our existing practices.\n[referrals] Where do referrals come from: Actual referral shares are unknown. Proposed acquisition channels to evaluate: patients scheduling directly, recommendations from existing patients, Baylor specialty practices referring patients for ongoing primary care, and hospital-discharge follow-up. Map Baylor affiliates as potential care-coordination relationships, while verifying actual referral arrangements\n[clinicians] How many clinicians per location: 6\n[competitors] Who do you compete with, or who else serves the same people: Evaluate nearby Kelsey-Seybold primary-care clinics, Houston Methodist Primary Care Group, and independent family-medicine/internal-medicine practices. Compare their services and accepted plans before treating them as interchangeable alternatives. Kelsey-Seybold offers family medicine, internal medicine, and pediatrics; Houston Methodist operates a primary-care network. Also map community health centers as existing access points and potential coordination partners. Identify Baylor’s own relevant clinics separately when estimating overlap.\n[space] Anything else the space must have: Proposed neighborhood outpatient clinic of 6,000–10,000 square feet, preferably an existing medical buildout with approximately 12 exam rooms, phlebotomy/specimen space, a small procedure room, private counseling space, reception, and staff support areas. Require accessible entrances and restrooms, convenient drop-off, and patient parking. Use $35/sf/year as a provisional base-rent screening ceiling; show operating expenses, tenant improvements, and other occupancy costs separately. Proposed operating hours: Monday–Friday, 7:30 a.m.–6:30 p.m., with staggered staffing. Confirm medical use and buildout feasibility before treating any listing as suitable.",
+   "stock_pack": null,
+   "region_id": "hou"
+  }
+ },
+ {
+  "id": "sports_orthopedics",
+  "label": "Sports ortho (synthetic)",
+  "healthcare": true,
+  "profile": {
+   "name": "Example Sports Orthopedics (synthetic)",
+   "specialty": "orthopedics",
+   "business_type": "",
+   "customers": "High school and club athletes, active adults 18-44, and their parents",
+   "services": [
+    "sports medicine",
+    "fracture care",
+    "x-ray",
+    "casting and bracing"
+   ],
+   "payers_accepted": [
+    "commercial",
+    "medicaid",
+    "chip",
+    "medicare"
+   ],
+   "patient_mix": {},
+   "languages": [
+    "English",
+    "Spanish"
+   ],
+   "existing_offices": [
+    {
+     "name": "Galleria (synthetic)",
+     "address": "",
+     "lat": 29.739,
+     "lon": -95.463,
+     "clinicians": 3
+    }
+   ],
+   "constraints": {
+    "min_sqft": 4000,
+    "max_sqft": 9000,
+    "max_rent_psf": 35.0,
+    "min_parking_per_1000sf": 5.0,
+    "ground_floor": true,
+    "special_rooms": [
+     "x-ray",
+     "casting room"
+    ],
+    "space_uses": []
+   },
+   "free_text": "[ortho_focus] What kind of orthopedic care will this clinic focus on: Sports medicine, General orthopedics and fracture care\n[team_coverage] Do you cover any high school, college or club teams: Klein Cain and Klein Oak football; two athletic trainers and Friday sideline coverage, Saturday injury clinic\n[surgery_site] Where do your surgeons operate: Texas Orthopedic Hospital for ACL reconstruction and arthroscopy; X-ray, casting and bracing stay at the clinic\n[referrals] Where do new patients come from today: Athletic trainers at the two schools, urgent cares on 249 and the Grand Parkway, pediatricians, and parents searching after a game\n[capacity] How many providers, exam rooms and new patients a week: 2 surgeons and 2 PAs, 12 exam rooms, about 60 new patients a week\n[hours] When will the clinic be open: Weekdays, Evenings, Saturday injury clinic\n[visibility] How much does being seen from the road matter: Helps, not essential\n[tenure] Lease, buy or build: Lease only",
+   "stock_pack": null,
+   "region_id": "hou"
+  }
+ },
+ {
+  "id": "pediatric_dentist",
+  "label": "Pediatric dentist",
+  "healthcare": true,
+  "profile": {
+   "name": "Example Pediatric Dental Practice",
+   "specialty": "pediatric_dentistry",
+   "business_type": "",
+   "customers": "",
+   "services": [
+    "pediatric dental exams",
+    "cleanings",
+    "sealants",
+    "fillings"
+   ],
+   "payers_accepted": [
+    "medicaid",
+    "chip",
+    "commercial"
+   ],
+   "patient_mix": {},
+   "languages": [
+    "English",
+    "Spanish"
+   ],
+   "existing_offices": [
+    {
+     "name": "Office A (Gulfton area)",
+     "address": null,
+     "lat": 29.721,
+     "lon": -95.476,
+     "clinicians": 2
+    }
+   ],
+   "constraints": {
+    "min_sqft": 2000,
+    "max_sqft": 4500,
+    "max_rent_psf": null,
+    "min_parking_per_1000sf": 3.0,
+    "ground_floor": true,
+    "special_rooms": [],
+    "space_uses": []
+   },
+   "free_text": "Most families are on Medicaid or CHIP; many parents prefer Spanish and some don't have a car.",
+   "stock_pack": "healthcare.pediatric_dentistry",
+   "region_id": "hou"
+  }
+ },
+ {
+  "id": "dialysis_clinic",
+  "label": "Dialysis clinic",
+  "healthcare": true,
+  "profile": {
+   "name": "Example Dialysis Clinic",
+   "specialty": "dialysis",
+   "business_type": "",
+   "customers": "",
+   "services": [
+    "in-center hemodialysis"
+   ],
+   "payers_accepted": [
+    "medicare",
+    "medicaid",
+    "commercial"
+   ],
+   "patient_mix": {},
+   "languages": [
+    "English",
+    "Spanish"
+   ],
+   "existing_offices": [],
+   "constraints": {
+    "min_sqft": 6000,
+    "max_sqft": 12000,
+    "max_rent_psf": null,
+    "min_parking_per_1000sf": 4.0,
+    "ground_floor": true,
+    "special_rooms": [
+     "dialysis stations"
+    ],
+    "space_uses": []
+   },
+   "free_text": "Patients come three times a week; many are older and some rely on buses or rides.",
+   "stock_pack": "healthcare.dialysis",
+   "region_id": "hou"
+  }
+ },
+ {
+  "id": "physical_therapy",
+  "label": "Physical therapy",
+  "healthcare": true,
+  "profile": {
+   "name": "Example Physical Therapy Clinic",
+   "specialty": "physical_therapy",
+   "business_type": "",
+   "customers": "",
+   "services": [
+    "post-surgical rehab",
+    "sports rehab",
+    "work injury rehab"
+   ],
+   "payers_accepted": [
+    "commercial",
+    "workers_comp"
+   ],
+   "patient_mix": {},
+   "languages": [
+    "English"
+   ],
+   "existing_offices": [],
+   "constraints": {
+    "min_sqft": 2500,
+    "max_sqft": 5000,
+    "max_rent_psf": null,
+    "min_parking_per_1000sf": 4.0,
+    "ground_floor": true,
+    "special_rooms": [],
+    "space_uses": []
+   },
+   "free_text": "Most referrals come from orthopedic surgeons; many patients are working adults.",
+   "stock_pack": "healthcare.physical_therapy",
+   "region_id": "hou"
+  }
+ }
 ]

@@ -14,9 +14,10 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from contracts.models import PracticeProfile
+from services.agent.expert import FUNCTIONS, ORG_TYPES
 from services.agent.tools.packs import is_community_health, pack_for, sector_for
 
-Kind = Literal["text", "long", "choice", "multi", "locations"]
+Kind = Literal["text", "long", "choice", "multi", "locations", "weights"]
 
 
 class Question(BaseModel):
@@ -103,47 +104,41 @@ HEALTHCARE = [
       why="Surgeons lose hours driving between clinic and hospital; distance to their hospitals is a real cost."),
 ]
 
-ORTHOPEDICS = [  # outpatient orthopedic clinics: what happens here vs at the partner hospital/ASC decides the site
+ORTHOPEDICS = [  # outpatient orthopedic offices: which functions open here decides what to seek and what to avoid
+    Q(id="org_type", kind="choice", options=ORG_TYPES,
+      text="What kind of organization is opening it?",
+      why="A hospital outpatient site and an independent practice weigh referral sources and real estate differently."),
+    Q(id="functions", kind="weights", field="services", options=list(FUNCTIONS.values()), replaces=["visibility", "access", "space"],
+      text="Which functions will this office have, and how much does each matter?",
+      why="Functions decide visibility, parking, size, hospital proximity and which nearby practices are partners or rivals."),
     Q(id="ortho_focus", kind="multi", required=True,
       options=["General orthopedics and fracture care", "Joint replacement (hip, knee, shoulder)", "Sports medicine",
                "Spine", "Hand and upper extremity", "Foot and ankle", "Pediatric orthopedics",
                "Workers' comp / occupational injuries"],
-      text="What kind of orthopedic care will this clinic focus on? List the biggest first.",
-      why="Joint care follows adults 50+ and Medicare; sports medicine follows high schools and young athletes; spine "
-          "and hand follow working-age adults and jobs. Each picks different factors, age groups and space."),
+      text="Which orthopedic care leads here? Biggest first.",
+      why="Joint care follows adults 50+ and Medicare; sports medicine follows high schools; spine and hand follow jobs."),
     Q(id="payers", kind="multi", required=True, field="payers",
       options=["Medicare", "Medicaid", "CHIP", "Commercial", "Workers' comp", "Self-pay"],
-      text="Which insurance do you accept, and roughly what share of patients is each? Any plans you are out of network with?",
-      why="Demand counts only residents whose coverage you accept; Medicare Advantage and narrow commercial networks "
-          "can close a market even when the population fits."),
-    Q(id="service_lines", kind="multi", field="services",
-      options=["Clinic visits", "X-ray", "MRI", "Physical therapy", "Surgery center (ASC)", "Orthopedic urgent care / walk-in",
-               "Injections / procedures", "Casting and bracing (DME)", "Telehealth follow-ups"],
-      text="Which services happen at this clinic itself?",
-      why="X-ray needs a shielded room on the ground floor; MRI needs a magnet suite and slab; PT needs an open gym "
-          "and fast parking turnover; walk-in care needs visibility. Anything not here happens at a partner."),
-    Q(id="surgery_site", kind="text", replaces=[],
-      text="Where do your surgeons operate, and which services stay there? (hospital or ASC names)",
-      why="Surgeons split days between clinic and OR, so drive time to that hospital or surgery center is a real "
-          "cost, and post-op visits come back to the clinic. We measure the drive to the facilities you name."),
-    Q(id="team_coverage", kind="text",
-      text="Do you cover any high school, college or club teams? Which schools, and what do you provide? "
-           "(sideline physician, athletic trainers, Saturday injury clinic) Say 'No' if none.",
-      why="A school's athletic trainer sends its injured athletes to the doctor on its sideline, so being a short "
-          "drive from the schools you cover (and near other large high schools) brings next-morning injury visits."),
-    Q(id="referrals", kind="text",
-      text="Where do new patients come from today? (primary care, ER and urgent care, athletic trainers, PT, self-referral)",
-      why="Referral sources become factors near each site; a competitor only counts as a referrer if you have an "
-          "actual relationship."),
+      text="Which insurance do you accept?",
+      why="Demand counts only residents whose coverage you accept."),
     Q(id="capacity", kind="text",
-      text="How many surgeons and APPs (PAs/NPs) will work here, how many exam rooms, and how many new patients a week can you see?",
-      why="Exam rooms per provider (about 3) and new-patient slots cap what a site can absorb, so we don't promise "
-          "more patients than the clinic can see."),
+      text="How many surgeons and APPs (PAs/NPs) will work here?",
+      why="Sizes the office in the same unit as competitors (physicians) and the space suggestion.",
+      placeholder="e.g. 3 surgeons and 2 PAs"),
+    Q(id="surgery_site", kind="text", replaces=[],
+      text="Where do your surgeons operate? (hospital or ASC names)",
+      why="We measure the drive to the facilities you name.", placeholder="e.g. Memorial Hermann Memorial City"),
+    Q(id="team_coverage", kind="text",
+      text="Do you cover any high school, college or club teams? Which schools? Say 'No' if none.",
+      why="Athletic trainers send injured athletes to the doctor on their sideline."),
+    Q(id="referrals", kind="text",
+      text="Where do new patients come from today?",
+      why="Referral sources become factors near each site.",
+      placeholder="primary care groups, urgent cares, athletic trainers, PT, self-referral"),
     Q(id="hours", kind="multi",
-      options=["Weekdays", "Early mornings", "Evenings", "Saturday injury clinic", "Walk-in hours"],
-      text="When will the clinic be open?",
-      why="Friday-night and weekend sports injuries come in Saturday or Monday morning; working patients need early or "
-          "late slots; walk-in hours need visibility from the road."),
+      options=["Weekdays", "Early mornings", "Evenings", "Saturday injury clinic"],
+      text="When will the office be open?",
+      why="Weekend sports injuries come in Saturday or Monday morning; working patients need early or late slots."),
 ]
 
 COMMUNITY_HEALTH = [  # healthcare AND nonprofit: FQHCs, Look-Alikes, free and charity clinics

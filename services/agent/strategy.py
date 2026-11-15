@@ -87,7 +87,15 @@ def _answer(profile: PracticeProfile, qid: str) -> str:
     return m.group(1).lower() if m else ""
 
 
+FUNCTION_LINES = {"xray": "xray", "mri": "mri", "pt": "physical_therapy", "asc": "asc", "urgent": "urgent_care"}
+
+
 def service_lines(profile: PracticeProfile) -> list[str]:
+    from services.agent.expert import functions_of
+
+    chosen = functions_of(profile)
+    if chosen:  # the owner's office functions, not every word in the notes ("urgent cares refer to us")
+        return [line for key, line in FUNCTION_LINES.items() if key in chosen]
     text = _text(profile)
     return [k for k, (pattern, *_rest) in LINES.items() if re.search(pattern, text)]
 
@@ -95,7 +103,8 @@ def service_lines(profile: PracticeProfile) -> list[str]:
 def space_program(profile: PracticeProfile) -> SpaceProgram:
     lines = service_lines(profile)
     c = profile.constraints
-    extra = sum(LINES[k][1] for k in lines)
+    # With office functions chosen, the owner's size came from the function-based suggestion and already includes them.
+    extra = 0 if _answer(profile, "functions") else sum(LINES[k][1] for k in lines)
     reqs = [r for k in lines for r in LINES[k][3]]
     return SpaceProgram(service_lines=lines, base_sqft=(c.min_sqft, c.max_sqft),
                         recommended_sqft=(c.min_sqft + extra, c.max_sqft + extra),
@@ -110,6 +119,17 @@ def visibility_need(profile: PracticeProfile) -> tuple[Need, str]:
         return "low", "you said customers come by referral or appointment"
     if "helps" in said:  # the owner's own answer outranks what their service lines suggest
         return "medium", "you said visibility helps but is not essential"
+    from services.agent.expert import functions_of
+
+    weights = functions_of(profile)
+    if weights.get("urgent", 0) >= 5:
+        return "high", "walk-in urgent care has to be seen from a busy road so people can come"
+    if weights:
+        scheduled = max((v for k, v in weights.items() if k != "urgent"), default=0)
+        if weights.get("clinic", 0) >= 6:
+            return "medium", "clinic patients book ahead, but a visible sign builds awareness and clinic flow"
+        if scheduled:
+            return "low", "PT, imaging and surgery are scheduled by referral, so a lower-cost tucked-away space works"
     lines = set(service_lines(profile))
     if "urgent_care" in lines:
         return "high", "walk-in care is decided in the moment, from the road"
