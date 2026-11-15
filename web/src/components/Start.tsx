@@ -240,7 +240,7 @@ export default function Start({ live, hasRecording, onRun }: Props) {
   const sectorQs = qs.sector_questions
 
   return (
-    <div className="page">
+    <div className={`page${track === 'health' ? ' care' : ''}`}>
       <div className="wrap">
         <section className="hero">
           <h1>{track === 'health' ? <>Where should your next <em className="hl">clinic</em> open?</> : 'Where should your next location open?'}</h1>

@@ -2,6 +2,7 @@ import type { Review } from '../api/client'
 import { RuleBox } from '../lib/expert'
 
 const MARK: Record<string, string> = { met: '✓', failed: '✕', unknown: '?', supports: '✓', risk: '!', open: '?', not_applicable: '–' }
+const usd = (v: number) => (v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${Math.round(v / 1000).toLocaleString('en-US')}k`)
 const STATUS: Record<string, string> = { confirmed: 'Confirmed', provisional: 'Provisional', ineligible: 'Not eligible' }
 
 /** Decision first: the pick or provisional pick, why, the strongest alternative, what would change it, then each
@@ -15,6 +16,25 @@ export default function Decision({ r, onOpen }: { r: Review; onOpen: (siteId: st
         {r.why && <p>{r.why}</p>}
         <p className="sub">Objective: {r.objective} Compared with: {r.baseline}</p>
       </div>
+      {(r.paths ?? []).length > 0 && (
+        <div className="callout">
+          <div className="kicker"><span>Ways to open</span></div>
+          <div className="paths">{(r.paths ?? []).map((p) => (
+            <div className={`path ${p.kind}`} key={p.kind}>
+              <span className="pk">{p.kind === 'lease' ? 'Lease' : p.kind === 'build' ? 'Build' : 'Drop PT'}</span>
+              <b>{p.title}</b>
+              {p.site_id && <button type="button" className="linkbtn" onClick={() => onOpen(p.site_id!)}>{p.address}</button>}
+              <dl>
+                {p.sqft != null && <><dt>Size</dt><dd>{p.sqft.toLocaleString('en-US')} sq ft</dd></>}
+                {p.annual_cost_usd != null && <><dt>Per year</dt><dd>{usd(p.annual_cost_usd)}</dd></>}
+                {p.upfront_usd != null && <><dt>Upfront</dt><dd>{usd(p.upfront_usd)}</dd></>}
+                {p.net_new != null && <><dt>Net-new</dt><dd>{Math.round(p.net_new).toLocaleString('en-US')} patients / yr</dd></>}
+              </dl>
+              <ul>{p.notes.map((n) => <li key={n}>{n}</li>)}</ul>
+            </div>))}
+          </div>
+        </div>
+      )}
       <RuleBox title="Expert rules behind this pick" />
       {(r.alternative || r.what_could_change.length > 0) && (
         <div className="callout">

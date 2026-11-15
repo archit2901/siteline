@@ -61,3 +61,10 @@ def test_cms_layer_urls_are_canonical_only() -> None:
 def test_space_program_follows_functions_not_referral_words() -> None:
     p = ortho("Clinic visits 10, MRI / imaging 7", "[referrals] Where do new patients come from today: urgent cares, PT")
     assert strategy.service_lines(p) == ["mri"]
+
+
+def test_function_scouts_keep_a_factor_another_scout_already_measures() -> None:
+    p = ortho("Clinic visits 10")
+    er = Factor(id="urgent_er", factor="Urgent care and ER proximity", why="", proxy="hospital ERs", direction=-1, priority="high")
+    factors, _, _ = expert.function_scouts(p, [er], "abc123", keep={"urgent_er"})
+    assert "urgent_er" in {f.id for f in factors}

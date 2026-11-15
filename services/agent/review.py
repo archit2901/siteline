@@ -49,6 +49,20 @@ class SiteReview(BaseModel):
     notes: list[Note]
 
 
+class Path(BaseModel):
+    """One way to open: lease the best listed space, build to suit, or a smaller office that leaves PT to a nearby
+    free-standing PT clinic. Costs come from strategy.tenure_options (planning assumptions)."""
+    kind: Literal["lease", "build", "drop_pt"]
+    title: str
+    site_id: str | None = None
+    address: str = ""
+    sqft: int | None = None
+    annual_cost_usd: int | None = None
+    upfront_usd: int | None = None
+    net_new: float | None = None
+    notes: list[str] = Field(default_factory=list)
+
+
 class Review(BaseModel):
     objective: str
     baseline: str
@@ -57,6 +71,7 @@ class Review(BaseModel):
     alternative: str
     what_could_change: list[str]
     sites: list[SiteReview]
+    paths: list[Path] = Field(default_factory=list)
 
 
 def _fmt(x: float) -> str:
@@ -309,3 +324,70 @@ async def review(profile: PracticeProfile, pack: StockPack, ranked: list[RankedS
                        "on the approved weights.")
     return Review(objective=objective, baseline=baseline, decision=decision, why=why, alternative=alternative,
                   what_could_change=changes, sites=reviews)
+
+
+def _build_vs_lease(build: int, lease: int | None) -> str:
+    if lease is None:
+        return "No listed rent to compare; you keep the specialized buildout instead of leaving it to a landlord."
+    if build < lease:
+        return f"About ${(lease - build) / 1000:,.0f}k a year less than leasing, and you keep the ASC buildout."
+    return (f"About ${(build - lease) / 1000:,.0f}k a year more than leasing, but you own the building and the "
+            "ASC buildout instead of leaving them to a landlord.")
+
+
+PT_WALK_KM = 1.6  # a mile: close enough to send patients next door
+
+
+def decision_paths(profile: PracticeProfile, ranked: list[RankedSite], sites: dict[str, SiteCandidate],
+                   no_pt: tuple[list[RankedSite], dict[str, SiteCandidate], PracticeProfile] | None) -> list[Path]:
+    """Lease, build and (when PT matters little) drop-PT paths, each tied to a real space and its numbers."""
+    from services.agent import strategy
+    from services.agent.expert import nearest_pt
+
+    from services.agent.tools.packs import pack_for
+
+    pack = pack_for(profile)
+    program = strategy.space_program(profile)
+
+    def viable(r: RankedSite, s: dict[str, SiteCandidate], prof: PracticeProfile) -> bool:  # same checks as the review
+        return r.excluded_reason is None and r.site_id in s and status_of(requirements(s[r.site_id], prof, pack)) != "ineligible"
+
+    ok = [r for r in ranked if viable(r, sites, profile)]
+    out: list[Path] = []
+    leased = next((r for r in ok if sites[r.site_id].rent_psf), None)
+    if leased is not None:
+        s = sites[leased.site_id]
+        o = next(x for x in strategy.tenure_options(s, program) if x.option == "lease")
+        out.append(Path(kind="lease", title="Lease the best listed space", site_id=s.id, address=s.address, sqft=s.sqft,
+                        annual_cost_usd=o.annual_cost_usd, upfront_usd=o.upfront_usd, net_new=leased.net_new_patients,
+                        notes=["Rent plus your fit-out and special rooms over a 10-year lease; the buildout stays with the landlord."]))
+    lead = ok[0] if ok else (ranked[0] if ranked and ranked[0].site_id in sites else None)
+    if lead is not None:
+        s = sites[lead.site_id]
+        o = next(x for x in strategy.tenure_options(s, program) if x.option == "build")
+        out.append(Path(kind="build", title="Build to suit near the top site", site_id=s.id, address=s.address,
+                        sqft=s.sqft or program.recommended_sqft[0], annual_cost_usd=o.annual_cost_usd,
+                        upfront_usd=o.upfront_usd, net_new=lead.net_new_patients,
+                        notes=["Designed for the ASC, MRI and X-ray from the start; 12-24 months before opening.",
+                               _build_vs_lease(o.annual_cost_usd, out[0].annual_cost_usd if out else None)]))
+    if no_pt is not None:
+        r_pt, s_pt, prof_pt = no_pt
+        prog_pt = strategy.space_program(prof_pt)
+        for r in [r for r in r_pt if viable(r, s_pt, prof_pt)][:15]:
+            s = s_pt[r.site_id]
+            near = nearest_pt(s.lat, s.lon)
+            if near is None or near[1] > PT_WALK_KM:
+                continue
+            opts = {x.option: x for x in strategy.tenure_options(s, prog_pt)}
+            o = opts.get("lease") or opts["build"]
+            out.append(Path(kind="drop_pt", title="Drop PT: open beside an independent PT clinic", site_id=s.id,
+                            address=s.address, sqft=s.sqft, annual_cost_usd=o.annual_cost_usd, upfront_usd=o.upfront_usd,
+                            net_new=r.net_new_patients, notes=[
+                                f"{near[0]} is {near[1]:.1f} km away (CMS); send post-op and sports rehab there.",
+                                "Saves about 2,500 sq ft and the PT gym buildout; PT referrals can flow both ways.",
+                                f"Cost shown is {o.option} ({'asking rent' if o.option == 'lease' else 'rent not listed'})."]))
+            if lead is not None and r.net_new_patients > lead.net_new_patients:
+                out[-1].notes.insert(1, f"Wins about {r.net_new_patients - lead.net_new_patients:,.0f} more patients a year than "
+                                        "the full-program pick: the smaller footprint fits spaces the full program can't.")
+            break
+    return out

@@ -8,6 +8,7 @@ Every step streams RunEvents (payload table in services/agent/CLAUDE.md) and wri
 import asyncio
 import json
 import os
+import re
 from typing import Any
 
 from langsmith import traceable
@@ -38,7 +39,7 @@ from services.agent.profiler import profile_business
 from services.agent.expert import ProgramOption, function_scouts, option_sites, provenance
 from services.agent.expert import program_options as expert_options
 from services.agent.partners import partner_scouts
-from services.agent.review import review
+from services.agent.review import decision_paths, review
 from services.agent.scout import ScoutResult, run_scout
 from services.agent.tools import geomath
 from services.agent.tools.backends import get_geo, get_sites
@@ -179,7 +180,7 @@ async def run_pipeline(run: Run) -> None:
     caveats += [n for n in partner_notes if n.startswith("Could not")]
     # expert rules: the practices that matter for the office's functions (PT clinics, urgent cares, imaging,
     # primary care groups, other orthopedic offices), found in CMS clinician records; no model call
-    factors, found, _ = function_scouts(profile, factors, run.run_id[:6])
+    factors, found, _ = function_scouts(profile, factors, run.run_id[:6], keep={r.factor_id for r in partners})
     for r in found:
         await run.emit("factor-analyst", "factor", next(f for f in factors if f.id == r.factor_id).model_dump(mode="json"))
         await run.emit(f"dataset-scout:{r.factor_id}", "tool_result", {
@@ -309,6 +310,7 @@ async def run_pipeline(run: Run) -> None:
     await run.emit(S, "file", {"name": "strategy.json", "path": "/strategy.json"})
     # smaller programs (leave the ASC, PT or MRI elsewhere): their own size range, search and best lease spaces
     options = expert_options(profile)
+    no_pt = None
     for opt in options[1:]:
         c = profile.constraints.model_copy(update={"min_sqft": opt.min_sqft, "max_sqft": opt.max_sqft,
                                                     "min_parking_per_1000sf": opt.parking_per_1000sf})
@@ -320,12 +322,19 @@ async def run_pipeline(run: Run) -> None:
         opt_ranked = await geo.rank(RankRequest(profile=sized, spec=spec, candidates=found_sites, with_stability=False,
                                                 demand=demand))
         opt.sites = option_sites(opt_ranked, {s.id: s for s in found_sites})
+        if no_pt is None and "pt" not in opt.functions and "asc" in opt.functions:
+            from services.agent.expert import functions_text
+
+            text = re.sub(r"^\[functions\]([^:]*): .*$", lambda m: f"[functions]{m.group(1)}: {functions_text(opt.functions)}",
+                          sized.free_text, flags=re.M)
+            no_pt = (opt_ranked, {s.id: s for s in found_sites}, sized.model_copy(update={"free_text": text}))
     if options:
         options[0].sites = option_sites(ranked, {s.id: s for s in sites})
         run.write_artifact("options.json", TypeAdapter(list[ProgramOption]).dump_json(options, indent=2).decode())
         await run.emit(S, "file", {"name": "options.json", "path": "/options.json"})
     label = demand.demand_label if demand is not None else "patients"
     decision = await review(profile, pack_for(profile), ranked, {s.id: s for s in sites}, factors, geo, label)
+    decision.paths = decision_paths(profile, ranked, {s.id: s for s in sites}, no_pt)
     run.write_artifact("review.json", decision.model_dump_json(indent=2))
     await run.emit(S, "file", {"name": "review.json", "path": "/review.json"})
     excluded = sum(r.excluded_reason is not None for r in ranked)

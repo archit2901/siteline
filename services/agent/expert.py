@@ -219,7 +219,7 @@ SAME = {"ortho_offices": r"ortho\w*.{0,40}(compet|clinic|office|group|practice)|
         "urgent_care": r"urgent|walk-in", "imaging_centers": r"imaging|\bmri\b|radiolog"}
 
 
-def function_scouts(profile: PracticeProfile, factors: list[Factor], run_tag: str
+def function_scouts(profile: PracticeProfile, factors: list[Factor], run_tag: str, keep: set[str] | None = None
                     ) -> tuple[list[Factor], list[ScoutResult], list[str]]:
     """(factors with the expert factors added, scout results, notes)."""
     results, notes = [], []
@@ -228,7 +228,8 @@ def function_scouts(profile: PracticeProfile, factors: list[Factor], run_tag: st
         if s.factor_id in have:
             continue
         # the analyst's unmeasured factor for the same thing gives way to the expert one (no duplicate scout)
-        factors = [f for f in factors if f.feature_id is not None or not re.search(SAME[s.layer], _blob(f), re.I)]
+        factors = [f for f in factors if f.feature_id is not None or f.id in (keep or set())
+                   or not re.search(SAME[s.layer], _blob(f), re.I)]  # never drop a factor another scout measures
         label = cms_points.LAYERS[s.layer]
         proxy = (f"Distance to the nearest {label.lower()[:-1]} (CMS)" if s.agg == "distance_to_nearest"
                  else f"{label} within about 5 km (CMS)")
@@ -345,6 +346,10 @@ def program_options(profile: PracticeProfile) -> list[ProgramOption]:
                                  min_sqft=lo, max_sqft=hi, parking_per_1000sf=parking))
 
     add("Everything in one building")
+    if 0 < w.get("pt", 0) <= LOW:  # PT matters little: the same office without it, PT sent to a nearby clinic
+        current.pop("pt")
+        add("")
+        current = dict(w)
     if "asc" in current:
         current.pop("asc")
         add("Without the surgery center")
@@ -371,3 +376,20 @@ def option_sites(ranked: list, sites: dict, top: int = 3) -> list[dict]:
         if len(out) == top:
             break
     return out
+
+
+def nearest_pt(lat: float, lon: float) -> tuple[str, float] | None:
+    """The closest free-standing PT clinic (CMS practices) and its straight-line distance in km."""
+    import numpy as np
+
+    from services.agent.tools.geomath import pairwise_km
+
+    try:
+        rows = cms_points.rows("freestanding_pt")
+    except ValueError:
+        return None
+    if not rows:
+        return None
+    km = pairwise_km(np.array([lat]), np.array([lon]), np.array([r["_lat"] for r in rows]), np.array([r["_lon"] for r in rows]))[0]
+    i = int(km.argmin())
+    return rows[i]["name"].title(), float(km[i])

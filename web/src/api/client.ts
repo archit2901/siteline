@@ -113,7 +113,8 @@ export interface Strategy {
 export interface ReviewRequirement { name: string; status: 'met' | 'failed' | 'unknown'; detail: string; verify: string }
 export interface ReviewNote { perspective: string; question: string; finding: string; status: 'supports' | 'risk' | 'open' | 'not_applicable'; evidence: string[] }
 export interface SiteReview { site_id: string; address: string; rank: number; status: 'confirmed' | 'provisional' | 'ineligible'; requirements: ReviewRequirement[]; notes: ReviewNote[] }
-export interface Review { objective: string; baseline: string; decision: string; why: string; alternative: string; what_could_change: string[]; sites: SiteReview[] }
+export interface DecisionPath { kind: 'lease' | 'build' | 'drop_pt'; title: string; site_id: string | null; address: string; sqft: number | null; annual_cost_usd: number | null; upfront_usd: number | null; net_new: number | null; notes: string[] }
+export interface Review { objective: string; baseline: string; decision: string; why: string; alternative: string; what_could_change: string[]; sites: SiteReview[]; paths?: DecisionPath[] }
 export function loadReview(runId: string): Promise<Review> {
   return request(`/runs/${runId}/artifacts/review.json`)
 }

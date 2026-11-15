@@ -519,3 +519,26 @@ a.source:hover { border-color: #000; color: #000; }
 .space .option { padding: 10px 0; border-top: 1px solid var(--line2); }
 .space .option:first-of-type { border-top: 0; }
 .space .option p { margin: 0 0 6px; }
+
+.paths { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.path { border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px; display: flex; flex-direction: column; gap: 6px; background: var(--card); }
+.path .pk { align-self: flex-start; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--care-soft); color: var(--care); }
+.path .linkbtn { margin: 0; text-align: left; }
+.path dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: 13px; }
+.path dt { color: var(--ink2); }
+.path dd { margin: 0; font-weight: 600; }
+.path ul { margin: 0; padding-left: 16px; font-size: 12px; color: var(--ink2); display: grid; gap: 3px; }
+/* healthcare intake: one accent (teal) for every selected or active control */
+.care .tabs button.on, .care .pill.on, .care .fns .fnrow .pill.on { background: var(--care); border-color: var(--care); color: #fff; }
+.care .cta .arrow, .care .cta .label { background: var(--care); }
+.care .tpl.on { outline-color: var(--care); }
+.care .fl input:focus, .care .fl select:focus, .care .fl textarea:focus { border-bottom-color: var(--care); }
+.care input[type=checkbox], .care input[type=range] { accent-color: var(--care); }
+.care .req, .care .step .sn { color: var(--care); }
+.care .hints button:hover { background: var(--care-soft); }
+.care .siterow .pillbtn.dark { background: var(--care); border-color: var(--care); color: #fff; }
+.care .intake-mode button.on .cross { background: #fff; color: var(--care); }
+.care .tpl { background: var(--care-soft) !important; }
+.care .tpl .shape { background: rgba(15,118,110,.18); }
+.care .tpl.on { background: var(--care) !important; color: #fff; outline-color: var(--care); }
+.care .tpl.on .shape { background: rgba(255,255,255,.25); }

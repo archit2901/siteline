@@ -1,13 +1,13 @@
 [
  {
-  "id": "ortho_sports_asc",
-  "label": "Ortho + ASC (synthetic)",
+  "id": "ortho_sports_clinic",
+  "label": "Orthopedic Sports Clinic (public info)",
   "healthcare": true,
   "profile": {
-   "name": "Bayou City Orthopedics & Sports (synthetic)",
+   "name": "The Orthopedic Sports Clinic",
    "specialty": "orthopedics",
    "business_type": "",
-   "customers": "Active adults and weekend athletes with knee, shoulder and spine injuries; high school athletes; adults 50+ with hip and knee arthritis",
+   "customers": "Athletes at every level (high school, college, pro, weekend and CrossFit/triathlon) and active adults with knee, shoulder, hand, spine, hip and ankle problems; mostly commercially insured",
    "services": [
     "Clinic visits",
     "X-ray",
@@ -16,45 +16,35 @@
     "Surgery center (ASC)"
    ],
    "payers_accepted": [
-    "commercial",
-    "medicare",
-    "workers_comp"
+    "commercial"
    ],
    "patient_mix": {},
    "languages": [
-    "English",
-    "Spanish"
+    "English"
    ],
    "existing_offices": [
     {
-     "name": "Memorial Village (synthetic)",
-     "address": null,
-     "lat": 29.7745,
-     "lon": -95.5285,
-     "clinicians": 4
-    },
-    {
-     "name": "Sugar Land (synthetic)",
-     "address": null,
-     "lat": 29.5985,
-     "lon": -95.622,
-     "clinicians": 2
+     "name": "Campbell Rd (Memorial / Spring Branch)",
+     "address": "950 Campbell Rd, Houston, TX 77024",
+     "lat": 29.7834,
+     "lon": -95.5139,
+     "clinicians": 5
     }
    ],
    "constraints": {
-    "min_sqft": 12300,
-    "max_sqft": 22900,
+    "min_sqft": 11200,
+    "max_sqft": 20800,
     "max_rent_psf": null,
     "min_parking_per_1000sf": 5.0,
     "ground_floor": true,
     "special_rooms": [
      "x-ray",
      "MRI suite",
-     "2 operating rooms"
+     "operating rooms"
     ],
     "space_uses": []
    },
-   "free_text": "[org_type] What kind of organization is opening it: Private practice\n[functions] Which functions will this office have, and how much does each matter: Clinic visits 10, Surgery center (ASC) 8, X-ray 8, MRI / imaging 7, Physical therapy 3\n[ortho_focus] Which orthopedic care leads here: Sports medicine, Joint replacement (hip, knee, shoulder), Spine\n[capacity] How many surgeons and APPs (PAs/NPs) will work here: 3 surgeons and 2 PAs\n[surgery_site] Where do your surgeons operate: Memorial Hermann Memorial City\n[team_coverage] Do you cover any high school, college or club teams: Memorial and Stratford high school football; Friday sideline coverage\n[referrals] Where do new patients come from today: primary care groups, urgent cares, athletic trainers, self-referral\n[hours] When will the office be open: Weekdays, Early mornings, Saturday injury clinic\n[best_location] Which current location does best, which struggles, and why do you think so: Memorial Village is full: commercial patients, close to primary care groups and the hospital. Sugar Land is slower; it sits near two other orthopedic groups.",
+   "free_text": "[org_type] What kind of organization is opening it: Private practice\n[functions] Which functions will this office have, and how much does each matter: Clinic visits 10, Surgery center (ASC) 8, X-ray 8, MRI / imaging 7, Physical therapy 3\n[ortho_focus] Which orthopedic care leads here: Sports medicine, Spine, Hand and upper extremity, Joint replacement (hip, knee, shoulder)\n[capacity] How many surgeons and APPs (PAs/NPs) will work here: 2 surgeons and 2 PAs\n[surgery_site] Where do your surgeons operate: Memorial Hermann Memorial City (assumed: nearest hospital; the website names none) and on-site outpatient surgery\n[team_coverage] Do you cover any high school, college or club teams: Memorial High School; also Strake Jesuit (private), USAFit Fort Bend, Star Gymnastics and local CrossFit and triathlon events\n[referrals] Where do new patients come from today: athletes and athletic trainers, primary care groups, self-referral\n[hours] When will the office be open: Weekdays\n[best_location] Which current location does best, which struggles, and why do you think so: One office at 950 Campbell Rd by I-10 with X-ray, MRI, rehab and outpatient surgery on site; the group has five surgeons and four orthopedic PAs.\nProfile built from the practice's public website (https://www.orthopedicsports.com/); new-office functions, size and staffing are planning assumptions.",
    "stock_pack": null,
    "region_id": "hou"
   }

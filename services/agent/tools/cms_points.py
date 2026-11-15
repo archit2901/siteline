@@ -24,6 +24,7 @@ CMS_URL = "https://data.cms.gov/provider-data/dataset/mj5m-pzi6"
 URGENT = re.compile(r"URGENT CARE|CARENOW|NEXTCARE|MINUTECLINIC|FAST ?MED|PATIENT FIRST|URGENT MEDICAL")
 NOT_URGENT = re.compile(r"HOSPITAL MEDICINE|INPATIENT|HOSPITALIST|PATHOLOGY|ANESTHES")
 IMAGING = re.compile(r"IMAGING|RADIOLOGY|\bMRI\b|DIAGNOSTIC")
+NOT_PT = re.compile(r"MEDICAL|HEALTH SYSTEM|PREMISE|PHYSICIANS|NURSING|HOME HEALTH|SENIOR|LIVING|CARE CENTER|HOSPICE")
 ORTHO_NAME = re.compile(r"ORTHO|SPINE|SPORTS MED|JOINT|HOSPITAL")
 
 LAYERS: dict[str, str] = {
@@ -70,9 +71,10 @@ def _count(rs: list[dict[str, Any]], group: str) -> int:
 
 def _keep(layer: str, rs: list[dict[str, Any]]) -> bool:
     names = _groups(rs)
-    if layer == "freestanding_pt":
-        return _count(rs, "physical_therapy") > 0 and not (_count(rs, "orthopedics") or _count(rs, "pm_and_r")) \
-            and not ORTHO_NAME.search(names)
+    if layer == "freestanding_pt":  # mostly therapists, no orthopedist or physiatrist, not a medical group or facility
+        return _count(rs, "physical_therapy") >= max(1, len(rs) / 2) \
+            and not (_count(rs, "orthopedics") or _count(rs, "pm_and_r")) \
+            and not ORTHO_NAME.search(names) and not NOT_PT.search(names)
     if layer == "urgent_care":
         return bool(URGENT.search(names)) and not NOT_URGENT.search(names)
     if layer == "imaging_centers":
