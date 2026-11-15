@@ -191,3 +191,18 @@ async def test_live_runs_are_capped(monkeypatch: pytest.MonkeyPatch, tmp_path: P
         third = await c.post("/runs", json=replay_body(mode="live"))
         gate.set()
     assert (first.status_code, second.status_code, third.status_code) == (200, 429, 200)
+
+
+def test_replay_hurries_dataset_search_and_download(monkeypatch: pytest.MonkeyPatch) -> None:
+    from datetime import timedelta
+
+    from services.agent.runs import replay_gap
+
+    monkeypatch.setenv("REPLAY_MAX_GAP_SECONDS", "1.5")
+    monkeypatch.setenv("REPLAY_DATA_GAP_SECONDS", "0.3")
+    first = load_events(FIXTURES / "events.jsonl")[0]
+    later = lambda **kw: first.model_copy(update={"ts": first.ts + timedelta(seconds=5), **kw})  # noqa: E731
+    assert replay_gap(first, later(agent="factor-analyst", type="tool_result"), approved=False) == 1.5
+    assert replay_gap(first, later(agent="dataset-scout:flood", type="tool_call"), approved=False) == 0.3
+    assert replay_gap(first, later(type="factor"), approved=True) == 0.3
+    assert replay_gap(first, later(type="factor"), approved=False) == 1.5

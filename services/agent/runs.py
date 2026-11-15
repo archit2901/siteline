@@ -33,6 +33,19 @@ def max_gap_seconds() -> float:
     return float(os.environ.get("REPLAY_MAX_GAP_SECONDS", "1.5"))
 
 
+def data_gap_seconds() -> float:
+    """Shorter cap for the dataset search and download stretch, the slowest and least interesting part of a replay."""
+    return float(os.environ.get("REPLAY_DATA_GAP_SECONDS", "0.3"))
+
+
+def replay_gap(prev: RunEvent, event: RunEvent, approved: bool) -> float:
+    """Seconds to wait before replaying event: the recorded gap, capped (tighter for dataset search and download)."""
+    gap = (event.ts - prev.ts).total_seconds()
+    data = event.agent.startswith("dataset-scout") or (approved and event.type == "factor")
+    cap = max_gap_seconds()
+    return max(0.0, min(gap, min(cap, data_gap_seconds()) if data else cap))
+
+
 def max_live_runs() -> int:
     """Live runs allowed at once (each spends LLM calls); 0 = no limit."""
     return int(os.environ.get("MAX_LIVE_RUNS", "0") or 0)
@@ -238,14 +251,14 @@ class RunStore:
     async def _replay(self, run: Run) -> None:
         try:
             recorded = load_events(run.source)  # type: ignore[arg-type]
-            cap = max_gap_seconds()
+            approved = False  # after the first approval, factor events are datasets finishing their download
             for prev, event in zip([None, *recorded], recorded):
                 if prev is not None:
-                    gap = (event.ts - prev.ts).total_seconds()
-                    await asyncio.sleep(max(0.0, min(gap, cap)))
+                    await asyncio.sleep(replay_gap(prev, event, approved))
                 event = event.model_copy(update={"run_id": run.run_id})
                 if event.type == "approval":  # wait for the presenter; the recording continues as approved
                     await run.request_approval(ApprovalRequest.model_validate(event.payload), event)
+                    approved = True
                 else:
                     await run.publish(event)
         except Exception:  # surface replay failures to subscribers instead of hanging them
