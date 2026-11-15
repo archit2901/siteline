@@ -3,6 +3,7 @@ import { H3HexagonLayer } from '@deck.gl/geo-layers'
 import { ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import type { PickingInfo } from '@deck.gl/core'
 import * as maplibregl from 'maplibre-gl'
+import { cellToLatLng } from 'h3-js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { esc } from '../lib/safe'
 import type { Office, Recommendation, ScoreResponse } from '../types/contracts'
@@ -101,6 +102,9 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
     if (!o) return
     const cellIndex = new Map(grid.map((c, i) => [c.h3, i]))
     const pinned = offices.filter((x) => x.lat != null && x.lon != null)
+    // build zones: a single small hexagon each, so they also get a halo ring and a numbered pin
+    const zonePins = highlight.map((h, i) => { const [lat, lon] = cellToLatLng(h); return { h, rank: i + 1, lat, lon } })
+    const ORANGE: [number, number, number] = [234, 88, 12]
     const layers = [
       new H3HexagonLayer<GridCell>({
         id: 'cells', data: grid, getHexagon: (d) => d.h3, stroked: false, extruded: false, pickable: true, highPrecision: false,
@@ -111,9 +115,13 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
           : ramp(densityPct[cellIndex.get(d.h3) ?? 0] ?? 0, 0.5, 25 * fade, 110 * fade)),
         updateTriggers: { getFillColor: [scorePct, densityPct, layerPct, fade] },
       }),
+      new ScatterplotLayer<typeof zonePins[number]>({
+        id: 'zone-halo', data: zonePins, getPosition: (d) => [d.lon, d.lat], getRadius: 26, radiusUnits: 'pixels',
+        getFillColor: [...ORANGE, 45], getLineColor: [...ORANGE, 230], lineWidthMinPixels: 2.5, stroked: true,
+      }),
       new H3HexagonLayer<string>({
         id: 'highlight', data: highlight, getHexagon: (d) => d, filled: true, stroked: true,
-        getFillColor: [250, 142, 102, 70], getLineColor: [0, 0, 0, 255], lineWidthMinPixels: 1.5,
+        getFillColor: [...ORANGE, 200], getLineColor: [0, 0, 0, 255], lineWidthMinPixels: 3,
       }),
       new ScatterplotLayer<typeof pinned[number]>({
         id: 'offices', data: pinned, getPosition: (d) => [d.lon as number, d.lat as number], getRadius: 7, radiusUnits: 'pixels',
@@ -131,6 +139,14 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
         id: 'site-ranks', data: sites, getPosition: (d) => [d.site.lon, d.site.lat], getText: (d) => String(d.rank), getSize: 12,
         getColor: (d) => (d.site.id === selectedSiteId ? [0, 0, 0, 255] : [255, 255, 255, 255]), fontFamily: 'Geist, system-ui, sans-serif',
         fontWeight: 600, updateTriggers: { getColor: selectedSiteId },
+      }),
+      new ScatterplotLayer<typeof zonePins[number]>({
+        id: 'zone-pins', data: zonePins, getPosition: (d) => [d.lon, d.lat], getRadius: 12, radiusUnits: 'pixels',
+        getFillColor: [...ORANGE, 255], getLineColor: [255, 255, 255, 255], lineWidthMinPixels: 2, stroked: true,
+      }),
+      new TextLayer<typeof zonePins[number]>({
+        id: 'zone-ranks', data: zonePins, getPosition: (d) => [d.lon, d.lat], getText: (d) => String(d.rank), getSize: 12,
+        getColor: [255, 255, 255, 255], fontFamily: 'Geist, system-ui, sans-serif', fontWeight: 700,
       }),
     ]
     o.setProps({
@@ -164,6 +180,13 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
     map.current.fitBounds(b, { padding: 90, maxZoom: 11.5, duration: 800 })
   }, [sites.map((s) => s.site.id).join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => { // build tab: bring every build zone into view
+    if (!map.current || !highlight.length) return
+    const b = new maplibregl.LngLatBounds()
+    highlight.forEach((h) => { const [lat, lon] = cellToLatLng(h); b.extend([lon, lat]) })
+    map.current.fitBounds(b, { padding: 90, maxZoom: 11, duration: 800 })
+  }, [highlight.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (focus && map.current) map.current.flyTo({ center: [focus.lon, focus.lat], zoom: focus.zoom ?? 12.5, duration: 900 })
   }, [focus])
@@ -185,7 +208,7 @@ export default function MapView({ grid, zones, sites, highlight, offices, featur
         <span className="mono">{layerPct ? 'worse → better for you' : zones ? 'top 30% → 1%' : 'lower → higher'}</span>
         {sites.length > 0 && <span><i style={{ background: '#000' }} />site</span>}
         {offices.some((x) => x.lat != null) && <span><i style={{ background: 'var(--sky)', border: '1.5px solid #000' }} />your office</span>}
-        {highlight.length > 0 && <span><i style={{ background: 'rgba(250,142,102,.5)', border: '1.5px solid #000', borderRadius: 2 }} />zone</span>}
+        {highlight.length > 0 && <span><i style={{ background: 'rgb(234,88,12)', border: '2px solid #fff', boxShadow: '0 0 0 2px rgba(234,88,12,.5)' }} />build zone</span>}
       </div>
     </>
   )
