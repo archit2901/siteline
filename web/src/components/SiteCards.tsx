@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { HAS_VEXCEL, aerialUrl, countParkedCars, matterportScan, type CarCount, type ScanInfo } from '../lib/media'
 import type { CommunityNeed, Recommendation, Report, ScoringSpec, SiteInspection } from '../types/contracts'
 import Icon from './Icon'
@@ -115,11 +115,17 @@ export function ResultsTable({ report, selectedSiteId, onSelect, tune }: TablePr
             </tr>
           </thead>
           <tbody>
-            {recs.map((rec) => {
+            {recs.map((rec, i) => {
               const s = rec.site
+              const miss = missesOf(rec)
+              const firstMiss = miss.length > 0 && (i === 0 || missesOf(recs[i - 1]).length === 0)
               return (
+                <Fragment key={s.id}>
+                {firstMiss && (
+                  <tr className="looser"><td colSpan={6}>Looser search: these spaces miss one of your constraints</td></tr>
+                )}
                 <tr
-                  key={s.id}
+                  className={miss.length ? 'misses' : undefined}
                   aria-selected={s.id === selectedSiteId}
                   tabIndex={0}
                   onClick={() => onSelect(s.id)}
@@ -131,12 +137,14 @@ export function ResultsTable({ report, selectedSiteId, onSelect, tune }: TablePr
                   <td className="addr">
                     {s.address}
                     <span>{[s.sqft ? `${s.sqft.toLocaleString('en-US')} sq ft` : null, s.floor != null ? `floor ${s.floor}` : null, availability(rec).text.toLowerCase(), s.matterport_id ? '3D tour' : null].filter(Boolean).join(', ')}</span>
+                    {miss.length > 0 && <span className="miss">Misses: {miss.join('; ')}</span>}
                   </td>
                   <td className="num won">{whole(rec.net_new_patients)}</td>
                   <td className="num">{rec.annual_rent_per_customer != null ? money(rec.annual_rent_per_customer) : 'Not listed'}</td>
                   <td className="num">{s.rent_psf ? `${money(s.rent_psf)}/sq ft` : 'Not listed'}</td>
                   <td className="num">{rec.stability != null ? `${Math.round(rec.stability * 100)}%` : 'Not run'}</td>
                 </tr>
+                </Fragment>
               )
             })}
           </tbody>
@@ -144,6 +152,12 @@ export function ResultsTable({ report, selectedSiteId, onSelect, tune }: TablePr
       </div>
     </section>
   )
+}
+
+/** Search constraints this space fails (set when a looser search added it to fill the top 10). */
+function missesOf(rec: Recommendation): string[] {
+  const m = (rec.site.checks as Record<string, unknown> | undefined)?.misses
+  return Array.isArray(m) ? (m as string[]) : []
 }
 
 interface FlyerProps {
@@ -173,6 +187,7 @@ export function SiteFlyer({ report, rec, featureLabels, onSelect }: FlyerProps) 
       <div className="badges">
         <span className="ranktag">Rank {rec.rank} of {report.recommendations.length}</span>
         <span className={`avail${avail.pending ? ' pending' : ''}`}>{avail.text}</span>
+        {missesOf(rec).length > 0 && <span className="misstag">Misses: {missesOf(rec).join('; ')}</span>}
       </div>
       <h2 id="flyer-title">{s.address}</h2>
       <p className="where">

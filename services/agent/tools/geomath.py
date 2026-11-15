@@ -359,6 +359,43 @@ def site_quality(site: SiteCandidate, cons: Constraints, visibility: str | None 
     return (parking + ground + size + rent + seen) / 5, None
 
 
+def relaxations(cons: Constraints) -> list[Constraints]:
+    """Looser searches, tried in order when too few spaces fit: any floor, then down to 60% of the minimum size,
+    then no rent ceiling. Each step keeps the loosening before it."""
+    steps = []
+    if cons.ground_floor:
+        cons = cons.model_copy(update={"ground_floor": False})
+        steps.append(cons)
+    cons = cons.model_copy(update={"min_sqft": int(round(cons.min_sqft * 0.6, -2))})
+    steps.append(cons)
+    if cons.max_rent_psf is not None:
+        steps.append(cons.model_copy(update={"max_rent_psf": None}))
+    return steps
+
+
+def misses(site: SiteCandidate, cons: Constraints) -> list[str]:
+    """The search constraints a space fails (only judged on known values), in plain words."""
+    out = []
+    if site.sqft is not None and site.sqft < cons.min_sqft:
+        out.append(f"{site.sqft:,} sq ft, under your {cons.min_sqft:,} sq ft minimum")
+    elif site.sqft is not None and site.sqft > cons.max_sqft:
+        out.append(f"{site.sqft:,} sq ft, over your {cons.max_sqft:,} sq ft maximum")
+    if cons.ground_floor and site.floor is not None and site.floor > 1:
+        out.append(f"floor {site.floor}; you asked for the ground floor")
+    if cons.max_rent_psf is not None and site.rent_psf is not None and site.rent_psf > cons.max_rent_psf:
+        out.append(f"${site.rent_psf:.2f}/sq ft, over your ${cons.max_rent_psf:.0f} ceiling")
+    return out
+
+
+def strict_first(ranked: list[RankedSite], sites: dict[str, SiteCandidate]) -> list[RankedSite]:
+    """Spaces that meet every search constraint first, then the ones a looser search added, then excluded ones."""
+    def group(r: RankedSite) -> int:
+        if r.excluded_reason is not None:
+            return 2
+        return 1 if (s := sites.get(r.site_id)) is not None and s.checks.get("misses") else 0
+    return sorted(ranked, key=group)  # stable: score order within each group
+
+
 def rank(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpec, candidates: list[SiteCandidate],
          competitor_feature: str | None, with_stability: bool, draws: int = 200, kappa: float = 50.0,
          model: DemandModel | None = None) -> list[RankedSite]:

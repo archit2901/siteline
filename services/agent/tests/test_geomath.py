@@ -161,3 +161,20 @@ def test_orthopedic_supply_counts_physiatrists_and_podiatrists() -> None:
     geomath.ensure_supply(grid, pack)
     col = grid.columns["_supply_healthcare.orthopedics.foot_ankle"]
     assert np.allclose(col, np.nan_to_num(grid.columns["n_orthopedics"]) + np.nan_to_num(grid.columns["n_podiatry"]))
+
+
+def test_relaxed_sites_say_what_they_miss_and_rank_after_strict_fits() -> None:
+    from contracts.models import Constraints, RankedSite, SiteCandidate
+    from services.agent.tools import geomath as gm
+
+    cons = Constraints(min_sqft=11_200, max_sqft=20_800, ground_floor=True)
+    steps = gm.relaxations(cons)
+    assert not steps[0].ground_floor and steps[-1].min_sqft == 6_700
+    small = SiteCandidate(id="b", address="2 B St", lat=29.7, lon=-95.4, sqft=8_000, floor=3)
+    assert gm.misses(small, cons) == ["8,000 sq ft, under your 11,200 sq ft minimum", "floor 3; you asked for the ground floor"]
+    sites = {"a": SiteCandidate(id="a", address="1 A St", lat=29.7, lon=-95.4, sqft=12_000, floor=1),
+             "b": small.model_copy(update={"checks": {"misses": gm.misses(small, cons)}})}
+    r = lambda sid, score, ex=None: RankedSite(site_id=sid, net_new_patients=1, captured_patients=1, cannibalized_patients=0,
+                                                zone_score=0, site_quality=0, final_score=score, excluded_reason=ex)
+    order = gm.strict_first([r("b", 0.9), r("x", 0, "outside"), r("a", 0.5)], sites)
+    assert [x.site_id for x in order] == ["a", "b", "x"]

@@ -21,6 +21,8 @@ type Tab = 'decision' | 'lease' | 'build' | 'space' | 'proof' | 'ask'
 
 const HEADLINE: Record<RunStatus, string> = { idle: 'Ready.', running: 'Working…', waiting: 'Your call.', done: 'Done.', error: 'Stopped.' }
 
+const missed = (r: Recommendation) => Array.isArray(r.site.checks?.misses) && (r.site.checks.misses as unknown[]).length > 0
+
 export default function App() {
   const [state, dispatch] = useReducer(runReducer, initialRunState)
   const [grid, setGrid] = useState<GridCell[]>([])
@@ -215,8 +217,8 @@ export default function App() {
               {canTune && (tab === 'lease' || tab === 'build') && spec && <Tune spec={spec} featureLabels={featureLabels} busy={tuning} onRerank={retune}
                 onRerun={(w) => { pendingWeights.current = Object.fromEntries(Object.entries(w).map(([k, v]) => [stableId(k), v])); start(report.profile) }} />}
               {tab === 'lease' && (
-                <div className={`cards ${tuning ? 'dim' : ''}`}>{sites.map((r) => (
-                  <SiteCard key={r.site.id} r={r} report={report} featureLabels={featureLabels} active={selected === r.site.id} onHover={setSelected}
+                <div className={`cards ${tuning ? 'dim' : ''}`}>{sites.map((r, i) => (
+                  <SiteCard key={r.site.id} r={r} looser={missed(r) && (i === 0 || !missed(sites[i - 1]))} report={report} featureLabels={featureLabels} active={selected === r.site.id} onHover={setSelected}
                     onOpen={() => { setSheet(r.site.id); setFocus({ lat: r.site.lat, lon: r.site.lon }) }} />))}</div>
               )}
               {tab === 'build' && (

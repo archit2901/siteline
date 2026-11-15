@@ -298,6 +298,8 @@ async def build_report(run_id: str, profile: PracticeProfile, factors: list[Fact
             keys.append(o.key)
         site = by_site[r.site_id]
         site_caveats = []
+        if site.checks.get("misses"):
+            site_caveats.append("Misses your search: " + "; ".join(site.checks["misses"]) + ".")
         if no_competitors:
             site_caveats.append(geomath.NO_COMPETITOR_CAVEAT)
         if site.available is None:

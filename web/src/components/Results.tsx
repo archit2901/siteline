@@ -11,18 +11,22 @@ const COLORS = ['var(--sky)', 'var(--lime)', 'var(--sand)', 'var(--sage)', 'var(
 const demandShort = (label?: string) => `new ${label && label !== 'patients' ? label : 'pts'}/yr`
 const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : `${Math.round(n)}`)
 
-export function SiteCard({ r, report, featureLabels, active, onHover, onOpen }: {
-  r: Recommendation; report: Report; featureLabels: Record<string, string>; active: boolean; onHover: (id: string | null) => void; onOpen: () => void
+export function SiteCard({ r, report, featureLabels, active, onHover, onOpen, looser = false }: {
+  looser?: boolean; r: Recommendation; report: Report; featureLabels: Record<string, string>; active: boolean; onHover: (id: string | null) => void; onOpen: () => void
 }) {
   const s = r.site
   const img = aerialUrl(s.lat, s.lon, 140)
   const name = (s.checks?.building_name as string | undefined) ?? s.submarket ?? (s.source === 'costar' ? 'CoStar listing' : 'Example site')
+  const misses = Array.isArray(s.checks?.misses) ? (s.checks.misses as string[]) : []
   return (
-    <article className={`scard ${active ? 'active' : ''}`} onMouseEnter={() => onHover(s.id)} onMouseLeave={() => onHover(null)} onClick={onOpen}
+    <>
+    {looser && <p className="looser">Looser search: the spaces below miss one of your constraints</p>}
+    <article className={`scard ${active ? 'active' : ''}${misses.length ? ' missing' : ''}`} onMouseEnter={() => onHover(s.id)} onMouseLeave={() => onHover(null)} onClick={onOpen}
       tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
       <div className="l">
         <span className="num">{r.rank}/10</span>
         <h3>{s.address.split(',')[0]}</h3>
+        {misses.length > 0 && <span className="misstag">Misses: {misses.join('; ')}</span>}
         <span className="meta">{name}{s.building_class ? ` · Class ${s.building_class}` : ''}{s.available === null || s.available === undefined ? ' · candidate building' : ''}</span>
         <div className="stats">
           <div><b>{k(r.net_new_patients)}</b><span>{demandShort(report.demand_label)}</span></div>
@@ -44,6 +48,7 @@ export function SiteCard({ r, report, featureLabels, active, onHover, onOpen }: 
         {s.matterport_id && <span className="badge2">3D</span>}
       </div>
     </article>
+    </>
   )
 }
 

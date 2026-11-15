@@ -537,3 +537,11 @@ a.source:hover { border-color: #000; color: #000; }
 
 .replaybtn { border: 1px solid var(--ink); background: var(--card); border-radius: 999px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .replaybtn:hover { background: var(--lime2); }
+
+tr.looser td { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink2); padding: 12px 8px 6px; border-top: 1px dashed var(--line); background: none; cursor: default; }
+td.addr .miss { display: block; color: #b45309; font-size: 12px; margin-top: 2px; }
+tr.misses .rankdot { background: var(--card); color: var(--ink2); border: 1px dashed var(--ink2); }
+.misstag { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: #fef3c7; color: #92400e; }
+
+p.looser { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink2); margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed var(--line); }
+.scard .misstag { align-self: flex-start; margin: 2px 0 4px; }

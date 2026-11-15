@@ -32,7 +32,7 @@ from contracts.models import (
     SiteSearchRequest,
 )
 from services.agent import inspector, llm
-from services.agent.critic import build_report
+from services.agent.critic import TOP, build_report
 from services.agent.factor_analyst import analyze
 from services.agent.runs import Run
 from services.agent.profiler import profile_business
@@ -114,8 +114,13 @@ async def score_and_rank(run: Run, spec: ScoringSpec) -> tuple[ScoreResponse, li
     demand = run.state.get("demand")
     zones = await geo.score(ScoreRequest(profile=profile, spec=spec, top_n=15, demand=demand))
     sites: list[SiteCandidate] = run.state.get("sites", [])
-    ranked = await geo.rank(RankRequest(profile=profile, spec=spec, candidates=sites, demand=demand)) if sites else []
-    return zones, ranked
+    ranked = await geo.rank(RankRequest(profile=run.state.get("rank_profile", profile), spec=spec, candidates=sites,
+                                        demand=demand)) if sites else []
+    return zones, geomath.strict_first(ranked, {s.id: s for s in sites})
+
+
+def buildings(sites: list[SiteCandidate]) -> set[str]:
+    return {str(s.checks.get("property_id") or s.address.strip().lower()) for s in sites}
 
 
 def agent_mode() -> str:
@@ -293,16 +298,36 @@ async def run_pipeline(run: Run) -> None:
     if not sites:
         caveats.append("No listed spaces fit near the top zones; showing zone centroids instead of buildings.")
         sites = await MockSites().search(request.model_copy(update={"zones": zones.top}))
+    # too few buildings fit: loosen the search step by step to fill the top 10, and say what each added space misses
+    rank_profile, strict = profile, len(sites)
+    for relaxed in geomath.relaxations(constraints):
+        if len(buildings(sites)) >= TOP:
+            break
+        seen = {s.id for s in sites}
+        more = [s for s in await sites_client.search(request.model_copy(update={"constraints": relaxed}))
+                if s.id not in seen]
+        sites += [s.model_copy(update={"checks": {**s.checks, "misses": geomath.misses(s, constraints)}}) for s in more]
+        rank_profile = profile.model_copy(update={"constraints": relaxed.model_copy(
+            update={"space_uses": profile.constraints.space_uses})})
+    if len(sites) > strict:
+        caveats.append(f"Only {len(buildings(sites[:strict]))} buildings meet every search constraint; the rest of the "
+                       "list comes from a looser search, and each of those cards says which constraint it misses.")
+    run.state["rank_profile"] = rank_profile
     run.state["sites"] = sites
     run.write_artifact("sites.json", TypeAdapter(list[SiteCandidate]).dump_json(sites, indent=2).decode())
     await run.emit("site-scout", "tool_result", {"tool": "search_sites", "ok": True,
-                                                 "summary": f"{len(sites)} spaces that fit the business near the top zones."})
+                                                 "summary": f"{strict} spaces that fit the business near the top zones"
+                                                            + (f"; {len(sites) - strict} more from a looser search (any floor, "
+                                                               "smaller sizes) to fill the top 10, each marked with what it misses."
+                                                               if len(sites) > strict else ".")})
     await run.emit("site-scout", "file", {"name": "sites.json", "path": "/sites.json"})
 
     # 7. rank
     await run.emit(S, "todo", todos(6))
     await run.emit(S, "tool_call", {"tool": "rank_sites", "args": {"candidates": len(sites)}})
-    ranked = await geo.rank(RankRequest(profile=profile, spec=spec, candidates=sites, with_stability=True, demand=demand))
+    ranked = await geo.rank(RankRequest(profile=rank_profile, spec=spec, candidates=sites, with_stability=True,
+                                        demand=demand))
+    ranked = geomath.strict_first(ranked, {s.id: s for s in sites})
     run.write_artifact("ranked.json", TypeAdapter(list[RankedSite]).dump_json(ranked, indent=2).decode())
     plan = strategy.plan(profile, ranked, {s.id: s for s in sites})
     run.write_artifact("strategy.json", plan.model_dump_json(indent=2))

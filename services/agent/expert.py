@@ -368,7 +368,7 @@ def option_sites(ranked: list, sites: dict, top: int = 3) -> list[dict]:
     out = []
     for r in ranked:
         s = sites.get(r.site_id)
-        if r.excluded_reason is not None or s is None:
+        if r.excluded_reason is not None or s is None or s.checks.get("misses"):
             continue
         rent = round(s.rent_psf * s.sqft) if s.rent_psf and s.sqft else None
         out.append({"site_id": r.site_id, "address": s.address, "sqft": s.sqft, "rent_psf": s.rent_psf,
