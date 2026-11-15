@@ -157,8 +157,6 @@ export default function Start({ live, hasRecording, onRun }: Props) {
   }
   const shown = PRESETS.filter((x) => x.healthcare === (track === 'health'))
   const fnQ = qs.sector_questions.find((q) => q.kind === 'weights')
-  const fnWeights = fnQ ? parseWeights(answers[fnQ.id] ?? '', fnQ.options) : {}
-  const suggestion = fnQ ? suggestSpace(fnWeights, physiciansIn(answers.capacity, offices)) : null
   const setWeights = (w: Record<string, number>) => {
     if (!fnQ) return
     setA(fnQ.id, weightsText(w))
@@ -192,12 +190,6 @@ export default function Start({ live, hasRecording, onRun }: Props) {
               <b className="mono">{w[o] > 0 ? w[o] : '–'}</b>
             </div>
           ))}
-          {suggestion && <p className="suggest"><b>{suggestion.min.toLocaleString('en-US')}–{suggestion.max.toLocaleString('en-US')} sq ft · {suggestion.parking} parking / 1,000 sf</b>
-            <span>{suggestion.parts.join(' + ')} sq ft planned; searching 70–130%. Applied below.</span>
-            {w['Surgery center (ASC)'] > 0 && (() => {
-              const lite = suggestSpace({ ...w, 'Surgery center (ASC)': 0 }, physiciansIn(answers.capacity, offices))
-              return lite && <span>Most ASCs are their own building: without it, {lite.min.toLocaleString('en-US')}–{lite.max.toLocaleString('en-US')} sq ft. The run also ranks smaller programs.</span>
-            })()}</p>}
         </div>
       )
     }
