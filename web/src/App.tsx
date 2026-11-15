@@ -133,10 +133,10 @@ export default function App() {
   const step = `${Math.max(1, state.todos.findIndex((t) => t.status === 'in_progress') + 1)}/${state.todos.length || 1}`
   const canTune = Boolean(spec) && Boolean(state.runId) && state.runId !== 'fixture-replay' // re-rank is math only, recorded runs too
 
-  const retune = useCallback(async (weights: Record<string, number>) => {
+  const retune = useCallback(async (weights: Record<string, number>, alpha?: number) => {
     if (!spec || !state.runId || !report) return
     const total = Object.values(weights).reduce((a, b) => a + b, 0) || 1
-    const next: ScoringSpec = { ...spec, weights: Object.fromEntries(Object.entries(weights).map(([k, v]) => [k, v / total])) }
+    const next: ScoringSpec = { ...spec, alpha: alpha ?? spec.alpha, weights: Object.fromEntries(Object.entries(weights).map(([k, v]) => [k, v / total])) }
     setTuning(true)
     try {
       const res = await rescore(state.runId, next)

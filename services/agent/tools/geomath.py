@@ -418,8 +418,11 @@ def rank(grid: Grid, pack: StockPack, profile: PracticeProfile, spec: ScoringSpe
     eligible = [r for r in rows if r[3] is None]
     net_pct = percentile(np.array([huffs[r[0].id].net_new_patients for r in eligible], dtype=float))
     zone_s = np.array([zone[r[1]] for r in eligible])
+    # every candidate already sits in a top zone, so raw zone scores differ by ~0.01: rank them among the candidates
+    # (as net-new patients are) so the factor weights decide between comparable spaces
+    zone_pct = percentile(zone_s)
     quality = np.array([r[2] for r in eligible])
-    final = spec.alpha * net_pct + (1 - spec.alpha) * (0.6 * zone_s + 0.4 * quality)
+    final = spec.alpha * net_pct + (1 - spec.alpha) * (0.6 * zone_pct + 0.4 * quality)
     stability = (_stability(c[[r[1] for r in eligible]], weights, spec.alpha, net_pct, quality, draws, kappa)
                  if with_stability and eligible else None)
 
@@ -451,6 +454,7 @@ def _stability(c_sites: np.ndarray, weights: np.ndarray, alpha: float, net_pct: 
     rng = np.random.default_rng(42)
     w = rng.dirichlet(kappa * weights, size=draws)  # draws × features
     zone = c_sites @ w.T  # sites × draws
+    zone = (np.argsort(np.argsort(zone, axis=0), axis=0) + 1) / max(1, zone.shape[0])  # rank among sites, as in rank()
     final = alpha * net_pct[:, None] + (1 - alpha) * (0.6 * zone + 0.4 * quality[:, None])
     k = min(TOP_K, len(net_pct))
     top = np.argsort(-final, axis=0, kind="stable")[:k]  # k × draws

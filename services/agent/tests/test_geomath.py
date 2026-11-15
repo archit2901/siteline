@@ -91,6 +91,21 @@ def test_rank_excludes_hard_constraint_failures_and_stability_is_a_share() -> No
     assert sum(r.stability or 0 for r in kept) == pytest.approx(10)  # exactly 10 sites in the top 10 per draw
 
 
+def test_weights_reorder_spaces_even_when_their_zones_score_alike() -> None:
+    """Candidates all sit in top zones, so the zone part is ranked among them: weights flip close calls."""
+    grid, pack = small_grid(), load_pack("healthcare.orthopedics")
+    sites = [site(f"s{i}", 29.70 + 0.012 * i, -95.43 + 0.012 * i) for i in range(8)]
+    w = {"pop_45plus_within_5km": 1.0}
+    order = lambda d: [r.site_id for r in geomath.rank(grid, pack, PROFILE, ScoringSpec(weights=w, directions=d, alpha=0.0),
+                                                       sites, None, with_stability=False)]
+    up, down = order({}), order({"pop_45plus_within_5km": -1})
+    assert up[0] == down[-1] and up[-1] == down[0]  # flipping the one weighted factor reverses the order
+    ranked = geomath.rank(grid, pack, PROFILE, ScoringSpec(weights={"pop_45plus_within_5km": 1}, alpha=0.0), sites,
+                          None, with_stability=False)
+    zone_part = sorted((r.final_score - 0.4 * r.site_quality) / 0.6 for r in ranked)
+    assert zone_part == pytest.approx([(k + 1) / 8 for k in range(8)], abs=1e-3)  # a rank among the candidates, not a raw score
+
+
 def test_same_input_same_output() -> None:
     grid, pack = small_grid(), load_pack("healthcare.orthopedics")
     sites = [site(f"s{i}", 29.70 + 0.01 * i, -95.45) for i in range(12)]

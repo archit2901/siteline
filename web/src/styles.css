@@ -554,3 +554,5 @@ p.looser { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; co
 .ideas-done .ideas { margin-left: 0; }
 @keyframes idea-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ideas li { animation: none; } }
+
+.wrow.edit.balance { border-bottom: 1px solid var(--line, #ddd); padding-bottom: 8px; margin-bottom: 6px; font-weight: 600; }

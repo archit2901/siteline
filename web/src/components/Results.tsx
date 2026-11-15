@@ -155,19 +155,27 @@ export const stableId = (fid: string) => fid.replace(/_[0-9a-f]{6}$/, '')
 
 export function Tune({ spec, featureLabels, busy, onRerank, onRerun }: {
   spec: ScoringSpec; featureLabels: Record<string, string>; busy: boolean
-  onRerank: (w: Record<string, number>) => void; onRerun: (w: Record<string, number>) => void
+  onRerank: (w: Record<string, number>, alpha: number) => void; onRerun: (w: Record<string, number>) => void
 }) {
   const [open, setOpen] = useState(false)
   const [w, setW] = useState<Record<string, number>>(spec.weights)
-  useEffect(() => setW(spec.weights), [spec])
+  const [alpha, setAlpha] = useState(spec.alpha ?? 0.7) // share of a space's score from new patients won
+  useEffect(() => { setW(spec.weights); setAlpha(spec.alpha ?? 0.7) }, [spec])
   const total = Object.values(w).reduce((a, b) => a + b, 0) || 1
   const top = Math.max(0.5, ...Object.values(spec.weights).map((x) => Math.min(1, x * 2.5)))
   const changed = Object.keys(spec.weights).some((k) => Math.abs((w[k] ?? 0) / total - spec.weights[k]) > 0.005)
+    || Math.abs(alpha - (spec.alpha ?? 0.7)) > 0.005
   if (!open) return <button className="pillbtn" style={{ marginTop: 10 }} onClick={() => setOpen(true)}>Tune weights{busy ? ' …' : ''}</button>
   return (
     <div className="callout" style={{ padding: '12px 18px' }}>
       <div className="kicker" style={{ margin: '0 0 6px' }}><span>Tune weights</span>
         <button className="linkbtn" style={{ margin: 0 }} onClick={() => setOpen(false)}>close</button></div>
+      <div className="wrow edit balance">
+        <span title="How much of each space's score comes from the new patients it would win (traffic model) versus the factors below and the space itself">New patients won vs. factors</span>
+        <input type="range" min={0} max={0.9} step={0.05} value={alpha} aria-label="Share of the score from new patients won"
+          onChange={(e) => setAlpha(Number(e.target.value))} />
+        <span className="pct">{Math.round(alpha * 100)} / {Math.round((1 - alpha) * 100)}</span>
+      </div>
       {Object.keys(spec.weights).map((fid) => (
         <div className="wrow edit" key={fid}>
           <span title={featureLabels[fid] ?? fid}>{featureLabels[fid] ?? fid}</span>
@@ -177,9 +185,9 @@ export function Tune({ spec, featureLabels, busy, onRerank, onRerun }: {
         </div>
       ))}
       <div className="tune-actions">
-        <button className="pillbtn dark" disabled={busy || !changed} onClick={() => onRerank(w)}>{busy ? 'Re-ranking…' : 'Re-rank these spaces'}</button>
+        <button className="pillbtn dark" disabled={busy || !changed} onClick={() => onRerank(w, alpha)}>{busy ? 'Re-ranking…' : 'Re-rank these spaces'}</button>
         <button className="pillbtn" disabled={busy} onClick={() => onRerun(w)} title="Starts a new agent run with the same intake; these weights are pre-set at the weights step">Re-run the whole search</button>
-        {changed && <button className="linkbtn" style={{ margin: 0 }} onClick={() => setW(spec.weights)}>reset</button>}
+        {changed && <button className="linkbtn" style={{ margin: 0 }} onClick={() => { setW(spec.weights); setAlpha(spec.alpha ?? 0.7) }}>reset</button>}
       </div>
       <p className="why" style={{ margin: '8px 0 0' }}>Re-rank re-scores every Houston zone and listing instantly, without the model. Re-run starts the agent again (new datasets, new approvals) with these weights pre-set.</p>
     </div>
