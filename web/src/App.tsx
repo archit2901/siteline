@@ -57,7 +57,7 @@ export default function App() {
     return () => { replay.current?.stop(); live.current?.close() }
   }, [])
 
-  useEffect(() => { if (!fixtureMode) listGolden().then(setGolden) }, [fixtureMode])
+  useEffect(() => { if (view === 'start') listGolden().then(setGolden).catch(() => setGolden([])) }, [view, fixtureMode])
 
   const start = useCallback(async (p: PracticeProfile, recorded?: string) => {
     replay.current?.stop()
@@ -65,7 +65,7 @@ export default function App() {
     setProfile(p); setSelected(null); setSheet(null); setFocus(null); setTab('lease'); setLoadError(null); setSpec(null); setStrategy(null); setReview(null); setExpert(null); setOptions([])
     setReplaying(Boolean(recorded)); setView('agent')
     try {
-      if (fixtureMode) {
+      if (fixtureMode && !recorded) {
         const events = await loadFixtureEvents()
         replay.current = startReplay(events, dispatch, { runId: 'fixture-replay' })
         return
@@ -93,7 +93,7 @@ export default function App() {
     const approval = state.approval
     if (!approval) return
     if (approval.kind === 'weights' && approval.spec) { setSpec(decision.edited_spec ?? approval.spec); pendingWeights.current = null }
-    if (fixtureMode) { replay.current?.answer(approval.approval_id); return }
+    if (replay.current) { replay.current.answer(approval.approval_id); return } // bundled sample run (no agent-api)
     try {
       await approve(state.runId!, decision)
       dispatch({ type: 'approvalAnswered', approvalId: approval.approval_id })
@@ -163,7 +163,7 @@ export default function App() {
         </div>
       </nav>
 
-      {view === 'start' && <Start live={!fixtureMode} hasRecording={(id) => !fixtureMode && golden.includes(id)} onRun={start} />}
+      {view === 'start' && <Start live={!fixtureMode} hasRecording={(id) => golden.includes(id)} onRun={start} />}
 
       {view !== 'start' && (
         <main className={`work ${view === 'results' ? 'results' : ''}`}>
@@ -186,7 +186,7 @@ export default function App() {
               <button className="pillbtn dark" onClick={() => setLog(true)} disabled={state.trace.length === 0}>Agent log · {state.trace.length}</button>
             </div>
             {state.approval && view === 'agent' && (
-              <Approval key={state.approval.approval_id} approval={state.approval} featureLabels={featureLabels} readOnly={fixtureMode}
+              <Approval key={state.approval.approval_id} approval={state.approval} featureLabels={featureLabels} readOnly={fixtureMode || replaying}
                 preset={state.approval.kind === 'weights' ? pendingWeights.current : null}
                 step={step} businessName={name} onApprove={answer}
                 onReject={() => answer({ approval_id: state.approval!.approval_id, decision: 'reject' })} />

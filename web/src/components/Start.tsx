@@ -94,6 +94,7 @@ export default function Start({ live, hasRecording, onRun }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>(() => parseAnswers(PRESETS[0].profile.free_text).answers)
   const [notes, setNotes] = useState(() => parseAnswers(PRESETS[0].profile.free_text).notes)
   const [picked, setPicked] = useState<string | null>(PRESETS[0].id)
+  const [from, setFrom] = useState<string>(PRESETS[0].id) // the preset the form started from (kept through edits)
   const [qs, setQs] = useState<QuestionSet>(OFFLINE)
   const [mode, setMode] = useState<'form' | 'chat'>('form')
   const [track, setTrack] = useState<'health' | 'other'>(PRESETS[0].healthcare ? 'health' : 'other')
@@ -146,7 +147,7 @@ export default function Start({ live, hasRecording, onRun }: Props) {
 
   const use = (preset: Preset) => {
     const parsed = parseAnswers(preset.profile.free_text)
-    setP(preset.profile); setAnswers(parsed.answers); setNotes(parsed.notes); setPicked(preset.id)
+    setP(preset.profile); setAnswers(parsed.answers); setNotes(parsed.notes); setPicked(preset.id); setFrom(preset.id)
   }
   const switchTrack = (next: 'health' | 'other') => {
     if (next === track) return
@@ -271,7 +272,7 @@ export default function Start({ live, hasRecording, onRun }: Props) {
             {mode === 'chat' && live && track === 'other'
               ? <Chat onUse={(draft) => { const parsed = parseAnswers(draft.free_text); setP(draft); setAnswers(parsed.answers); setNotes(parsed.notes); setPicked(null); setMode('form') }} />
               : (
-          <form className="form" onSubmit={(e) => { e.preventDefault(); submit() }}>
+          <form className="form" onSubmit={(e) => { e.preventDefault(); if (!live && hasRecording(from)) { const pr = PRESETS.find((x) => x.id === from); if (pr) return onRun(pr.profile, from) } submit() }}>
             <section className="step">
               <span className="sn">1/6</span>
               <div className="sb">
@@ -392,8 +393,9 @@ export default function Start({ live, hasRecording, onRun }: Props) {
             </section>
 
             <div className="form-foot">
-              {picked && hasRecording(picked)
-                ? <button type="button" className="linkbtn" onClick={() => onRun(profile(), picked)}>Play the recorded run instead</button>
+              {hasRecording(from)
+                ? <button type="button" className="replaybtn" onClick={() => { const pr = PRESETS.find((x) => x.id === from); if (pr) onRun(pr.profile, from) }}>
+                    ▶ Play the recorded run{picked ? '' : ` of “${PRESETS.find((x) => x.id === from)?.label ?? from}” (your edits need a live run)`}</button>
                 : <span className={`foot-note ${tried && missing.length ? 'warn' : ''}`}>
                     {missing.length && live ? `Still needed: ${missing.join(', ')}.` : live ? 'Runs the live agent.' : 'Replays a recorded run.'}</span>}
               <button className="cta big" type="submit" disabled={live && missing.length > 0}><span className="arrow">↗</span>

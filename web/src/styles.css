@@ -530,15 +530,10 @@ a.source:hover { border-color: #000; color: #000; }
 .path ul { margin: 0; padding-left: 16px; font-size: 12px; color: var(--ink2); display: grid; gap: 3px; }
 /* healthcare intake: one accent (teal) for every selected or active control */
 .care .tabs button.on, .care .pill.on, .care .fns .fnrow .pill.on { background: var(--care); border-color: var(--care); color: #fff; }
-.care .cta .arrow, .care .cta .label { background: var(--care); }
-.care .tpl.on { outline-color: var(--care); }
 .care .fl input:focus, .care .fl select:focus, .care .fl textarea:focus { border-bottom-color: var(--care); }
 .care input[type=checkbox], .care input[type=range] { accent-color: var(--care); }
-.care .req, .care .step .sn { color: var(--care); }
 .care .hints button:hover { background: var(--care-soft); }
-.care .siterow .pillbtn.dark { background: var(--care); border-color: var(--care); color: #fff; }
 .care .intake-mode button.on .cross { background: #fff; color: var(--care); }
-.care .tpl { background: var(--care-soft) !important; }
-.care .tpl .shape { background: rgba(15,118,110,.18); }
-.care .tpl.on { background: var(--care) !important; color: #fff; outline-color: var(--care); }
-.care .tpl.on .shape { background: rgba(255,255,255,.25); }
+
+.replaybtn { border: 1px solid var(--ink); background: var(--card); border-radius: 999px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.replaybtn:hover { background: var(--lime2); }
